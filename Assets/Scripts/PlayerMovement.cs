@@ -15,20 +15,20 @@ public class PlayerMovement : MonoBehaviour
     [Header("Other Stuff")]
     public GameObject tile;
     public float speed = 1f;
-    private enum State{Idle, Walk, WalkToIdle, Turn};
+    private enum State{Idle, Walk};
     State state;
     // north +z, south -z, West -x, East +x
-    private enum Direction{North, South, West, East};
-    Direction direction;
     private Rigidbody rb;
     private float tileSize;
     private Coroutine movementRoutine;
     // Vector3.forward, Vector3.right, Vector3.back, Vector3.left
-    private Queue<Vector3> movementQueue = new Queue<Vector3>();
+    private List<Vector3> movementQueue = new List<Vector3>();
     private float walkWeight = 0f;
     private float blendSpeed = 5f;
     private Coroutine managerRoutine;
     private float animatorTimer = 0;
+    private Vector3 startPosition;
+    private Vector3 targetPosition;
 
     void Awake()
     {
@@ -37,15 +37,14 @@ public class PlayerMovement : MonoBehaviour
         tileSize = meshRenderer.bounds.size.x;
 
         state = State.Idle;
-        direction = Direction.North;
     }
 
     void Start()
     {
-        QueueMove(Vector3.forward);
-        QueueMove(Vector3.forward);
-        QueueMove(Vector3.right);
-        QueueMove(Vector3.right);
+        QueueMove(Vector3.forward * tileSize);
+        QueueMove(Vector3.forward * tileSize);
+        QueueMove(Vector3.right * tileSize);
+        QueueMove(Vector3.right * tileSize);
     }
 
     void Update()
@@ -54,7 +53,7 @@ public class PlayerMovement : MonoBehaviour
     }
     public void QueueMove(Vector3 direction)
     {
-        movementQueue.Enqueue(direction);
+        movementQueue.Add(direction);
         if (movementRoutine == null)
             movementRoutine = StartCoroutine(ProcessMovement());
     }
@@ -64,18 +63,16 @@ public class PlayerMovement : MonoBehaviour
         while (movementQueue.Count > 0)
         {
             ChangeState(State.Walk);
-            Vector3 currentDirection = movementQueue.Dequeue();
+            Vector3 currentDirection = movementQueue[0];
+            movementQueue.RemoveAt(0);
 
-            Vector3 startPosition = transform.position;
-            Vector3 targetPosition = transform.position + (currentDirection * tileSize);
+            startPosition = transform.position;
+            targetPosition = transform.position + currentDirection;
             transform.rotation = Quaternion.LookRotation(currentDirection);
-
-            float distanceTravel = 0f;
             
-            while (distanceTravel < tileSize)
+            while ((transform.position - targetPosition).sqrMagnitude > 0.01f)
             {
                 transform.position += transform.forward * speed * Time.deltaTime;
-                distanceTravel += speed * Time.deltaTime;
                 yield return null;
             }
 
@@ -125,5 +122,18 @@ public class PlayerMovement : MonoBehaviour
         
         animatorTimer = 0;
         managerRoutine = null;
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Wall"))
+        {
+            targetPosition = startPosition;
+            startPosition = transform.position;
+            StopCoroutine(movementRoutine);
+            state = State.Idle;
+            movementQueue.Insert(0, targetPosition - startPosition);
+            movementRoutine = StartCoroutine(ProcessMovement());
+        }
     }
 }
