@@ -1,9 +1,12 @@
 using System.IO;
+using System.Collections.Generic;
 using UnityEditor;
+using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public static class ControlUIPrefabBuilder
@@ -11,7 +14,7 @@ public static class ControlUIPrefabBuilder
     private const string PrefabFolder = "Assets/Prefabs/UI";
     private const string SpriteFolder = PrefabFolder + "/Sprites";
     private const string PrefabPath = PrefabFolder + "/ControlUI.prefab";
-    private const string FreeButtonSetFolder = "Assets/Art/UI/FreeButtonSet";
+    private const string ButtonSetFolder = "Assets/Art/UI/ButtonSet";
 
     public static void CreateControlUIPrefab()
     {
@@ -28,8 +31,24 @@ public static class ControlUIPrefabBuilder
         EditorGUIUtility.PingObject(prefab);
     }
 
-    [MenuItem("Tools/Lead The Way/Install Control UI In Current Scene")]
-    public static void InstallControlUIInCurrentScene()
+    [MenuItem("Tools/Lead The Way/Run One-Time Scene Setup")]
+    public static void RunOneTimeSceneSetup()
+    {
+        var ui = InstallControlUIInCurrentScene();
+        var configuredDoors = ConfigureDoorControlObjects();
+        var removedMissingScripts = RemoveMissingScriptsInActiveScene();
+
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        Selection.activeObject = ui;
+        EditorGUIUtility.PingObject(ui);
+
+        EditorUtility.DisplayDialog(
+            "Lead The Way Setup",
+            $"Scene setup complete.\n\nConfigured doors: {configuredDoors}\nRemoved missing script components: {removedMissingScripts}",
+            "OK");
+    }
+
+    private static GameObject InstallControlUIInCurrentScene()
     {
         var existing = GameObject.Find("Control UI");
         if (existing != null)
@@ -41,113 +60,83 @@ public static class ControlUIPrefabBuilder
         var root = CreateControlUIRoot();
         Undo.RegisterCreatedObjectUndo(root, "Install Control UI");
         EnsureEventSystem();
-
-        EditorSceneManager.MarkSceneDirty(root.scene);
-        Selection.activeObject = root;
-        EditorGUIUtility.PingObject(root);
+        return root;
     }
 
-    public static void AssignDefaultDoorUIIcons()
+    private static int ConfigureDoorControlObjects()
     {
         var actionIcon = LoadFreeButtonSetSprite("Textures/icons/128x128/play.png");
-        if (actionIcon == null)
-        {
-            EditorUtility.DisplayDialog("Door UI Icons", "Could not find the FreeButtonSet play icon.", "OK");
-            return;
-        }
-
         var changedCount = 0;
-        foreach (var doorControl in Object.FindObjectsByType<DoorControlActions>(FindObjectsSortMode.None))
-        {
-            var serialized = new SerializedObject(doorControl);
-            serialized.FindProperty("actionIcon").objectReferenceValue = actionIcon;
-            serialized.ApplyModifiedProperties();
-            EditorUtility.SetDirty(doorControl);
 
-            var selectable = doorControl.GetComponent<SelectableControlObject>();
-            if (selectable != null)
-            {
-                var selectableObject = new SerializedObject(selectable);
-                var actions = selectableObject.FindProperty("actions");
-                if (actions != null && actions.arraySize > 0)
-                {
-                    actions.GetArrayElementAtIndex(0).FindPropertyRelative("icon").objectReferenceValue = actionIcon;
-                    selectableObject.ApplyModifiedProperties();
-                    EditorUtility.SetDirty(selectable);
-                }
-            }
-
-            changedCount++;
-        }
-
-        if (changedCount > 0)
-            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-
-        EditorUtility.DisplayDialog("Door UI Icons", $"Assigned icons to {changedCount} door control object(s).", "OK");
-    }
-
-    [MenuItem("Tools/Lead The Way/Assign Control UI Sounds")]
-    public static void AssignControlUISounds()
-    {
-        var objectClick = LoadAudioClip("Assets/Sound/SoundEffects/object_click.wav");
-        var actionClick = LoadAudioClip("Assets/Sound/SoundEffects/action_click.wav");
-        var backClick = LoadAudioClip("Assets/Sound/SoundEffects/back_button_click.wav");
-
-        var changedCount = 0;
-        foreach (var ui in Object.FindObjectsByType<SelectionPanelsUI>(FindObjectsSortMode.None))
-        {
-            var audioSource = ui.GetComponent<AudioSource>();
-            if (audioSource == null)
-            {
-                audioSource = Undo.AddComponent<AudioSource>(ui.gameObject);
-                audioSource.playOnAwake = false;
-                audioSource.spatialBlend = 0f;
-            }
-
-            var serialized = new SerializedObject(ui);
-            serialized.FindProperty("objectClickSound").objectReferenceValue = objectClick;
-            serialized.FindProperty("actionClickSound").objectReferenceValue = actionClick;
-            serialized.FindProperty("backClickSound").objectReferenceValue = backClick;
-            serialized.FindProperty("audioSource").objectReferenceValue = audioSource;
-            serialized.ApplyModifiedProperties();
-            EditorUtility.SetDirty(ui);
-            changedCount++;
-        }
-
-        if (changedCount > 0)
-            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-
-        EditorUtility.DisplayDialog("Control UI Sounds", $"Assigned sounds to {changedCount} control UI object(s).", "OK");
-    }
-
-    [MenuItem("Tools/Lead The Way/Configure Door Audio")]
-    public static void ConfigureDoorAudio()
-    {
-        var changedCount = 0;
         foreach (var door in Object.FindObjectsByType<DoorScript.Door>(FindObjectsSortMode.None))
         {
-            Undo.RecordObject(door, "Configure Door Audio");
-            door.soundVolume = 1.5f;
-            door.spatialBlend = 0.2f;
-            EditorUtility.SetDirty(door);
+            ConfigureDoorAudio(door);
 
-            var source = door.GetComponent<AudioSource>();
-            if (source != null)
+            var target = GetControlTargetForDoor(door);
+            var connector = GetOrAddComponent<ControlObjectConnector>(target);
+            GetOrAddComponent<SelectableControlObject>(target);
+
+            var action = new ControlAction
             {
-                Undo.RecordObject(source, "Configure Door Audio Source");
-                source.playOnAwake = false;
-                source.volume = 1f;
-                source.spatialBlend = 0.2f;
-                EditorUtility.SetDirty(source);
-            }
+                label = "Open / Close",
+                icon = actionIcon
+            };
+            UnityEventTools.AddPersistentListener(action.onSelected, door.OpenDoor);
 
+            Undo.RecordObject(connector, "Configure Door Control Object");
+            connector.Configure(GetNextControlSlot(target), "Door", null, new List<ControlAction> { action });
+            EditorUtility.SetDirty(connector);
             changedCount++;
         }
 
-        if (changedCount > 0)
-            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        return changedCount;
+    }
 
-        EditorUtility.DisplayDialog("Door Audio", $"Configured audio on {changedCount} door object(s).", "OK");
+    private static void ConfigureDoorAudio(DoorScript.Door door)
+    {
+        Undo.RecordObject(door, "Configure Door Audio");
+        door.soundVolume = 1.5f;
+        door.spatialBlend = 0.2f;
+        EditorUtility.SetDirty(door);
+
+        var source = door.GetComponent<AudioSource>();
+        if (source == null)
+            source = Undo.AddComponent<AudioSource>(door.gameObject);
+
+        Undo.RecordObject(source, "Configure Door Audio Source");
+        source.playOnAwake = false;
+        source.volume = 1f;
+        source.spatialBlend = 0.2f;
+        EditorUtility.SetDirty(source);
+    }
+
+    private static GameObject GetControlTargetForDoor(DoorScript.Door door)
+    {
+        var connector = door.GetComponentInParent<ControlObjectConnector>();
+        if (connector != null)
+            return connector.gameObject;
+
+        var selectable = door.GetComponentInParent<SelectableControlObject>();
+        if (selectable != null)
+            return selectable.gameObject;
+
+        if (door.transform.parent != null)
+            return door.transform.parent.gameObject;
+
+        return door.gameObject;
+    }
+
+    private static int RemoveMissingScriptsInActiveScene()
+    {
+        var removedCount = 0;
+        var scene = SceneManager.GetActiveScene();
+        foreach (var root in scene.GetRootGameObjects())
+        {
+            foreach (var transform in root.GetComponentsInChildren<Transform>(true))
+                removedCount += GameObjectUtility.RemoveMonoBehavioursWithMissingScript(transform.gameObject);
+        }
+
+        return removedCount;
     }
 
     private static GameObject CreateControlUIRoot()
@@ -528,12 +517,40 @@ public static class ControlUIPrefabBuilder
 
     private static Sprite LoadFreeButtonSetSprite(string relativePath)
     {
-        return AssetDatabase.LoadAssetAtPath<Sprite>($"{FreeButtonSetFolder}/{relativePath}");
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{ButtonSetFolder}/{relativePath}");
+        if (sprite != null)
+            return sprite;
+
+        return AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/FreeButtonSet/{relativePath}");
     }
 
     private static AudioClip LoadAudioClip(string path)
     {
         return AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+    }
+
+    private static T GetOrAddComponent<T>(GameObject target) where T : Component
+    {
+        if (target.TryGetComponent<T>(out var existing))
+            return existing;
+
+        return Undo.AddComponent<T>(target);
+    }
+
+    private static int GetNextControlSlot(GameObject target)
+    {
+        var usedSlots = new HashSet<int>();
+        foreach (var selectable in Object.FindObjectsByType<SelectableControlObject>(FindObjectsSortMode.None))
+        {
+            if (selectable.gameObject != target)
+                usedSlots.Add(selectable.slotNumber);
+        }
+
+        var slot = 1;
+        while (usedSlots.Contains(slot))
+            slot++;
+
+        return slot;
     }
 
     private static void EnsureRoundedSpriteAsset(string name, int radius)
