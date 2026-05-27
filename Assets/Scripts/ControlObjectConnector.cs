@@ -5,21 +5,19 @@ using UnityEngine;
 [RequireComponent(typeof(SelectableControlObject))]
 public class ControlObjectConnector : MonoBehaviour
 {
-    [Header("UI Slot")]
-    [SerializeField] private int slotNumber = 1;
+    [Header("UI")]
     [SerializeField] private string displayName = "Object";
     [SerializeField] private Sprite icon;
 
     [Header("Actions")]
     [SerializeField] private List<ControlAction> actions = new List<ControlAction>();
 
-    public int SlotNumber => slotNumber;
+    public int SlotNumber => 0;
     public string DisplayName => displayName;
     public IReadOnlyList<ControlAction> Actions => actions;
 
-    public void Configure(int newSlotNumber, string newDisplayName, Sprite newIcon, List<ControlAction> newActions)
+    public void Configure(int ignoredSlotNumber, string newDisplayName, Sprite newIcon, List<ControlAction> newActions)
     {
-        slotNumber = newSlotNumber;
         displayName = newDisplayName;
         icon = newIcon;
         actions = newActions ?? new List<ControlAction>();
@@ -42,7 +40,6 @@ public class ControlObjectConnector : MonoBehaviour
         if (selectable == null)
             return;
 
-        selectable.slotNumber = slotNumber;
         selectable.displayName = string.IsNullOrWhiteSpace(displayName) ? gameObject.name : displayName;
         selectable.icon = icon;
         selectable.actions = actions;
