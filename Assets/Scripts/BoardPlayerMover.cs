@@ -7,6 +7,7 @@ public class BoardPlayerMover : MonoBehaviour
     [SerializeField] private BoardManager boardManager;
     [SerializeField] private BoardObject boardObject;
     [SerializeField] private PlayerMovement walkAnimation;
+    [SerializeField] private float rotateDuration = 0.16f;
     [SerializeField] private float moveDuration = 0.28f;
 
     private bool isMoving;
@@ -62,7 +63,7 @@ public class BoardPlayerMover : MonoBehaviour
         var direction = targetPosition - startPosition;
 
         if (direction.sqrMagnitude > 0.0001f)
-            transform.rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
+            yield return RotateToward(direction.normalized);
 
         if (walkAnimation != null)
         {
@@ -91,6 +92,31 @@ public class BoardPlayerMover : MonoBehaviour
 
         isMoving = false;
         moveRoutine = null;
+    }
+
+    private IEnumerator RotateToward(Vector3 direction)
+    {
+        var targetRotation = Quaternion.LookRotation(direction, Vector3.up);
+        if (Quaternion.Angle(transform.rotation, targetRotation) < 0.5f)
+        {
+            transform.rotation = targetRotation;
+            yield break;
+        }
+
+        var startRotation = transform.rotation;
+        var elapsed = 0f;
+        var duration = Mathf.Max(0.01f, rotateDuration);
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            var t = Mathf.Clamp01(elapsed / duration);
+            t = Mathf.SmoothStep(0f, 1f, t);
+            transform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
+            yield return null;
+        }
+
+        transform.rotation = targetRotation;
     }
 
     private void EnsureReferences()

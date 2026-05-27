@@ -183,6 +183,7 @@ public class SelectionPanelsUI : MonoBehaviour
         });
 
         SetChildText(button.transform, "Number", GetRuntimeSlot(item).ToString());
+        StyleNumberBadge(button.transform);
         SetChildImage(button.transform, "Icon", item.icon);
         SetChildText(button.transform, "Fallback Icon", GetFallbackIconText(item.displayName));
         SetChildActive(button.transform, "Fallback Icon", item.icon == null);
@@ -380,6 +381,7 @@ public class SelectionPanelsUI : MonoBehaviour
         var icon = action.icon != null ? action.icon : defaultActionIcon;
 
         SetChildText(button.transform, "Number", slotNumber.ToString());
+        StyleNumberBadge(button.transform);
         SetChildText(button.transform, "Label", action.label);
         SetChildImage(button.transform, "Icon", icon);
         SetChildText(button.transform, "Fallback Icon", GetFallbackIconText(action.label));
@@ -573,6 +575,58 @@ public class SelectionPanelsUI : MonoBehaviour
         var child = FindDeep(root, childName);
         if (child != null)
             child.gameObject.SetActive(active);
+    }
+
+    private void StyleNumberBadge(Transform root)
+    {
+        var background = FindDeep(root, "Number Background");
+        if (background != null)
+        {
+            var backgroundRect = background.GetComponent<RectTransform>();
+            if (backgroundRect != null)
+            {
+                backgroundRect.anchorMin = new Vector2(0.5f, 0f);
+                backgroundRect.anchorMax = new Vector2(0.5f, 0f);
+                backgroundRect.pivot = new Vector2(0.5f, 0f);
+                backgroundRect.anchoredPosition = new Vector2(0f, 3f);
+                backgroundRect.sizeDelta = new Vector2(24f, 15f);
+            }
+
+            var image = background.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = new Color(0.16f, 0.11f, 0.05f, 0.94f);
+                image.raycastTarget = false;
+            }
+
+            background.SetAsLastSibling();
+        }
+
+        var number = FindDeep(root, "Number");
+        if (number == null)
+            return;
+
+        var numberRect = number.GetComponent<RectTransform>();
+        if (numberRect != null)
+        {
+            numberRect.anchorMin = new Vector2(0.5f, 0f);
+            numberRect.anchorMax = new Vector2(0.5f, 0f);
+            numberRect.pivot = new Vector2(0.5f, 0f);
+            numberRect.anchoredPosition = new Vector2(0f, 3f);
+            numberRect.sizeDelta = new Vector2(24f, 15f);
+        }
+
+        var text = number.GetComponent<Text>();
+        if (text != null)
+        {
+            text.fontSize = 10;
+            text.fontStyle = FontStyle.Bold;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(1f, 0.94f, 0.78f, 1f);
+            text.raycastTarget = false;
+        }
+
+        number.SetAsLastSibling();
     }
 
     private Transform FindDeep(Transform root, string childName)

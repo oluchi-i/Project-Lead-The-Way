@@ -94,7 +94,7 @@ public class InteractionFlowManager : MonoBehaviour
             foreach (var direction in Directions)
             {
                 var next = current + direction;
-                if (visited.Contains(next) || boardManager.IsBlocked(next, playerObject))
+                if (visited.Contains(next) || !boardManager.CanEnterTile(playerObject, next))
                     continue;
 
                 visited.Add(next);
@@ -109,16 +109,34 @@ public class InteractionFlowManager : MonoBehaviour
     private HashSet<Vector2Int> GetDoorApproachTiles()
     {
         var goals = new HashSet<Vector2Int>();
+        foreach (var goalObject in boardManager.GetGoalObjects())
+        {
+            if (goalObject != null && boardManager.CanEnterTile(playerObject, goalObject.TilePosition))
+                goals.Add(goalObject.TilePosition);
+        }
+
+        if (goals.Count > 0 && IsTargetDoorOpen())
+            return goals;
+
         var doorTile = targetDoor.TilePosition;
 
         foreach (var direction in Directions)
         {
             var candidate = doorTile + direction;
-            if (boardManager.IsInsideBounds(candidate) && !boardManager.IsBlocked(candidate, playerObject))
+            if (boardManager.CanEnterTile(playerObject, candidate))
                 goals.Add(candidate);
         }
 
         return goals;
+    }
+
+    private bool IsTargetDoorOpen()
+    {
+        if (targetDoor == null)
+            return true;
+
+        var door = targetDoor.GetComponentInChildren<DoorScript.Door>(true);
+        return door == null || door.open;
     }
 
     private static Vector2Int ReconstructFirstDirection(Vector2Int start, Vector2Int goal, Dictionary<Vector2Int, Vector2Int> cameFrom)

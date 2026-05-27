@@ -136,12 +136,65 @@ public class BoardManager : MonoBehaviour
         if (!IsInsideBounds(tile))
             return true;
 
+        return IsBlockedByObjects(tile, ignoredObject);
+    }
+
+    public bool CanEnterTile(BoardObject movingObject, Vector2Int tile)
+    {
+        if (movingObject == null)
+            return false;
+
+        if (IsInsideBounds(tile))
+            return !IsBlockedByObjects(tile, movingObject);
+
+        if (movingObject.ObjectType == BoardObjectType.Player && IsGoalTile(tile))
+            return !IsBlockedByObjects(tile, movingObject, true);
+
+        return false;
+    }
+
+    public bool IsGoalTile(Vector2Int tile)
+    {
         if (!objectsByTile.TryGetValue(tile, out var tileObjects))
             return false;
 
         foreach (var boardObject in tileObjects)
         {
-            if (boardObject == ignoredObject)
+            if (boardObject != null && boardObject.ObjectType == BoardObjectType.Goal)
+                return true;
+        }
+
+        return false;
+    }
+
+    public List<BoardObject> GetGoalObjects()
+    {
+        var goals = new List<BoardObject>();
+        foreach (var boardObject in objectsById.Values)
+        {
+            if (boardObject != null && boardObject.ObjectType == BoardObjectType.Goal && boardObject.gameObject.activeInHierarchy)
+                goals.Add(boardObject);
+        }
+
+        return goals;
+    }
+
+    private bool IsBlockedByObjects(Vector2Int tile, BoardObject ignoredObject)
+    {
+        return IsBlockedByObjects(tile, ignoredObject, false);
+    }
+
+    private bool IsBlockedByObjects(Vector2Int tile, BoardObject ignoredObject, bool allowPlayerGoalEntry)
+    {
+        if (!objectsByTile.TryGetValue(tile, out var tileObjects))
+            return false;
+
+        foreach (var boardObject in tileObjects)
+        {
+            if (boardObject == null || boardObject == ignoredObject)
+                continue;
+
+            if (allowPlayerGoalEntry && (boardObject.ObjectType == BoardObjectType.Goal || boardObject.ObjectType == BoardObjectType.Door))
                 continue;
 
             if (boardObject.BlocksMovement)
@@ -164,7 +217,7 @@ public class BoardManager : MonoBehaviour
         fromTile = boardObject.TilePosition;
         toTile = fromTile + direction;
 
-        if (IsBlocked(toTile, boardObject))
+        if (!CanEnterTile(boardObject, toTile))
             return false;
 
         boardObject.SetTilePosition(toTile);
