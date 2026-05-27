@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -16,6 +19,12 @@ public class SelectionPanelsUI : MonoBehaviour
     [SerializeField] private Text objectPanelTitle;
     [SerializeField] private Transform objectButtonContainer;
     [SerializeField] private Button objectButtonTemplate;
+    [SerializeField] private int objectsPerPage = 6;
+    [SerializeField] private Button objectPreviousPageButton;
+    [SerializeField] private Button objectNextPageButton;
+    [SerializeField] private Text objectPageText;
+    [SerializeField] private Sprite previousPageIcon;
+    [SerializeField] private Sprite nextPageIcon;
 
     [Header("Action Panel")]
     [SerializeField] private Text actionPanelTitle;
@@ -41,11 +50,25 @@ public class SelectionPanelsUI : MonoBehaviour
 
     private readonly List<GameObject> highlightOutlines = new List<GameObject>();
     private Material highlightMaterial;
+    private int objectPage;
+    private static readonly Color NavigationButtonColor = new Color(0.16f, 0.11f, 0.05f, 0.88f);
+    private static readonly Color NavigationTextColor = new Color(1f, 0.93f, 0.72f, 1f);
 
     private void Awake()
     {
         if (backButton != null)
+        {
             backButton.onClick.AddListener(GoBackToObjects);
+            StyleBackButton();
+        }
+
+        EnsureObjectPaginationButtons();
+
+        if (objectPreviousPageButton != null)
+            objectPreviousPageButton.onClick.AddListener(ShowPreviousObjectPage);
+
+        if (objectNextPageButton != null)
+            objectNextPageButton.onClick.AddListener(ShowNextObjectPage);
 
         if (audioSource == null)
             audioSource = GetComponent<AudioSource>();
@@ -101,12 +124,8 @@ public class SelectionPanelsUI : MonoBehaviour
         HideSceneHighlight();
         objectPanel.SetActive(true);
         actionPanel.SetActive(false);
-        objectPanelTitle.text = "SELECT OBJECT";
 
-        ClearContainer(objectButtonContainer, objectButtonTemplate);
-
-        foreach (var item in objects)
-            CreateObjectButton(item);
+        RenderObjectPage();
     }
 
     private void ShowActions(SelectableControlObject selectedObject)
@@ -139,6 +158,183 @@ public class SelectionPanelsUI : MonoBehaviour
         SetChildImage(button.transform, "Icon", item.icon);
         SetChildText(button.transform, "Fallback Icon", GetFallbackIconText(item.displayName));
         SetChildActive(button.transform, "Fallback Icon", item.icon == null);
+    }
+
+    private void RenderObjectPage()
+    {
+        var pageSize = Mathf.Max(1, objectsPerPage);
+        var maxPage = Mathf.Max(0, Mathf.CeilToInt(objects.Count / (float)pageSize) - 1);
+        objectPage = Mathf.Clamp(objectPage, 0, maxPage);
+
+        objectPanelTitle.text = "SELECT OBJECT";
+        SetPageText(maxPage > 0 ? $"{objectPage + 1}/{maxPage + 1}" : string.Empty);
+
+        ClearContainer(objectButtonContainer, objectButtonTemplate);
+
+        var start = objectPage * pageSize;
+        var end = Mathf.Min(start + pageSize, objects.Count);
+        for (var i = start; i < end; i++)
+            CreateObjectButton(objects[i]);
+
+        SetPageButtonState(objectPreviousPageButton, objectPage > 0);
+        SetPageButtonState(objectNextPageButton, objectPage < maxPage);
+    }
+
+    private void ShowPreviousObjectPage()
+    {
+        if (objectPage <= 0)
+        {
+            objectPage = 0;
+            return;
+        }
+
+        objectPage--;
+
+        PlaySound(backClickSound);
+        RenderObjectPage();
+        ClearFocus();
+    }
+
+    private void ShowNextObjectPage()
+    {
+        var pageSize = Mathf.Max(1, objectsPerPage);
+        var maxPage = Mathf.Max(0, Mathf.CeilToInt(objects.Count / (float)pageSize) - 1);
+        if (objectPage >= maxPage)
+        {
+            objectPage = maxPage;
+            return;
+        }
+
+        objectPage++;
+
+        PlaySound(objectClickSound);
+        RenderObjectPage();
+        ClearFocus();
+    }
+
+    private void SetPageButtonState(Button button, bool isVisible)
+    {
+        if (button == null)
+            return;
+
+        button.gameObject.SetActive(true);
+        button.interactable = isVisible;
+
+        var opacity = isVisible ? 1f : 0.32f;
+        foreach (var graphic in button.GetComponentsInChildren<Graphic>())
+        {
+            var color = graphic.color;
+            color.a = opacity;
+            graphic.color = color;
+        }
+    }
+
+    private void EnsureObjectPaginationButtons()
+    {
+        if (objectPanel == null)
+            return;
+
+        if (previousPageIcon == null)
+            previousPageIcon = LoadEditorSprite("Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_left.png");
+
+        if (nextPageIcon == null)
+            nextPageIcon = LoadEditorSprite("Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_right.png");
+
+        if (objectPreviousPageButton == null)
+            objectPreviousPageButton = CreatePaginationButton("Previous Object Page", previousPageIcon, new Vector2(-74f, -8f), objectPanel.transform);
+
+        if (objectNextPageButton == null)
+            objectNextPageButton = CreatePaginationButton("Next Object Page", nextPageIcon, new Vector2(-18f, -8f), objectPanel.transform);
+
+        if (objectPageText == null)
+            objectPageText = CreatePaginationText("Object Page Text", new Vector2(-46f, -8f), objectPanel.transform);
+    }
+
+    private Button CreatePaginationButton(string name, Sprite icon, Vector2 anchoredPosition, Transform parent)
+    {
+        var buttonObject = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+        buttonObject.transform.SetParent(parent, false);
+
+        var rect = buttonObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(1f, 1f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = new Vector2(18f, 16f);
+
+        var image = buttonObject.GetComponent<Image>();
+        image.color = NavigationButtonColor;
+
+        var iconObject = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        iconObject.transform.SetParent(buttonObject.transform, false);
+        var iconRect = iconObject.GetComponent<RectTransform>();
+        iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+        iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+        iconRect.pivot = new Vector2(0.5f, 0.5f);
+        iconRect.anchoredPosition = Vector2.zero;
+        iconRect.sizeDelta = new Vector2(10f, 10f);
+
+        var iconImage = iconObject.GetComponent<Image>();
+        iconImage.sprite = icon;
+        iconImage.color = NavigationTextColor;
+        iconImage.preserveAspect = true;
+        iconImage.raycastTarget = false;
+
+        var button = buttonObject.GetComponent<Button>();
+        button.transition = Selectable.Transition.None;
+        button.navigation = new Navigation { mode = Navigation.Mode.None };
+        return button;
+    }
+
+    private Text CreatePaginationText(string name, Vector2 anchoredPosition, Transform parent)
+    {
+        var textObject = new GameObject(name, typeof(RectTransform), typeof(Text));
+        textObject.transform.SetParent(parent, false);
+
+        var rect = textObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(1f, 1f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = new Vector2(34f, 16f);
+
+        var text = textObject.GetComponent<Text>();
+        text.font = objectPanelTitle != null ? objectPanelTitle.font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.fontSize = 11;
+        text.fontStyle = FontStyle.Bold;
+        text.alignment = TextAnchor.MiddleCenter;
+        text.color = new Color(0.24f, 0.17f, 0.08f, 0.82f);
+        text.raycastTarget = false;
+        return text;
+    }
+
+    private void StyleBackButton()
+    {
+        var image = backButton.GetComponent<Image>();
+        if (image != null)
+            image.color = NavigationButtonColor;
+
+        var label = backButton.GetComponentInChildren<Text>(true);
+        if (label != null)
+            label.color = NavigationTextColor;
+    }
+
+    private void SetPageText(string value)
+    {
+        if (objectPageText == null)
+            return;
+
+        objectPageText.text = value;
+        objectPageText.gameObject.SetActive(!string.IsNullOrEmpty(value));
+    }
+
+    private Sprite LoadEditorSprite(string path)
+    {
+#if UNITY_EDITOR
+        return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+#else
+        return null;
+#endif
     }
 
     private void CreateActionButton(ControlAction action, int slotNumber)
