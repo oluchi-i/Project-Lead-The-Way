@@ -7,7 +7,6 @@ using UnityEngine.UI;
 
 public static class LeadTheWayObjectSetupTools
 {
-    private const string ControlUIPrefabPath = "Assets/Prefabs/UI/ControlUI.prefab";
     private const string PanelSoftPath = "Assets/Prefabs/UI/Sprites/PanelSoft.asset";
     private const string BadgeSoftPath = "Assets/Prefabs/UI/Sprites/BadgeSoft.asset";
     private const string PoppinsBoldPath = "Assets/Art/UI/Fonts/Poppins-Bold.ttf";
@@ -38,26 +37,6 @@ public static class LeadTheWayObjectSetupTools
         Selection.activeGameObject = systems;
         EditorGUIUtility.PingObject(boardManager);
         EditorUtility.DisplayDialog("Create Board Manager", "Created BoardManager on Game Systems.", "OK");
-    }
-
-    [MenuItem("Tools/Lead The Way/Board/Create Interaction Flow Manager")]
-    public static void CreateInteractionFlowManager()
-    {
-        var existing = UnityEngine.Object.FindAnyObjectByType<InteractionFlowManager>();
-        if (existing != null)
-        {
-            Selection.activeGameObject = existing.gameObject;
-            EditorGUIUtility.PingObject(existing);
-            EditorUtility.DisplayDialog("Create Interaction Flow Manager", "An InteractionFlowManager already exists in the scene.", "OK");
-            return;
-        }
-
-        var systems = GetOrCreateGameSystems();
-        var flowManager = Undo.AddComponent<InteractionFlowManager>(systems);
-        EditorSceneManager.MarkSceneDirty(systems.scene);
-        Selection.activeGameObject = systems;
-        EditorGUIUtility.PingObject(flowManager);
-        EditorUtility.DisplayDialog("Create Interaction Flow Manager", "Created InteractionFlowManager on Game Systems.", "OK");
     }
 
     [MenuItem("Tools/Lead The Way/Board/Wire Interaction Flow References")]
@@ -106,14 +85,6 @@ public static class LeadTheWayObjectSetupTools
         EditorUtility.DisplayDialog("Wire Interaction Flow", "Wired BoardManager, PlayerMover, PlayerObject, and TargetDoor.", "OK");
     }
 
-    [MenuItem("Tools/Lead The Way/UI/Setup Interaction Counter")]
-    public static void SetupInteractionCounter()
-    {
-        var canvas = FindOrCreateCanvas();
-        SetupInteractionCounter(canvas);
-        EditorUtility.DisplayDialog("Setup Interaction Counter", "Created and wired the top-left interaction counter.", "OK");
-    }
-
     [MenuItem("Tools/Lead The Way/UI/Setup Gameplay UI")]
     public static void SetupGameplayUI()
     {
@@ -128,63 +99,10 @@ public static class LeadTheWayObjectSetupTools
         EditorUtility.DisplayDialog("Setup Gameplay UI", "Gameplay UI is styled, parented under Canvas, and wired.", "OK");
     }
 
-    [MenuItem("Tools/Lead The Way/UI/Wire Control UI References")]
-    public static void WireControlUIReferences()
-    {
-        var canvas = FindOrCreateCanvas();
-        var root = SetupStableControlUI(canvas);
-        Selection.activeGameObject = root;
-        EditorGUIUtility.PingObject(root);
-        EditorUtility.DisplayDialog("Wire Control UI", "Control UI panels, templates, pagination, and references are wired.", "OK");
-    }
-
-    [MenuItem("Tools/Lead The Way/UI/Repair Control UI Visibility")]
-    public static void RepairControlUIVisibility()
-    {
-        var selectionUI = UnityEngine.Object.FindAnyObjectByType<SelectionPanelsUI>();
-        if (selectionUI == null)
-        {
-            EditorUtility.DisplayDialog("Repair Control UI", "No SelectionPanelsUI exists yet. Run Tools > Lead The Way > UI > Wire Control UI References first.", "OK");
-            return;
-        }
-
-        var canvas = FindOrCreateCanvas();
-        var root = selectionUI.gameObject;
-        Undo.SetTransformParent(root.transform, canvas.transform, "Parent Control UI To Canvas");
-        root.transform.SetAsLastSibling();
-        root.SetActive(true);
-
-        var rootRect = root.GetComponent<RectTransform>();
-        ConfigureRect(rootRect, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 18f), new Vector2(520f, 96f));
-
-        var serialized = new SerializedObject(selectionUI);
-        var objectPanel = serialized.FindProperty("objectPanel")?.objectReferenceValue as GameObject;
-        var actionPanel = serialized.FindProperty("actionPanel")?.objectReferenceValue as GameObject;
-        if (objectPanel != null)
-            objectPanel.SetActive(true);
-        if (actionPanel != null)
-            actionPanel.SetActive(false);
-
-        EditorUtility.SetDirty(canvas);
-        EditorUtility.SetDirty(root);
-        EditorUtility.SetDirty(selectionUI);
-        EditorSceneManager.MarkSceneDirty(root.scene);
-
-        Selection.activeGameObject = root;
-        EditorGUIUtility.PingObject(root);
-        EditorUtility.DisplayDialog("Repair Control UI", "Control UI is now parented under a Screen Space Overlay Canvas and positioned bottom-center.", "OK");
-    }
-
-    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/Auto Guess")]
+    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects")]
     public static void SetupSelectedBoardObjectsAuto()
     {
         SetupSelectedBoardObjects(null);
-    }
-
-    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Player")]
-    public static void SetupSelectedBoardObjectsAsPlayer()
-    {
-        SetupSelectedBoardObjects(BoardObjectType.Player);
     }
 
     [MenuItem("Tools/Lead The Way/Board/Setup Selected Player Progression")]
@@ -255,48 +173,6 @@ public static class LeadTheWayObjectSetupTools
         EditorUtility.DisplayDialog("Setup Player Progression", $"Configured {targets.Count} player object(s) for interaction-driven board movement.", "OK");
     }
 
-    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Box")]
-    public static void SetupSelectedBoardObjectsAsBox()
-    {
-        SetupSelectedBoardObjects(BoardObjectType.Box);
-    }
-
-    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Door")]
-    public static void SetupSelectedBoardObjectsAsDoor()
-    {
-        SetupSelectedBoardObjects(BoardObjectType.Door);
-    }
-
-    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Spike")]
-    public static void SetupSelectedBoardObjectsAsSpike()
-    {
-        SetupSelectedBoardObjects(BoardObjectType.Spike);
-    }
-
-    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Button")]
-    public static void SetupSelectedBoardObjectsAsButton()
-    {
-        SetupSelectedBoardObjects(BoardObjectType.Button);
-    }
-
-    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Lever")]
-    public static void SetupSelectedBoardObjectsAsLever()
-    {
-        SetupSelectedBoardObjects(BoardObjectType.Lever);
-    }
-
-    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Wall")]
-    public static void SetupSelectedBoardObjectsAsWall()
-    {
-        SetupSelectedBoardObjects(BoardObjectType.Wall);
-    }
-
-    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Goal")]
-    public static void SetupSelectedBoardObjectsAsGoal()
-    {
-        SetupSelectedBoardObjects(BoardObjectType.Goal);
-    }
-
     [MenuItem("Tools/Lead The Way/Board/Setup Selected Destination Tile")]
     public static void SetupSelectedDestinationTile()
     {
@@ -329,44 +205,6 @@ public static class LeadTheWayObjectSetupTools
 
         EditorSceneManager.MarkSceneDirty(selectedBoardObjects[0].gameObject.scene);
         EditorUtility.DisplayDialog("Sync Board Tiles", $"Synced {selectedBoardObjects.Count} BoardObject tile position(s) from their transforms.", "OK");
-    }
-
-    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Movers As Boxes")]
-    public static void SetupSelectedBoardMoversAsBoxes()
-    {
-        var targets = GetSelectedSceneObjects();
-        if (targets.Count == 0)
-        {
-            EditorUtility.DisplayDialog("Setup Board Movers", "Select one or more box GameObjects in the Hierarchy first.", "OK");
-            return;
-        }
-
-        var boardManager = UnityEngine.Object.FindAnyObjectByType<BoardManager>();
-        if (boardManager == null)
-        {
-            EditorUtility.DisplayDialog("Setup Board Movers", "Create a BoardManager first: Tools > Lead The Way > Board > Create Board Manager.", "OK");
-            return;
-        }
-
-        foreach (var target in targets)
-        {
-            var boardObject = GetOrAddComponent<BoardObject>(target);
-            var mover = GetOrAddComponent<GridTileMover>(target);
-
-            Undo.RecordObject(boardObject, "Setup Board Mover");
-            Undo.RecordObject(mover, "Setup Board Mover");
-
-            boardObject.Configure(BoardObjectType.Box, true, true, true);
-            boardObject.SyncTileFromTransform(boardManager.WorldOrigin, boardManager.TileSize);
-            mover.ConfigureBoardMovement(true, false);
-
-            EditorUtility.SetDirty(boardObject);
-            EditorUtility.SetDirty(mover);
-        }
-
-        boardManager.RebuildRegistry();
-        EditorSceneManager.MarkSceneDirty(targets[0].scene);
-        EditorUtility.DisplayDialog("Setup Board Movers", $"Configured {targets.Count} board-controlled box mover(s).", "OK");
     }
 
     [MenuItem("Tools/Lead The Way/Board/Report Registered Board Objects")]
@@ -576,109 +414,6 @@ public static class LeadTheWayObjectSetupTools
         return root;
     }
 
-    private static GameObject SetupControlUIFromPrefab(Canvas canvas)
-    {
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ControlUIPrefabPath);
-        if (prefab == null)
-        {
-            EditorUtility.DisplayDialog("Setup Gameplay UI", $"Could not find UI prefab at {ControlUIPrefabPath}.", "OK");
-            return null;
-        }
-
-        foreach (var existing in UnityEngine.Object.FindObjectsByType<SelectionPanelsUI>(FindObjectsInactive.Include))
-        {
-            if (existing == null || EditorUtility.IsPersistent(existing))
-                continue;
-
-            Undo.DestroyObjectImmediate(existing.gameObject);
-        }
-
-        var root = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
-        Undo.RegisterCreatedObjectUndo(root, "Create Control UI From Prefab");
-        root.name = "Control UI";
-        Undo.SetTransformParent(root.transform, canvas.transform, "Parent Control UI To Canvas");
-        root.transform.SetAsLastSibling();
-        root.SetActive(true);
-
-        UnwrapNestedCanvas(root.transform);
-
-        var rootRect = root.GetComponent<RectTransform>();
-        ConfigureRect(rootRect, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 18f), new Vector2(520f, 96f));
-
-        var selectionUI = root.GetComponent<SelectionPanelsUI>();
-        var audioSource = GetOrAddComponent<AudioSource>(root);
-        var objectPanel = FindDeep(root.transform, "Object Panel")?.gameObject;
-        var actionPanel = FindDeep(root.transform, "Action Panel")?.gameObject;
-        var objectContainer = FindDeep(root.transform, "Object Button Container");
-        var actionContainer = FindDeep(root.transform, "Action Button Container");
-        var objectTemplate = FindDeep(root.transform, "Object Button Template")?.GetComponent<Button>();
-        var actionTemplate = FindDeep(root.transform, "Action Button Template")?.GetComponent<Button>();
-
-        if (objectPanel != null)
-            StyleMainPanel(objectPanel, true);
-        if (actionPanel != null)
-            StyleMainPanel(actionPanel, false);
-
-        if (objectContainer != null)
-            ConfigureButtonContainer(objectContainer);
-        if (actionContainer != null)
-            ConfigureButtonContainer(actionContainer);
-
-        if (objectTemplate != null)
-            StyleControlButton(objectTemplate);
-        if (actionTemplate != null)
-            StyleControlButton(actionTemplate);
-
-        var previousIcon = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_left.png");
-        var nextIcon = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_right.png");
-        var playIcon = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/ButtonSet/Textures/icons/128x128/play.png");
-
-        var previousButton = objectPanel != null ? EnsureSmallIconButton(objectPanel.transform, "Previous Object Page", previousIcon, new Vector2(-74f, -8f)) : null;
-        var nextButton = objectPanel != null ? EnsureSmallIconButton(objectPanel.transform, "Next Object Page", nextIcon, new Vector2(-18f, -8f)) : null;
-        var pageText = objectPanel != null ? EnsureText(objectPanel.transform, "Object Page Text", "1/1", 13, FontStyle.Bold, TextAnchor.MiddleCenter) : null;
-        if (pageText != null)
-        {
-            ConfigureRect(pageText.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), new Vector2(-46f, -8f), new Vector2(38f, 16f));
-            pageText.color = new Color(0.24f, 0.17f, 0.08f, 0.9f);
-            pageText.raycastTarget = false;
-        }
-
-        var backButton = actionPanel != null ? EnsureBackButton(actionPanel.transform) : null;
-        var objectTitle = objectPanel != null ? FindDeep(objectPanel.transform, "Title")?.GetComponent<Text>() : null;
-        var actionTitle = actionPanel != null ? FindDeep(actionPanel.transform, "Title")?.GetComponent<Text>() : null;
-        StyleTitle(objectTitle, "SELECT OBJECT");
-        StyleTitle(actionTitle, "ACTION");
-
-        var serialized = new SerializedObject(selectionUI);
-        SetObject(serialized, "objectPanel", objectPanel);
-        SetObject(serialized, "actionPanel", actionPanel);
-        SetObject(serialized, "objectPanelTitle", objectTitle);
-        SetObject(serialized, "objectButtonContainer", objectContainer);
-        SetObject(serialized, "objectButtonTemplate", objectTemplate);
-        SetObject(serialized, "objectPreviousPageButton", previousButton);
-        SetObject(serialized, "objectNextPageButton", nextButton);
-        SetObject(serialized, "objectPageText", pageText);
-        SetObject(serialized, "previousPageIcon", previousIcon);
-        SetObject(serialized, "nextPageIcon", nextIcon);
-        SetObject(serialized, "actionPanelTitle", actionTitle);
-        SetObject(serialized, "actionButtonContainer", actionContainer);
-        SetObject(serialized, "actionButtonTemplate", actionTemplate);
-        SetObject(serialized, "backButton", backButton);
-        SetObject(serialized, "defaultActionIcon", playIcon);
-        SetObject(serialized, "audioSource", audioSource);
-        SetObject(serialized, "interactionFlowManager", UnityEngine.Object.FindAnyObjectByType<InteractionFlowManager>());
-        serialized.ApplyModifiedProperties();
-
-        if (objectPanel != null)
-            objectPanel.SetActive(true);
-        if (actionPanel != null)
-            actionPanel.SetActive(false);
-
-        EditorUtility.SetDirty(root);
-        EditorUtility.SetDirty(selectionUI);
-        return root;
-    }
-
     private static void SetupInteractionCounter(Canvas canvas)
     {
         var flowManager = UnityEngine.Object.FindAnyObjectByType<InteractionFlowManager>();
@@ -754,19 +489,6 @@ public static class LeadTheWayObjectSetupTools
         EditorUtility.SetDirty(flashUI);
         EditorUtility.SetDirty(flowManager);
         EditorUtility.SetDirty(flashRoot);
-    }
-
-    private static void UnwrapNestedCanvas(Transform root)
-    {
-        var nestedCanvas = root.GetComponentInChildren<Canvas>(true);
-        if (nestedCanvas == null || nestedCanvas.transform == root)
-            return;
-
-        var nestedTransform = nestedCanvas.transform;
-        while (nestedTransform.childCount > 0)
-            Undo.SetTransformParent(nestedTransform.GetChild(0), root, "Move Styled UI Out Of Nested Canvas");
-
-        Undo.DestroyObjectImmediate(nestedCanvas.gameObject);
     }
 
     private static void StyleMainPanel(GameObject panel, bool isObjectPanel)
