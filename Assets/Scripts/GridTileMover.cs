@@ -10,6 +10,7 @@ public class GridTileMover : MonoBehaviour
 
     private BoardManager boardManager;
     private BoardObject boardObject;
+    private InteractionFlowManager interactionFlowManager;
     private bool isMoving;
     private float moveElapsed;
     private Vector3 moveStart;
@@ -19,6 +20,7 @@ public class GridTileMover : MonoBehaviour
     {
         boardObject = GetComponent<BoardObject>();
         boardManager = FindAnyObjectByType<BoardManager>();
+        interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
     }
 
     private void Update()
@@ -81,6 +83,7 @@ public class GridTileMover : MonoBehaviour
         {
             var safeBoardManager = boardManager != null ? boardManager : FindAnyObjectByType<BoardManager>();
             moveTarget = safeBoardManager.TileToWorld(targetTile, moveStart.y);
+            RegisterSuccessfulInteraction();
         }
         else if (useBoardManager)
         {
@@ -93,6 +96,18 @@ public class GridTileMover : MonoBehaviour
 
         moveElapsed = 0f;
         isMoving = true;
+    }
+
+    private void RegisterSuccessfulInteraction()
+    {
+        if (boardObject != null && boardObject.ObjectType == BoardObjectType.Player)
+            return;
+
+        if (interactionFlowManager == null)
+            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+
+        if (interactionFlowManager != null)
+            interactionFlowManager.RegisterInteraction();
     }
 
     private bool TryMoveOnBoard(Vector2Int boardDirection, out Vector2Int targetTile)

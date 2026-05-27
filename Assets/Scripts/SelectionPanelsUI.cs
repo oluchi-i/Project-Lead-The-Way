@@ -39,6 +39,9 @@ public class SelectionPanelsUI : MonoBehaviour
     [SerializeField] private AudioClip backClickSound;
     [SerializeField] private AudioSource audioSource;
 
+    [Header("Flow")]
+    [SerializeField] private InteractionFlowManager interactionFlowManager;
+
     [Header("Scene Highlight")]
     [SerializeField] private bool showSceneHighlight = true;
     [SerializeField] private Color highlightColor = new Color(1f, 0.72f, 0.12f, 0.75f);
@@ -76,6 +79,9 @@ public class SelectionPanelsUI : MonoBehaviour
 
         if (audioSource == null)
             audioSource = gameObject.AddComponent<AudioSource>();
+
+        if (interactionFlowManager == null)
+            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
 
         HideTemplate(objectButtonTemplate);
         HideTemplate(actionButtonTemplate);
@@ -126,7 +132,7 @@ public class SelectionPanelsUI : MonoBehaviour
                 orderedObjects.Add(selectable);
         }
 
-        foreach (var selectable in FindObjectsByType<SelectableControlObject>(FindObjectsSortMode.None).OrderBy(item => item.name))
+        foreach (var selectable in FindObjectsByType<SelectableControlObject>(FindObjectsInactive.Exclude).OrderBy(item => item.name))
         {
             if (!orderedObjects.Contains(selectable))
                 orderedObjects.Add(selectable);
@@ -367,7 +373,7 @@ public class SelectionPanelsUI : MonoBehaviour
         button.onClick.AddListener(() =>
         {
             PlaySound(actionClickSound);
-            action.Invoke();
+            InvokeControlAction(action);
             ClearFocus();
         });
 
@@ -403,9 +409,23 @@ public class SelectionPanelsUI : MonoBehaviour
         if (index >= 0 && index < currentObject.actions.Count)
         {
             PlaySound(actionClickSound);
-            currentObject.actions[index].Invoke();
+            InvokeControlAction(currentObject.actions[index]);
             ClearFocus();
         }
+    }
+
+    private void InvokeControlAction(ControlAction action)
+    {
+        if (interactionFlowManager == null)
+            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+
+        action.Invoke();
+
+        if (interactionFlowManager == null)
+            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+
+        if (interactionFlowManager != null && !interactionFlowManager.HasRegisteredInteractionThisFrame)
+            interactionFlowManager.RegisterInteraction(currentObject, action);
     }
 
     private void GoBackToObjects()

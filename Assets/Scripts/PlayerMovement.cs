@@ -13,6 +13,7 @@ public class PlayerMovement : MonoBehaviour
     public float legSwingAngleLim = 30f;
 
     [Header("Other Stuff")]
+    [SerializeField] private bool playDemoPathOnStart;
     public GameObject tile;
     public float speed = 1f;
     private enum State{Idle, Walk};
@@ -33,14 +34,19 @@ public class PlayerMovement : MonoBehaviour
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        MeshRenderer meshRenderer = tile.GetComponent<MeshRenderer>();
-        tileSize = meshRenderer.bounds.size.x;
+        tileSize = 1f;
+
+        if (tile != null && tile.TryGetComponent<MeshRenderer>(out var meshRenderer))
+            tileSize = meshRenderer.bounds.size.x;
 
         state = State.Idle;
     }
 
     void Start()
     {
+        if (!playDemoPathOnStart)
+            return;
+
         QueueMove(Vector3.forward * tileSize);
         QueueMove(Vector3.forward * tileSize);
         QueueMove(Vector3.right * tileSize);
@@ -56,6 +62,17 @@ public class PlayerMovement : MonoBehaviour
         movementQueue.Add(direction);
         if (movementRoutine == null)
             movementRoutine = StartCoroutine(ProcessMovement());
+    }
+
+    public void ConfigureForBoardMovement()
+    {
+        playDemoPathOnStart = false;
+        tileSize = Mathf.Max(0.01f, tileSize);
+    }
+
+    public void SetWalking(bool isWalking)
+    {
+        ChangeState(isWalking ? State.Walk : State.Idle);
     }
 
     private IEnumerator ProcessMovement()
@@ -126,6 +143,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        if (!playDemoPathOnStart || movementRoutine == null)
+            return;
+
         if (collision.gameObject.CompareTag("Wall"))
         {
             targetPosition = startPosition;

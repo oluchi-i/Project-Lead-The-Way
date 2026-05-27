@@ -39,7 +39,7 @@ public class BoardManager : MonoBehaviour
     public static List<BoardObject> FindSceneBoardObjects()
     {
         var boardObjects = new List<BoardObject>();
-        var seen = new HashSet<int>();
+        var seen = new HashSet<BoardObject>();
         for (var sceneIndex = 0; sceneIndex < SceneManager.sceneCount; sceneIndex++)
         {
             var scene = SceneManager.GetSceneAt(sceneIndex);
@@ -65,13 +65,12 @@ public class BoardManager : MonoBehaviour
         return boardObjects;
     }
 
-    private static void AddBoardObject(List<BoardObject> boardObjects, HashSet<int> seen, BoardObject boardObject)
+    private static void AddBoardObject(List<BoardObject> boardObjects, HashSet<BoardObject> seen, BoardObject boardObject)
     {
         if (boardObject == null)
             return;
 
-        var instanceId = boardObject.GetInstanceID();
-        if (!seen.Add(instanceId))
+        if (!seen.Add(boardObject))
             return;
 
         boardObjects.Add(boardObject);
