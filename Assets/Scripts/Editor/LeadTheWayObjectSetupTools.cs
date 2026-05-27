@@ -1,294 +1,208 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using UnityEditor;
-using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public static class LeadTheWayObjectSetupTools
 {
-    private const string ButtonSetFolder = "Assets/Art/UI/ButtonSet";
-    private const string TempAssetFolder = "Assets/Temp/HaniJahanDesign/FreePack";
-    private const string PermanentPackFolder = "Assets/Art/HaniJahanDesign/FreePack";
-    private const string PermanentInteractablePrefabFolder = "Assets/Prefabs/Interactables";
-
-    [MenuItem("Tools/Lead The Way/Setup Selected Movable Box")]
-    public static void SetupSelectedMovableBox()
+    [MenuItem("Tools/Lead The Way/Board/Create Board Manager")]
+    public static void CreateBoardManager()
     {
-        var target = Selection.activeGameObject;
-        if (target == null)
+        var existing = UnityEngine.Object.FindAnyObjectByType<BoardManager>();
+        if (existing != null)
         {
-            EditorUtility.DisplayDialog("Setup Movable Box", "Select the box GameObject in the Hierarchy first.", "OK");
+            Selection.activeGameObject = existing.gameObject;
+            EditorGUIUtility.PingObject(existing);
+            EditorUtility.DisplayDialog("Create Board Manager", "A BoardManager already exists in the scene.", "OK");
             return;
         }
 
-        var mover = GetOrAddComponent<GridTileMover>(target);
-        var selectable = GetOrAddComponent<SelectableControlObject>(target);
-        var connector = GetOrAddComponent<ControlObjectConnector>(target);
-
-        var actions = new List<ControlAction>
+        var systems = GameObject.Find("Game Systems");
+        if (systems == null)
         {
-            CreateMoveAction("X +1", "Textures/icons/128x128/arrow_left.png", mover.MovePositiveX),
-            CreateMoveAction("X -1", "Textures/icons/128x128/arrow_right.png", mover.MoveNegativeX),
-            CreateMoveAction("Z -1", "Textures/icons/128x128/arrow_up.png", mover.MoveNegativeZ),
-            CreateMoveAction("Z +1", "Textures/icons/128x128/arrow_down.png", mover.MovePositiveZ)
-        };
+            systems = new GameObject("Game Systems");
+            Undo.RegisterCreatedObjectUndo(systems, "Create Game Systems");
+        }
 
-        Undo.RecordObject(mover, "Setup Movable Box");
-        Undo.RecordObject(selectable, "Setup Movable Box Selectable");
-        Undo.RecordObject(connector, "Setup Movable Box Connector");
-
-        connector.Configure(GetNextControlSlot(target), ObjectNames.NicifyVariableName(target.name), null, actions);
-
-        EditorUtility.SetDirty(mover);
-        EditorUtility.SetDirty(selectable);
-        EditorUtility.SetDirty(connector);
-        EditorSceneManager.MarkSceneDirty(target.scene);
-
-        Selection.activeGameObject = target;
-        EditorGUIUtility.PingObject(target);
-        EditorUtility.DisplayDialog("Setup Movable Box", $"Added tile movement and selectable UI controls to {target.name}.", "OK");
+        var boardManager = Undo.AddComponent<BoardManager>(systems);
+        EditorSceneManager.MarkSceneDirty(systems.scene);
+        Selection.activeGameObject = systems;
+        EditorGUIUtility.PingObject(boardManager);
+        EditorUtility.DisplayDialog("Create Board Manager", "Created BoardManager on Game Systems.", "OK");
     }
 
-    [MenuItem("Tools/Lead The Way/Setup Selected Spike Toggle")]
-    public static void SetupSelectedSpikeToggle()
+    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/Auto Guess")]
+    public static void SetupSelectedBoardObjectsAuto()
     {
-        var target = Selection.activeGameObject;
-        if (target == null)
-        {
-            EditorUtility.DisplayDialog("Setup Spike Toggle", "Select the Spike parent GameObject in the Hierarchy first.", "OK");
-            return;
-        }
-
-        var spikes = target.transform.Find("spikes") ?? target.transform.Find("Spikes");
-        if (spikes == null)
-        {
-            EditorUtility.DisplayDialog("Setup Spike Toggle", "Could not find a child named 'spikes' or 'Spikes'.", "OK");
-            return;
-        }
-
-        var spikeToggle = GetOrAddComponent<SpikeToggle>(target);
-        var selectable = GetOrAddComponent<SelectableControlObject>(target);
-        var connector = GetOrAddComponent<ControlObjectConnector>(target);
-
-        Undo.RecordObject(spikeToggle, "Setup Spike Toggle");
-        spikeToggle.Configure(spikes);
-
-        var action = new ControlAction
-        {
-            label = "Toggle Spikes",
-            icon = LoadButtonSetSprite("Textures/icons/128x128/arrow_up.png")
-        };
-        UnityEventTools.AddPersistentListener(action.onSelected, spikeToggle.ToggleSpikes);
-
-        Undo.RecordObject(selectable, "Setup Spike Selectable");
-        Undo.RecordObject(connector, "Setup Spike Connector");
-        connector.Configure(GetNextControlSlot(target), ObjectNames.NicifyVariableName(target.name), null, new List<ControlAction> { action });
-
-        EditorUtility.SetDirty(spikeToggle);
-        EditorUtility.SetDirty(selectable);
-        EditorUtility.SetDirty(connector);
-        EditorSceneManager.MarkSceneDirty(target.scene);
-
-        Selection.activeGameObject = target;
-        EditorGUIUtility.PingObject(target);
-        EditorUtility.DisplayDialog("Setup Spike Toggle", $"Added spike toggle controls to {target.name}.", "OK");
+        SetupSelectedBoardObjects(null);
     }
 
-    [MenuItem("Tools/Lead The Way/Setup Selected Lever Toggle")]
-    public static void SetupSelectedLeverToggle()
+    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Player")]
+    public static void SetupSelectedBoardObjectsAsPlayer()
     {
-        var target = Selection.activeGameObject;
-        if (target == null)
-        {
-            EditorUtility.DisplayDialog("Setup Lever Toggle", "Select the Lever parent GameObject in the Hierarchy first.", "OK");
-            return;
-        }
-
-        var arm = target.transform.Find("Arm") ?? target.transform.Find("arm");
-        if (arm == null)
-        {
-            EditorUtility.DisplayDialog("Setup Lever Toggle", "Could not find a child named 'Arm' or 'arm'.", "OK");
-            return;
-        }
-
-        var leverToggle = GetOrAddComponent<LeverToggle>(target);
-        var selectable = GetOrAddComponent<SelectableControlObject>(target);
-        var connector = GetOrAddComponent<ControlObjectConnector>(target);
-
-        Undo.RecordObject(leverToggle, "Setup Lever Toggle");
-        leverToggle.Configure(arm);
-
-        var action = new ControlAction
-        {
-            label = "Toggle Lever",
-            icon = LoadButtonSetSprite("Textures/icons/128x128/play.png")
-        };
-        UnityEventTools.AddPersistentListener(action.onSelected, leverToggle.ToggleLever);
-
-        Undo.RecordObject(selectable, "Setup Lever Selectable");
-        Undo.RecordObject(connector, "Setup Lever Connector");
-        connector.Configure(GetNextControlSlot(target), ObjectNames.NicifyVariableName(target.name), null, new List<ControlAction> { action });
-
-        EditorUtility.SetDirty(leverToggle);
-        EditorUtility.SetDirty(selectable);
-        EditorUtility.SetDirty(connector);
-        EditorSceneManager.MarkSceneDirty(target.scene);
-
-        Selection.activeGameObject = target;
-        EditorGUIUtility.PingObject(target);
-        EditorUtility.DisplayDialog("Setup Lever Toggle", $"Added lever toggle controls to {target.name}.", "OK");
+        SetupSelectedBoardObjects(BoardObjectType.Player);
     }
 
-    [MenuItem("Tools/Lead The Way/Setup Selected Button Press")]
-    public static void SetupSelectedButtonPress()
+    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Box")]
+    public static void SetupSelectedBoardObjectsAsBox()
     {
-        var target = Selection.activeGameObject;
-        if (target == null)
+        SetupSelectedBoardObjects(BoardObjectType.Box);
+    }
+
+    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Door")]
+    public static void SetupSelectedBoardObjectsAsDoor()
+    {
+        SetupSelectedBoardObjects(BoardObjectType.Door);
+    }
+
+    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Spike")]
+    public static void SetupSelectedBoardObjectsAsSpike()
+    {
+        SetupSelectedBoardObjects(BoardObjectType.Spike);
+    }
+
+    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Button")]
+    public static void SetupSelectedBoardObjectsAsButton()
+    {
+        SetupSelectedBoardObjects(BoardObjectType.Button);
+    }
+
+    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Lever")]
+    public static void SetupSelectedBoardObjectsAsLever()
+    {
+        SetupSelectedBoardObjects(BoardObjectType.Lever);
+    }
+
+    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Wall")]
+    public static void SetupSelectedBoardObjectsAsWall()
+    {
+        SetupSelectedBoardObjects(BoardObjectType.Wall);
+    }
+
+    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Objects/As Goal")]
+    public static void SetupSelectedBoardObjectsAsGoal()
+    {
+        SetupSelectedBoardObjects(BoardObjectType.Goal);
+    }
+
+    [MenuItem("Tools/Lead The Way/Board/Sync Selected Tiles From Transforms")]
+    public static void SyncSelectedBoardTilesFromTransforms()
+    {
+        var selectedBoardObjects = GetSelectedBoardObjects();
+        if (selectedBoardObjects.Count == 0)
         {
-            EditorUtility.DisplayDialog("Setup Button Press", "Select the Button parent GameObject in the Hierarchy first.", "OK");
+            EditorUtility.DisplayDialog("Sync Board Tiles", "Select one or more GameObjects with BoardObject components first.", "OK");
             return;
         }
 
-        var cap = target.transform.Find("Cap") ?? target.transform.Find("cap");
-        if (cap == null)
+        var boardManager = UnityEngine.Object.FindAnyObjectByType<BoardManager>();
+        var origin = boardManager != null ? boardManager.WorldOrigin : Vector3.zero;
+        var tileSize = boardManager != null ? boardManager.TileSize : 1f;
+
+        foreach (var boardObject in selectedBoardObjects)
         {
-            EditorUtility.DisplayDialog("Setup Button Press", "Could not find a child named 'Cap' or 'cap'.", "OK");
+            Undo.RecordObject(boardObject, "Sync Board Tile");
+            boardObject.SyncTileFromTransform(origin, tileSize);
+            EditorUtility.SetDirty(boardObject);
+        }
+
+        if (boardManager != null)
+            boardManager.RebuildRegistry();
+
+        EditorSceneManager.MarkSceneDirty(selectedBoardObjects[0].gameObject.scene);
+        EditorUtility.DisplayDialog("Sync Board Tiles", $"Synced {selectedBoardObjects.Count} BoardObject tile position(s) from their transforms.", "OK");
+    }
+
+    [MenuItem("Tools/Lead The Way/Board/Report Registered Board Objects")]
+    public static void ReportRegisteredBoardObjects()
+    {
+        var boardManager = UnityEngine.Object.FindAnyObjectByType<BoardManager>();
+        if (boardManager == null)
+        {
+            EditorUtility.DisplayDialog("Board Report", "No BoardManager exists in the active scene yet.", "OK");
             return;
         }
 
-        var buttonPress = GetOrAddComponent<ButtonPress>(target);
-        var selectable = GetOrAddComponent<SelectableControlObject>(target);
-        var connector = GetOrAddComponent<ControlObjectConnector>(target);
-        var audioClip = LoadAudioClip("Assets/Sound/SoundEffects/button_object_click.mp3");
+        boardManager.RebuildRegistry();
 
-        Undo.RecordObject(buttonPress, "Setup Button Press");
-        buttonPress.Configure(cap, audioClip);
-
-        var action = new ControlAction
+        var report = new List<string>();
+        foreach (var boardObject in BoardManager.FindSceneBoardObjects())
         {
-            label = "Press Button",
-            icon = LoadButtonSetSprite("Textures/icons/128x128/play.png")
-        };
-        UnityEventTools.AddPersistentListener(action.onSelected, buttonPress.PressButton);
+            if (EditorUtility.IsPersistent(boardObject))
+                continue;
 
-        Undo.RecordObject(selectable, "Setup Button Selectable");
-        Undo.RecordObject(connector, "Setup Button Connector");
-        connector.Configure(GetNextControlSlot(target), ObjectNames.NicifyVariableName(target.name), null, new List<ControlAction> { action });
+            report.Add($"{boardObject.name}: {boardObject.ObjectType}, tile {boardObject.TilePosition}, active={boardObject.gameObject.activeInHierarchy}, scene={boardObject.gameObject.scene.name}, blocks={boardObject.BlocksMovement}, movable={boardObject.Movable}");
+        }
 
-        EditorUtility.SetDirty(buttonPress);
-        EditorUtility.SetDirty(selectable);
-        EditorUtility.SetDirty(connector);
-        EditorSceneManager.MarkSceneDirty(target.scene);
+        report.Sort(StringComparer.Ordinal);
+        Debug.Log($"Lead The Way Board Report: Registered {report.Count} BoardObject(s).");
+        foreach (var line in report)
+            Debug.Log("Lead The Way Board Object: " + line);
 
-        Selection.activeGameObject = target;
-        EditorGUIUtility.PingObject(target);
-        EditorUtility.DisplayDialog("Setup Button Press", $"Added button press controls to {target.name}.", "OK");
+        EditorUtility.DisplayDialog("Board Report", $"Registered {report.Count} BoardObject(s). Check the Console for details.", "OK");
     }
 
-    [MenuItem("Tools/Lead The Way/Temp Cleanup/Make Selected Scene Objects Permanent")]
-    public static void MakeSelectedSceneObjectsPermanent()
+    private static void SetupSelectedBoardObjects(BoardObjectType? forcedType)
     {
-        var selectedRoots = GetSelectedSceneRoots();
-        if (selectedRoots.Count == 0)
+        var targets = GetSelectedSceneObjects();
+        if (targets.Count == 0)
         {
-            EditorUtility.DisplayDialog(
-                "Make Objects Permanent",
-                "Select one or more scene objects in the Hierarchy first, such as Box, Spike, Lever, and Button.",
-                "OK");
+            EditorUtility.DisplayDialog("Setup Board Objects", "Select one or more scene objects in the Hierarchy first.", "OK");
             return;
         }
 
-        var tempDependencies = CollectTempDependencies(selectedRoots);
-        if (!EditorUtility.DisplayDialog(
-                "Make Objects Permanent",
-                $"This will move {tempDependencies.Count} model/material/texture asset(s) out of Temp, unpack the selected prefab instances, and save {selectedRoots.Count} new prefab(s) in {PermanentInteractablePrefabFolder}. Continue?",
-                "Continue",
-                "Cancel"))
+        var boardManager = UnityEngine.Object.FindAnyObjectByType<BoardManager>();
+        var origin = boardManager != null ? boardManager.WorldOrigin : Vector3.zero;
+        var tileSize = boardManager != null ? boardManager.TileSize : 1f;
+
+        foreach (var target in targets)
         {
-            return;
+            var boardObject = GetOrAddComponent<BoardObject>(target);
+            var type = forcedType ?? GuessBoardObjectType(target.name);
+            var settings = GetBoardDefaults(type);
+
+            Undo.RecordObject(boardObject, "Setup Board Object");
+            boardObject.Configure(type, settings.occupiesTile, settings.blocksMovement, settings.movable);
+            boardObject.SyncTileFromTransform(origin, tileSize);
+            EditorUtility.SetDirty(boardObject);
         }
 
-        EnsureFolder(PermanentPackFolder);
-        EnsureFolder(PermanentInteractablePrefabFolder);
+        if (boardManager != null)
+            boardManager.RebuildRegistry();
 
-        var movedAssets = MoveTempDependencies(tempDependencies);
-        AssetDatabase.Refresh();
+        EditorSceneManager.MarkSceneDirty(targets[0].scene);
+        EditorUtility.DisplayDialog("Setup Board Objects", $"Configured {targets.Count} BoardObject(s).", "OK");
+    }
 
-        var createdPrefabs = new List<string>();
-        foreach (var selectedRoot in selectedRoots)
+    private static List<GameObject> GetSelectedSceneObjects()
+    {
+        var targets = new List<GameObject>();
+        foreach (var selected in Selection.gameObjects)
         {
-            var prefabRoot = PrefabUtility.GetOutermostPrefabInstanceRoot(selectedRoot);
-            var root = prefabRoot != null ? prefabRoot : selectedRoot;
+            if (selected == null || EditorUtility.IsPersistent(selected))
+                continue;
 
-            if (prefabRoot != null)
-                PrefabUtility.UnpackPrefabInstance(prefabRoot, PrefabUnpackMode.Completely, InteractionMode.UserAction);
-
-            var prefabPath = AssetDatabase.GenerateUniqueAssetPath(
-                $"{PermanentInteractablePrefabFolder}/{SanitizeFileName(root.name)}.prefab");
-
-            var savedPrefab = PrefabUtility.SaveAsPrefabAssetAndConnect(
-                root,
-                prefabPath,
-                InteractionMode.UserAction,
-                out var success);
-
-            if (success && savedPrefab != null)
-                createdPrefabs.Add(prefabPath);
+            if (!targets.Contains(selected))
+                targets.Add(selected);
         }
 
-        EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh();
-
-        EditorUtility.DisplayDialog(
-            "Make Objects Permanent",
-            $"Moved {movedAssets.Count} asset(s) out of Temp.\nCreated {createdPrefabs.Count} prefab(s).\n\nRun 'Report Open Scene Temp References' next before deleting Temp.",
-            "OK");
+        return targets;
     }
 
-    [MenuItem("Tools/Lead The Way/Temp Cleanup/Report Open Scene Temp References")]
-    public static void ReportOpenSceneTempReferences()
+    private static List<BoardObject> GetSelectedBoardObjects()
     {
-        var roots = new List<GameObject>();
-        SceneManager.GetActiveScene().GetRootGameObjects(roots);
-
-        var dependencies = CollectTempReferences(roots);
-        if (dependencies.Count == 0)
+        var selectedBoardObjects = new List<BoardObject>();
+        foreach (var selected in Selection.gameObjects)
         {
-            Debug.Log("Lead The Way Temp Cleanup: active scene has no references under Assets/Temp/HaniJahanDesign/FreePack.");
-            EditorUtility.DisplayDialog("Temp References", "The active scene has no references under Temp.", "OK");
-            return;
+            if (selected == null || EditorUtility.IsPersistent(selected))
+                continue;
+
+            if (selected.TryGetComponent<BoardObject>(out var boardObject) && !selectedBoardObjects.Contains(boardObject))
+                selectedBoardObjects.Add(boardObject);
         }
 
-        Debug.LogWarning("Lead The Way Temp Cleanup: active scene still references Temp assets:\n" + string.Join("\n", dependencies));
-        EditorUtility.DisplayDialog(
-            "Temp References",
-            $"The active scene still references {dependencies.Count} Temp asset(s). Check the Console for the list.",
-            "OK");
-    }
-
-    private static ControlAction CreateMoveAction(string label, string iconPath, UnityEngine.Events.UnityAction callback)
-    {
-        var action = new ControlAction
-        {
-            label = label,
-            icon = LoadButtonSetSprite(iconPath)
-        };
-        UnityEventTools.AddPersistentListener(action.onSelected, callback);
-        return action;
-    }
-
-    private static Sprite LoadButtonSetSprite(string relativePath)
-    {
-        return AssetDatabase.LoadAssetAtPath<Sprite>($"{ButtonSetFolder}/{relativePath}");
-    }
-
-    private static AudioClip LoadAudioClip(string path)
-    {
-        return AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+        return selectedBoardObjects;
     }
 
     private static T GetOrAddComponent<T>(GameObject target) where T : Component
@@ -299,158 +213,48 @@ public static class LeadTheWayObjectSetupTools
         return Undo.AddComponent<T>(target);
     }
 
-    private static int GetNextControlSlot(GameObject target)
+    private static BoardObjectType GuessBoardObjectType(string objectName)
     {
-        var usedSlots = new HashSet<int>();
-        foreach (var selectable in UnityEngine.Object.FindObjectsByType<SelectableControlObject>(FindObjectsSortMode.None))
+        var normalizedName = objectName.ToLowerInvariant();
+        if (normalizedName.Contains("player"))
+            return BoardObjectType.Player;
+        if (normalizedName.Contains("box") || normalizedName.Contains("crate"))
+            return BoardObjectType.Box;
+        if (normalizedName.Contains("door"))
+            return BoardObjectType.Door;
+        if (normalizedName.Contains("spike") || normalizedName.Contains("hazard") || normalizedName.Contains("hazzard"))
+            return BoardObjectType.Spike;
+        if (normalizedName.Contains("button"))
+            return BoardObjectType.Button;
+        if (normalizedName.Contains("lever"))
+            return BoardObjectType.Lever;
+        if (normalizedName.Contains("goal") || normalizedName.Contains("exit"))
+            return BoardObjectType.Goal;
+        if (normalizedName.Contains("wall"))
+            return BoardObjectType.Wall;
+
+        return BoardObjectType.Other;
+    }
+
+    private static (bool occupiesTile, bool blocksMovement, bool movable) GetBoardDefaults(BoardObjectType type)
+    {
+        switch (type)
         {
-            if (selectable.gameObject != target)
-                usedSlots.Add(selectable.slotNumber);
+            case BoardObjectType.Player:
+                return (true, false, true);
+            case BoardObjectType.Box:
+                return (true, true, true);
+            case BoardObjectType.Door:
+                return (true, true, false);
+            case BoardObjectType.Spike:
+            case BoardObjectType.Button:
+            case BoardObjectType.Lever:
+            case BoardObjectType.Goal:
+                return (true, false, false);
+            case BoardObjectType.Wall:
+                return (true, true, false);
+            default:
+                return (true, false, false);
         }
-
-        var slot = 1;
-        while (usedSlots.Contains(slot))
-            slot++;
-
-        return slot;
-    }
-
-    private static List<GameObject> GetSelectedSceneRoots()
-    {
-        var roots = new List<GameObject>();
-        foreach (var selected in Selection.gameObjects)
-        {
-            if (selected == null || EditorUtility.IsPersistent(selected))
-                continue;
-
-            var root = PrefabUtility.GetOutermostPrefabInstanceRoot(selected);
-            if (root == null)
-                root = selected;
-
-            if (!roots.Contains(root))
-                roots.Add(root);
-        }
-
-        return roots;
-    }
-
-    private static List<string> CollectTempDependencies(List<GameObject> roots)
-    {
-        var dependencies = new HashSet<string>();
-        var scanQueue = new Queue<string>();
-
-        foreach (var dependency in EditorUtility.CollectDependencies(roots.ToArray()))
-        {
-            var path = AssetDatabase.GetAssetPath(dependency);
-            if (ShouldMoveOutOfTemp(path) && dependencies.Add(path))
-                scanQueue.Enqueue(path);
-        }
-
-        while (scanQueue.Count > 0)
-        {
-            var path = scanQueue.Dequeue();
-            foreach (var nestedDependency in AssetDatabase.GetDependencies(path, true))
-            {
-                if (ShouldMoveOutOfTemp(nestedDependency) && dependencies.Add(nestedDependency))
-                    scanQueue.Enqueue(nestedDependency);
-            }
-        }
-
-        var sortedDependencies = new List<string>(dependencies);
-        sortedDependencies.Sort(StringComparer.Ordinal);
-        return sortedDependencies;
-    }
-
-    private static List<string> CollectTempReferences(List<GameObject> roots)
-    {
-        var references = new HashSet<string>();
-        foreach (var dependency in EditorUtility.CollectDependencies(roots.ToArray()))
-        {
-            var path = AssetDatabase.GetAssetPath(dependency);
-            if (!string.IsNullOrWhiteSpace(path) && path.StartsWith(TempAssetFolder, StringComparison.Ordinal))
-                references.Add(path);
-        }
-
-        var sortedReferences = new List<string>(references);
-        sortedReferences.Sort(StringComparer.Ordinal);
-        return sortedReferences;
-    }
-
-    private static List<string> MoveTempDependencies(List<string> dependencyPaths)
-    {
-        var movedAssets = new List<string>();
-        foreach (var sourcePath in dependencyPaths)
-        {
-            if (string.IsNullOrWhiteSpace(sourcePath))
-                continue;
-
-            var destinationPath = GetPermanentPath(sourcePath);
-            EnsureFolder(Path.GetDirectoryName(destinationPath)?.Replace('\\', '/'));
-
-            if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(destinationPath) != null)
-                destinationPath = AssetDatabase.GenerateUniqueAssetPath(destinationPath);
-
-            var error = AssetDatabase.MoveAsset(sourcePath, destinationPath);
-            if (!string.IsNullOrEmpty(error))
-            {
-                Debug.LogError($"Lead The Way Temp Cleanup: failed to move {sourcePath} to {destinationPath}: {error}");
-                continue;
-            }
-
-            movedAssets.Add(destinationPath);
-        }
-
-        return movedAssets;
-    }
-
-    private static bool ShouldMoveOutOfTemp(string assetPath)
-    {
-        if (string.IsNullOrWhiteSpace(assetPath))
-            return false;
-
-        if (!assetPath.StartsWith(TempAssetFolder, StringComparison.Ordinal))
-            return false;
-
-        var extension = Path.GetExtension(assetPath).ToLowerInvariant();
-        return extension == ".fbx"
-            || extension == ".mat"
-            || extension == ".png"
-            || extension == ".jpg"
-            || extension == ".jpeg"
-            || extension == ".tga"
-            || extension == ".psd";
-    }
-
-    private static string GetPermanentPath(string sourcePath)
-    {
-        var relativePath = sourcePath.Substring(TempAssetFolder.Length).TrimStart('/', '\\');
-        return $"{PermanentPackFolder}/{relativePath}".Replace('\\', '/');
-    }
-
-    private static void EnsureFolder(string folderPath)
-    {
-        if (string.IsNullOrWhiteSpace(folderPath) || AssetDatabase.IsValidFolder(folderPath))
-            return;
-
-        var normalized = folderPath.Replace('\\', '/');
-        var pieces = normalized.Split('/');
-        var current = pieces[0];
-
-        for (var i = 1; i < pieces.Length; i++)
-        {
-            var next = $"{current}/{pieces[i]}";
-            if (!AssetDatabase.IsValidFolder(next))
-                AssetDatabase.CreateFolder(current, pieces[i]);
-
-            current = next;
-        }
-    }
-
-    private static string SanitizeFileName(string fileName)
-    {
-        foreach (var invalidChar in Path.GetInvalidFileNameChars())
-            fileName = fileName.Replace(invalidChar, '_');
-
-        return string.IsNullOrWhiteSpace(fileName) ? "Interactable" : fileName;
     }
 }
