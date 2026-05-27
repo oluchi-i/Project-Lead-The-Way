@@ -105,6 +105,9 @@ public class SelectionPanelsUI : MonoBehaviour
             return;
         }
 
+        if (actionPanel != null && actionPanel.activeSelf && TryHandleSelectedMoverKeyboard())
+            return;
+
         var pressedNumber = GetPressedNumber();
         if (pressedNumber < 1)
             return;
@@ -373,7 +376,6 @@ public class SelectionPanelsUI : MonoBehaviour
         button.gameObject.SetActive(true);
         button.onClick.AddListener(() =>
         {
-            PlaySound(actionClickSound);
             InvokeControlAction(action);
             ClearFocus();
         });
@@ -410,24 +412,104 @@ public class SelectionPanelsUI : MonoBehaviour
         var index = slotNumber - 1;
         if (index >= 0 && index < currentObject.actions.Count)
         {
-            PlaySound(actionClickSound);
             InvokeControlAction(currentObject.actions[index]);
             ClearFocus();
         }
     }
 
-    private void InvokeControlAction(ControlAction action)
+    private bool InvokeControlAction(ControlAction action)
     {
         if (interactionFlowManager == null)
             interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+
+        if (interactionFlowManager != null && !interactionFlowManager.CanAcceptAction)
+            return false;
 
         action.Invoke();
 
         if (interactionFlowManager == null)
             interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
 
-        if (interactionFlowManager != null && !interactionFlowManager.HasRegisteredInteractionThisFrame)
-            interactionFlowManager.RegisterInteraction(currentObject, action);
+        if (interactionFlowManager == null)
+        {
+            PlaySound(actionClickSound);
+            return true;
+        }
+
+        if (interactionFlowManager.HasRegisteredInteractionThisFrame)
+        {
+            PlaySound(actionClickSound);
+            return true;
+        }
+
+        if (interactionFlowManager.HasHandledActionThisFrame)
+            return false;
+
+        if (interactionFlowManager.RegisterInteraction(currentObject, action))
+        {
+            PlaySound(actionClickSound);
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryHandleSelectedMoverKeyboard()
+    {
+        if (currentObject == null || Keyboard.current == null)
+            return false;
+
+        var mover = currentObject.GetComponent<GridTileMover>();
+        if (mover == null)
+            return false;
+
+        bool attempted;
+        bool moved;
+
+        if (Keyboard.current.leftArrowKey.wasPressedThisFrame)
+        {
+            attempted = true;
+            moved = CanInvokeAction() && mover.TryMovePositiveX();
+        }
+        else if (Keyboard.current.rightArrowKey.wasPressedThisFrame)
+        {
+            attempted = true;
+            moved = CanInvokeAction() && mover.TryMoveNegativeX();
+        }
+        else if (Keyboard.current.upArrowKey.wasPressedThisFrame)
+        {
+            attempted = true;
+            moved = CanInvokeAction() && mover.TryMoveNegativeZ();
+        }
+        else if (Keyboard.current.downArrowKey.wasPressedThisFrame)
+        {
+            attempted = true;
+            moved = CanInvokeAction() && mover.TryMovePositiveZ();
+        }
+        else
+        {
+            attempted = false;
+            moved = false;
+        }
+
+        if (!attempted)
+            return false;
+
+        if (moved)
+        {
+            PlaySound(actionClickSound);
+            ClearFocus();
+        }
+
+        return true;
+    }
+
+    private bool CanInvokeAction()
+    {
+        if (interactionFlowManager == null)
+            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+
+        return interactionFlowManager == null || interactionFlowManager.CanAcceptAction;
     }
 
     private void GoBackToObjects()

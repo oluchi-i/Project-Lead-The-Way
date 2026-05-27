@@ -120,6 +120,7 @@ public static class LeadTheWayObjectSetupTools
         var canvas = FindOrCreateCanvas();
         var controlUI = SetupStableControlUI(canvas);
         SetupInteractionCounter(canvas);
+        SetupLevelResultFlash(canvas);
 
         EditorSceneManager.MarkSceneDirty(canvas.gameObject.scene);
         Selection.activeGameObject = controlUI;
@@ -357,7 +358,7 @@ public static class LeadTheWayObjectSetupTools
 
             boardObject.Configure(BoardObjectType.Box, true, true, true);
             boardObject.SyncTileFromTransform(boardManager.WorldOrigin, boardManager.TileSize);
-            mover.ConfigureBoardMovement(true, true);
+            mover.ConfigureBoardMovement(true, false);
 
             EditorUtility.SetDirty(boardObject);
             EditorUtility.SetDirty(mover);
@@ -709,12 +710,50 @@ public static class LeadTheWayObjectSetupTools
         ConfigureCounterText(labelText, "ACTION COUNT", 10, FontStyle.Bold, TextAnchor.UpperLeft, new Vector2(12f, -7f), new Vector2(144f, 16f), new Color(1f, 0.82f, 0.24f, 1f));
 
         var countText = FindOrCreateText(counterRoot.transform, "Count");
-        ConfigureCounterText(countText, "0", 26, FontStyle.Bold, TextAnchor.LowerLeft, new Vector2(12f, -18f), new Vector2(144f, 30f), new Color(1f, 0.93f, 0.72f, 1f));
+        ConfigureCounterText(countText, $"0/{flowManager.MaxInteractionCount}", 26, FontStyle.Bold, TextAnchor.LowerLeft, new Vector2(12f, -18f), new Vector2(144f, 30f), new Color(1f, 0.93f, 0.72f, 1f));
 
         Undo.RecordObject(counterUI, "Setup Interaction Counter");
         counterUI.Configure(flowManager, countText);
         EditorUtility.SetDirty(counterUI);
         EditorUtility.SetDirty(counterRoot);
+    }
+
+    private static void SetupLevelResultFlash(Canvas canvas)
+    {
+        var flowManager = UnityEngine.Object.FindAnyObjectByType<InteractionFlowManager>();
+        if (flowManager == null)
+            flowManager = Undo.AddComponent<InteractionFlowManager>(GetOrCreateGameSystems());
+
+        var flashUI = UnityEngine.Object.FindAnyObjectByType<LevelResultFlashUI>(FindObjectsInactive.Include);
+        var flashRoot = flashUI != null ? flashUI.gameObject : null;
+
+        if (flashRoot == null)
+        {
+            flashRoot = new GameObject("Level Result Flash", typeof(RectTransform), typeof(Image), typeof(LevelResultFlashUI));
+            Undo.RegisterCreatedObjectUndo(flashRoot, "Create Level Result Flash");
+            flashUI = flashRoot.GetComponent<LevelResultFlashUI>();
+        }
+
+        Undo.SetTransformParent(flashRoot.transform, canvas.transform, "Parent Level Result Flash To Canvas");
+        flashRoot.transform.SetAsLastSibling();
+        flashRoot.SetActive(true);
+
+        ConfigureRect(flashRoot.GetComponent<RectTransform>(), Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+
+        var image = flashRoot.GetComponent<Image>();
+        image.color = new Color(1f, 0f, 0f, 0f);
+        image.raycastTarget = false;
+        image.enabled = false;
+
+        Undo.RecordObject(flashUI, "Setup Level Result Flash");
+        flashUI.Configure(image);
+
+        Undo.RecordObject(flowManager, "Wire Level Result Flash");
+        flowManager.ConfigureResultFlash(flashUI);
+
+        EditorUtility.SetDirty(flashUI);
+        EditorUtility.SetDirty(flowManager);
+        EditorUtility.SetDirty(flashRoot);
     }
 
     private static void UnwrapNestedCanvas(Transform root)

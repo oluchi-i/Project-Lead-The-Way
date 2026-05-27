@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class InteractionFlowManager : MonoBehaviour
 {
@@ -9,8 +11,13 @@ public class InteractionFlowManager : MonoBehaviour
     [SerializeField] private BoardPlayerMover playerMover;
     [SerializeField] private BoardObject playerObject;
     [SerializeField] private BoardObject targetDoor;
+    [SerializeField] private LevelResultFlashUI resultFlashUI;
+    [SerializeField] private int maxInteractionCount = 6;
     [SerializeField] private int interactionCount;
+
     private int lastInteractionFrame = -1;
+    private int lastHandledActionFrame = -1;
+    private bool levelFinished;
 
     private static readonly Vector2Int[] Directions =
     {
@@ -21,8 +28,20 @@ public class InteractionFlowManager : MonoBehaviour
     };
 
     public int InteractionCount => interactionCount;
+    public int MaxInteractionCount => Mathf.Max(1, maxInteractionCount);
     public event Action<int> InteractionCountChanged;
     public bool HasRegisteredInteractionThisFrame => lastInteractionFrame == Time.frameCount;
+    public bool HasHandledActionThisFrame => lastHandledActionFrame == Time.frameCount;
+    public bool CanAcceptAction
+    {
+        get
+        {
+            EnsureReferences();
+            return !levelFinished
+                && lastHandledActionFrame != Time.frameCount
+                && (playerMover == null || !playerMover.IsMoving);
+        }
+    }
 
     public void Configure(BoardManager newBoardManager, BoardPlayerMover newPlayerMover, BoardObject newPlayerObject, BoardObject newTargetDoor)
     {
@@ -32,22 +51,47 @@ public class InteractionFlowManager : MonoBehaviour
         targetDoor = newTargetDoor;
     }
 
+    public void ConfigureResultFlash(LevelResultFlashUI newResultFlashUI)
+    {
+        resultFlashUI = newResultFlashUI;
+    }
+
     private void Awake()
     {
         EnsureReferences();
     }
 
-    public void RegisterInteraction(SelectableControlObject selectedObject, ControlAction action)
+    private void Update()
     {
-        RegisterInteraction();
+        if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
+            ReloadCurrentLevel();
     }
 
-    public void RegisterInteraction()
+    public bool RegisterInteraction(SelectableControlObject selectedObject, ControlAction action)
     {
+        return RegisterInteraction();
+    }
+
+    public bool RegisterInteraction()
+    {
+        if (!CanAcceptAction)
+            return false;
+
         interactionCount++;
         lastInteractionFrame = Time.frameCount;
+        lastHandledActionFrame = Time.frameCount;
         InteractionCountChanged?.Invoke(interactionCount);
         StepPlayerTowardDoor();
+
+        if (interactionCount >= MaxInteractionCount)
+            ResolveActionLimit();
+
+        return true;
+    }
+
+    public void MarkActionHandledWithoutInteraction()
+    {
+        lastHandledActionFrame = Time.frameCount;
     }
 
     public void StepPlayerTowardDoor()
@@ -115,14 +159,19 @@ public class InteractionFlowManager : MonoBehaviour
                 goals.Add(goalObject.TilePosition);
         }
 
-        if (goals.Count > 0 && IsTargetDoorOpen())
+        var doorOpen = IsTargetDoorOpen();
+        if (goals.Count > 0 && doorOpen)
             return goals;
 
+        goals.Clear();
         var doorTile = targetDoor.TilePosition;
 
         foreach (var direction in Directions)
         {
             var candidate = doorTile + direction;
+            if (!doorOpen && boardManager.IsGoalTile(candidate))
+                continue;
+
             if (boardManager.CanEnterTile(playerObject, candidate))
                 goals.Add(candidate);
         }
@@ -137,6 +186,41 @@ public class InteractionFlowManager : MonoBehaviour
 
         var door = targetDoor.GetComponentInChildren<DoorScript.Door>(true);
         return door == null || door.open;
+    }
+
+    private void ResolveActionLimit()
+    {
+        levelFinished = true;
+
+        var succeeded = IsPlayerOnGoalTile();
+        if (resultFlashUI != null)
+            resultFlashUI.Flash(succeeded);
+    }
+
+    private bool IsPlayerOnGoalTile()
+    {
+        EnsureReferences();
+
+        if (boardManager == null || playerObject == null)
+            return false;
+
+        boardManager.RebuildRegistry();
+        foreach (var goalObject in boardManager.GetGoalObjects())
+        {
+            if (goalObject != null && goalObject.TilePosition == playerObject.TilePosition)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void ReloadCurrentLevel()
+    {
+        var activeScene = SceneManager.GetActiveScene();
+        if (activeScene.buildIndex >= 0)
+            SceneManager.LoadScene(activeScene.buildIndex);
+        else
+            SceneManager.LoadScene(activeScene.name);
     }
 
     private static Vector2Int ReconstructFirstDirection(Vector2Int start, Vector2Int goal, Dictionary<Vector2Int, Vector2Int> cameFrom)
@@ -166,5 +250,8 @@ public class InteractionFlowManager : MonoBehaviour
 
         if (targetDoor == null || !targetDoor.gameObject.activeInHierarchy)
             targetDoor = boardObjects.FirstOrDefault(item => item != null && item.ObjectType == BoardObjectType.Door && item.gameObject.activeInHierarchy);
+
+        if (resultFlashUI == null)
+            resultFlashUI = FindAnyObjectByType<LevelResultFlashUI>();
     }
 }

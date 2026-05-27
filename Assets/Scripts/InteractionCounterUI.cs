@@ -5,7 +5,7 @@ public class InteractionCounterUI : MonoBehaviour
 {
     [SerializeField] private InteractionFlowManager interactionFlowManager;
     [SerializeField] private Text countText;
-    [SerializeField] private string numberFormat = "{0}";
+    [SerializeField] private string numberFormat = "{0}/{1}";
 
     private void Awake()
     {
@@ -45,7 +45,10 @@ public class InteractionCounterUI : MonoBehaviour
     private void HandleInteractionCountChanged(int count)
     {
         if (countText != null)
-            countText.text = string.Format(numberFormat, count);
+        {
+            var maxCount = interactionFlowManager != null ? interactionFlowManager.MaxInteractionCount : 1;
+            countText.text = string.Format(numberFormat, count, maxCount);
+        }
     }
 
     private void EnsureReferences()

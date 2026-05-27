@@ -1,9 +1,7 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class GridTileMover : MonoBehaviour
 {
-    [SerializeField] private bool keyboardInputEnabled = true;
     [SerializeField] private bool useBoardManager = true;
     [SerializeField] private float tileSize = 1f;
     [SerializeField] private float moveDuration = 0.18f;
@@ -16,6 +14,8 @@ public class GridTileMover : MonoBehaviour
     private Vector3 moveStart;
     private Vector3 moveTarget;
 
+    public bool IsMoving => isMoving;
+
     private void Awake()
     {
         boardObject = GetComponent<BoardObject>();
@@ -26,22 +26,7 @@ public class GridTileMover : MonoBehaviour
     private void Update()
     {
         if (isMoving)
-        {
             UpdateMove();
-            return;
-        }
-
-        if (!keyboardInputEnabled || Keyboard.current == null)
-            return;
-
-        if (Keyboard.current.leftArrowKey.wasPressedThisFrame)
-            MovePositiveX();
-        else if (Keyboard.current.rightArrowKey.wasPressedThisFrame)
-            MoveNegativeX();
-        else if (Keyboard.current.upArrowKey.wasPressedThisFrame)
-            MoveNegativeZ();
-        else if (Keyboard.current.downArrowKey.wasPressedThisFrame)
-            MovePositiveZ();
     }
 
     public void MovePositiveX()
@@ -64,18 +49,43 @@ public class GridTileMover : MonoBehaviour
         TryMove(Vector2Int.down, Vector3.back);
     }
 
+    public bool TryMovePositiveX()
+    {
+        return TryMove(Vector2Int.right, Vector3.right);
+    }
+
+    public bool TryMoveNegativeX()
+    {
+        return TryMove(Vector2Int.left, Vector3.left);
+    }
+
+    public bool TryMovePositiveZ()
+    {
+        return TryMove(Vector2Int.up, Vector3.forward);
+    }
+
+    public bool TryMoveNegativeZ()
+    {
+        return TryMove(Vector2Int.down, Vector3.back);
+    }
+
     public void ConfigureBoardMovement(bool enabled, bool keyboardEnabled)
     {
         useBoardManager = enabled;
-        keyboardInputEnabled = keyboardEnabled;
         boardObject = GetComponent<BoardObject>();
         boardManager = FindAnyObjectByType<BoardManager>();
     }
 
-    private void TryMove(Vector2Int boardDirection, Vector3 fallbackWorldDirection)
+    private bool TryMove(Vector2Int boardDirection, Vector3 fallbackWorldDirection)
     {
         if (isMoving)
-            return;
+            return false;
+
+        if (interactionFlowManager == null)
+            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+
+        if (interactionFlowManager != null && !interactionFlowManager.CanAcceptAction)
+            return false;
 
         moveStart = transform.position;
 
@@ -87,7 +97,8 @@ public class GridTileMover : MonoBehaviour
         }
         else if (useBoardManager)
         {
-            return;
+            MarkActionHandledWithoutInteraction();
+            return false;
         }
         else
         {
@@ -96,6 +107,7 @@ public class GridTileMover : MonoBehaviour
 
         moveElapsed = 0f;
         isMoving = true;
+        return true;
     }
 
     private void RegisterSuccessfulInteraction()
@@ -108,6 +120,15 @@ public class GridTileMover : MonoBehaviour
 
         if (interactionFlowManager != null)
             interactionFlowManager.RegisterInteraction();
+    }
+
+    private void MarkActionHandledWithoutInteraction()
+    {
+        if (interactionFlowManager == null)
+            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+
+        if (interactionFlowManager != null)
+            interactionFlowManager.MarkActionHandledWithoutInteraction();
     }
 
     private bool TryMoveOnBoard(Vector2Int boardDirection, out Vector2Int targetTile)
