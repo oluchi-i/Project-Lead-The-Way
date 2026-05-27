@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: e459c611c93863540a5e5ab0e05eb382
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - floorTilePrefab: {fileID: 2266522897076984121, guid: 8a0832c43c986754c865b147ca9df5a2, type: 3}
+  - wallTilePrefab: {instanceID: 0}
+  - exitTilePrefab: {instanceID: 0}
+  - obstaclePrefab: {instanceID: 0}
+  - characterPrefab: {instanceID: 0}
+  - gridManager: {instanceID: 0}
+  - characterMover: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
