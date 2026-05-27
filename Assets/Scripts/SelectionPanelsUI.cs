@@ -189,7 +189,7 @@ public class SelectionPanelsUI : MonoBehaviour
         objectPage = Mathf.Clamp(objectPage, 0, maxPage);
 
         objectPanelTitle.text = "SELECT OBJECT";
-        SetPageText(maxPage > 0 ? $"{objectPage + 1}/{maxPage + 1}" : string.Empty);
+        SetPageText($"{objectPage + 1}/{maxPage + 1}");
 
         ClearContainer(objectButtonContainer, objectButtonTemplate);
 
@@ -347,7 +347,7 @@ public class SelectionPanelsUI : MonoBehaviour
             return;
 
         objectPageText.text = value;
-        objectPageText.gameObject.SetActive(!string.IsNullOrEmpty(value));
+        objectPageText.gameObject.SetActive(true);
     }
 
     private Sprite LoadEditorSprite(string path)

@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -7,6 +10,7 @@ public class BoardManager : MonoBehaviour
     [SerializeField] private Vector2Int boardSize = new Vector2Int(10, 10);
     [SerializeField] private Vector3 worldOrigin;
     [SerializeField] private float tileSize = 1f;
+    [SerializeField] private bool showCoordinateLabels = true;
     [SerializeField] private bool registerOnAwake = true;
 
     private readonly Dictionary<string, BoardObject> objectsById = new Dictionary<string, BoardObject>();
@@ -200,7 +204,27 @@ public class BoardManager : MonoBehaviour
             {
                 var tileCenter = TileToWorld(new Vector2Int(x, y), worldOrigin.y);
                 Gizmos.DrawWireCube(tileCenter, new Vector3(TileSize, 0.02f, TileSize));
+#if UNITY_EDITOR
+                if (showCoordinateLabels)
+                    DrawCoordinateLabel(new Vector2Int(x, y), tileCenter);
+#endif
             }
         }
     }
+
+#if UNITY_EDITOR
+    private void DrawCoordinateLabel(Vector2Int tile, Vector3 tileCenter)
+    {
+        var labelStyle = new GUIStyle(EditorStyles.boldLabel)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 10
+        };
+
+        labelStyle.normal.textColor = new Color(1f, 0.86f, 0.42f, 0.95f);
+
+        var labelPosition = tileCenter + Vector3.up * 0.08f;
+        Handles.Label(labelPosition, $"{tile.x} , {tile.y}", labelStyle);
+    }
+#endif
 }
