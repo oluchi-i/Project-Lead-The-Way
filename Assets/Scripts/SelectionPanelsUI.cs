@@ -49,6 +49,7 @@ public class SelectionPanelsUI : MonoBehaviour
     [SerializeField] private List<SelectableControlObject> objects = new List<SelectableControlObject>();
 
     private readonly List<GameObject> highlightOutlines = new List<GameObject>();
+    private readonly Dictionary<SelectableControlObject, int> runtimeSlots = new Dictionary<SelectableControlObject, int>();
     private Material highlightMaterial;
     private int objectPage;
     private static readonly Color NavigationButtonColor = new Color(0.16f, 0.11f, 0.05f, 0.88f);
@@ -110,9 +111,30 @@ public class SelectionPanelsUI : MonoBehaviour
 
     public void RefreshObjects()
     {
-        objects = FindObjectsByType<SelectableControlObject>(FindObjectsSortMode.None)
-            .OrderBy(item => item.slotNumber)
-            .ToList();
+        runtimeSlots.Clear();
+
+        var orderedObjects = new List<SelectableControlObject>();
+        foreach (var boardObject in BoardManager.FindSceneBoardObjects())
+        {
+            if (boardObject == null || !boardObject.gameObject.activeInHierarchy)
+                continue;
+
+            if (!boardObject.TryGetComponent<SelectableControlObject>(out var selectable))
+                continue;
+
+            if (!orderedObjects.Contains(selectable))
+                orderedObjects.Add(selectable);
+        }
+
+        foreach (var selectable in FindObjectsByType<SelectableControlObject>(FindObjectsSortMode.None).OrderBy(item => item.name))
+        {
+            if (!orderedObjects.Contains(selectable))
+                orderedObjects.Add(selectable);
+        }
+
+        objects = orderedObjects;
+        for (var i = 0; i < objects.Count; i++)
+            runtimeSlots[objects[i]] = i + 1;
     }
 
     public void ShowObjects()
@@ -154,7 +176,7 @@ public class SelectionPanelsUI : MonoBehaviour
             ClearFocus();
         });
 
-        SetChildText(button.transform, "Number", item.slotNumber.ToString());
+        SetChildText(button.transform, "Number", GetRuntimeSlot(item).ToString());
         SetChildImage(button.transform, "Icon", item.icon);
         SetChildText(button.transform, "Fallback Icon", GetFallbackIconText(item.displayName));
         SetChildActive(button.transform, "Fallback Icon", item.icon == null);
@@ -363,7 +385,7 @@ public class SelectionPanelsUI : MonoBehaviour
 
     private void SelectObjectBySlot(int slotNumber)
     {
-        var selected = objects.FirstOrDefault(item => item.slotNumber == slotNumber);
+        var selected = objects.FirstOrDefault(item => GetRuntimeSlot(item) == slotNumber);
         if (selected != null)
         {
             ShowActions(selected);
@@ -551,6 +573,11 @@ public class SelectionPanelsUI : MonoBehaviour
     private string GetFallbackIconText(string value)
     {
         return string.IsNullOrWhiteSpace(value) ? "?" : value.Substring(0, 1).ToUpperInvariant();
+    }
+
+    private int GetRuntimeSlot(SelectableControlObject item)
+    {
+        return item != null && runtimeSlots.TryGetValue(item, out var slot) ? slot : 0;
     }
 
     private void ClearContainer(Transform container, Button template)

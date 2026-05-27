@@ -4,13 +4,22 @@ using UnityEngine.InputSystem;
 public class GridTileMover : MonoBehaviour
 {
     [SerializeField] private bool keyboardInputEnabled = true;
+    [SerializeField] private bool useBoardManager = true;
     [SerializeField] private float tileSize = 1f;
     [SerializeField] private float moveDuration = 0.18f;
 
+    private BoardManager boardManager;
+    private BoardObject boardObject;
     private bool isMoving;
     private float moveElapsed;
     private Vector3 moveStart;
     private Vector3 moveTarget;
+
+    private void Awake()
+    {
+        boardObject = GetComponent<BoardObject>();
+        boardManager = FindAnyObjectByType<BoardManager>();
+    }
 
     private void Update()
     {
@@ -35,33 +44,71 @@ public class GridTileMover : MonoBehaviour
 
     public void MovePositiveX()
     {
-        TryMove(Vector3.right);
+        TryMove(Vector2Int.right, Vector3.right);
     }
 
     public void MoveNegativeX()
     {
-        TryMove(Vector3.left);
+        TryMove(Vector2Int.left, Vector3.left);
     }
 
     public void MovePositiveZ()
     {
-        TryMove(Vector3.forward);
+        TryMove(Vector2Int.up, Vector3.forward);
     }
 
     public void MoveNegativeZ()
     {
-        TryMove(Vector3.back);
+        TryMove(Vector2Int.down, Vector3.back);
     }
 
-    private void TryMove(Vector3 direction)
+    public void ConfigureBoardMovement(bool enabled, bool keyboardEnabled)
+    {
+        useBoardManager = enabled;
+        keyboardInputEnabled = keyboardEnabled;
+        boardObject = GetComponent<BoardObject>();
+        boardManager = FindAnyObjectByType<BoardManager>();
+    }
+
+    private void TryMove(Vector2Int boardDirection, Vector3 fallbackWorldDirection)
     {
         if (isMoving)
             return;
 
         moveStart = transform.position;
-        moveTarget = moveStart + direction * tileSize;
+
+        if (useBoardManager && TryMoveOnBoard(boardDirection, out var targetTile))
+        {
+            var safeBoardManager = boardManager != null ? boardManager : FindAnyObjectByType<BoardManager>();
+            moveTarget = safeBoardManager.TileToWorld(targetTile, moveStart.y);
+        }
+        else if (useBoardManager)
+        {
+            return;
+        }
+        else
+        {
+            moveTarget = moveStart + fallbackWorldDirection * tileSize;
+        }
+
         moveElapsed = 0f;
         isMoving = true;
+    }
+
+    private bool TryMoveOnBoard(Vector2Int boardDirection, out Vector2Int targetTile)
+    {
+        targetTile = default;
+
+        if (boardObject == null)
+            boardObject = GetComponent<BoardObject>();
+
+        if (boardManager == null)
+            boardManager = FindAnyObjectByType<BoardManager>();
+
+        if (boardObject == null || boardManager == null)
+            return false;
+
+        return boardManager.TryMoveObject(boardObject, boardDirection, out _, out targetTile);
     }
 
     private void UpdateMove()

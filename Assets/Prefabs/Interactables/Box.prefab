@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 1377466699949275199}
   - component: {fileID: 4687383673963637939}
   - component: {fileID: 2488081998846022410}
+  - component: {fileID: 3655676232340328035}
   m_Layer: 0
   m_Name: Box
   m_TagString: Untagged
@@ -29,7 +30,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8662739222616045272}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 1.994978, y: 0, z: 0.048066907}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -106,6 +107,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridTileMover
   keyboardInputEnabled: 1
+  useBoardManager: 1
   tileSize: 1
   moveDuration: 0.18
 --- !u!114 &4687383673963637939
@@ -204,7 +206,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00ba92bac7e05f1449e7126f615a367e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ControlObjectConnector
-  slotNumber: 5
   displayName: Box
   icon: {fileID: 0}
   actions:
@@ -276,3 +277,21 @@ MonoBehaviour:
             m_StringArgument: 
             m_BoolArgument: 0
           m_CallState: 2
+--- !u!114 &3655676232340328035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8662739222616045272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80f2ee657fc3648458b9fcdb13ebf8d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoardObject
+  objectId: box-917b9215
+  objectType: 2
+  tilePosition: {x: 5, y: 3}
+  occupiesTile: 1
+  blocksMovement: 1
+  movable: 1

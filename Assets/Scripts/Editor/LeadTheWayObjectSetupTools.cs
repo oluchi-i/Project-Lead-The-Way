@@ -114,6 +114,44 @@ public static class LeadTheWayObjectSetupTools
         EditorUtility.DisplayDialog("Sync Board Tiles", $"Synced {selectedBoardObjects.Count} BoardObject tile position(s) from their transforms.", "OK");
     }
 
+    [MenuItem("Tools/Lead The Way/Board/Setup Selected Board Movers As Boxes")]
+    public static void SetupSelectedBoardMoversAsBoxes()
+    {
+        var targets = GetSelectedSceneObjects();
+        if (targets.Count == 0)
+        {
+            EditorUtility.DisplayDialog("Setup Board Movers", "Select one or more box GameObjects in the Hierarchy first.", "OK");
+            return;
+        }
+
+        var boardManager = UnityEngine.Object.FindAnyObjectByType<BoardManager>();
+        if (boardManager == null)
+        {
+            EditorUtility.DisplayDialog("Setup Board Movers", "Create a BoardManager first: Tools > Lead The Way > Board > Create Board Manager.", "OK");
+            return;
+        }
+
+        foreach (var target in targets)
+        {
+            var boardObject = GetOrAddComponent<BoardObject>(target);
+            var mover = GetOrAddComponent<GridTileMover>(target);
+
+            Undo.RecordObject(boardObject, "Setup Board Mover");
+            Undo.RecordObject(mover, "Setup Board Mover");
+
+            boardObject.Configure(BoardObjectType.Box, true, true, true);
+            boardObject.SyncTileFromTransform(boardManager.WorldOrigin, boardManager.TileSize);
+            mover.ConfigureBoardMovement(true, true);
+
+            EditorUtility.SetDirty(boardObject);
+            EditorUtility.SetDirty(mover);
+        }
+
+        boardManager.RebuildRegistry();
+        EditorSceneManager.MarkSceneDirty(targets[0].scene);
+        EditorUtility.DisplayDialog("Setup Board Movers", $"Configured {targets.Count} board-controlled box mover(s).", "OK");
+    }
+
     [MenuItem("Tools/Lead The Way/Board/Report Registered Board Objects")]
     public static void ReportRegisteredBoardObjects()
     {

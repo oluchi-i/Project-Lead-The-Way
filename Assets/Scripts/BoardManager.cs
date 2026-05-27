@@ -125,6 +125,11 @@ public class BoardManager : MonoBehaviour
 
     public bool IsBlocked(Vector2Int tile)
     {
+        return IsBlocked(tile, null);
+    }
+
+    public bool IsBlocked(Vector2Int tile, BoardObject ignoredObject)
+    {
         if (!IsInsideBounds(tile))
             return true;
 
@@ -133,11 +138,35 @@ public class BoardManager : MonoBehaviour
 
         foreach (var boardObject in tileObjects)
         {
+            if (boardObject == ignoredObject)
+                continue;
+
             if (boardObject.BlocksMovement)
                 return true;
         }
 
         return false;
+    }
+
+    public bool TryMoveObject(BoardObject boardObject, Vector2Int direction, out Vector2Int fromTile, out Vector2Int toTile)
+    {
+        fromTile = boardObject != null ? boardObject.TilePosition : default;
+        toTile = fromTile + direction;
+
+        if (boardObject == null || !boardObject.Movable)
+            return false;
+
+        RebuildRegistry();
+
+        fromTile = boardObject.TilePosition;
+        toTile = fromTile + direction;
+
+        if (IsBlocked(toTile, boardObject))
+            return false;
+
+        boardObject.SetTilePosition(toTile);
+        RebuildRegistry();
+        return true;
     }
 
     public Vector2Int WorldToTile(Vector3 worldPosition)
