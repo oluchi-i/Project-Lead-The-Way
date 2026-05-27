@@ -152,6 +152,7 @@ public class SelectionPanelsUI : MonoBehaviour
             return;
 
         currentObject = null;
+        currentMover = null;
         HideSceneHighlight();
         objectPanel.SetActive(true);
         actionPanel.SetActive(false);
@@ -162,6 +163,7 @@ public class SelectionPanelsUI : MonoBehaviour
     private void ShowActions(SelectableControlObject selectedObject)
     {
         currentObject = selectedObject;
+        currentMover = selectedObject != null ? selectedObject.GetComponent<GridTileMover>() : null;
         ShowSceneHighlight(selectedObject);
         objectPanel.SetActive(false);
         actionPanel.SetActive(true);
@@ -392,6 +394,7 @@ public class SelectionPanelsUI : MonoBehaviour
     }
 
     private SelectableControlObject currentObject;
+    private GridTileMover currentMover;
 
     private void SelectObjectBySlot(int slotNumber)
     {
@@ -459,8 +462,7 @@ public class SelectionPanelsUI : MonoBehaviour
         if (currentObject == null || Keyboard.current == null)
             return false;
 
-        var mover = currentObject.GetComponent<GridTileMover>();
-        if (mover == null)
+        if (currentMover == null)
             return false;
 
         bool attempted;
@@ -469,22 +471,22 @@ public class SelectionPanelsUI : MonoBehaviour
         if (Keyboard.current.leftArrowKey.wasPressedThisFrame)
         {
             attempted = true;
-            moved = CanInvokeAction() && mover.TryMovePositiveX();
+            moved = CanInvokeAction() && currentMover.TryMovePositiveX();
         }
         else if (Keyboard.current.rightArrowKey.wasPressedThisFrame)
         {
             attempted = true;
-            moved = CanInvokeAction() && mover.TryMoveNegativeX();
+            moved = CanInvokeAction() && currentMover.TryMoveNegativeX();
         }
         else if (Keyboard.current.upArrowKey.wasPressedThisFrame)
         {
             attempted = true;
-            moved = CanInvokeAction() && mover.TryMoveNegativeZ();
+            moved = CanInvokeAction() && currentMover.TryMoveNegativeZ();
         }
         else if (Keyboard.current.downArrowKey.wasPressedThisFrame)
         {
             attempted = true;
-            moved = CanInvokeAction() && mover.TryMovePositiveZ();
+            moved = CanInvokeAction() && currentMover.TryMovePositiveZ();
         }
         else
         {

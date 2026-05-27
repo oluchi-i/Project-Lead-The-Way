@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System;
@@ -18,6 +19,8 @@ public class InteractionFlowManager : MonoBehaviour
     private int lastInteractionFrame = -1;
     private int lastHandledActionFrame = -1;
     private bool levelFinished;
+    private DoorScript.Door targetDoorScript;
+    private Coroutine actionLimitRoutine;
 
     private static readonly Vector2Int[] Directions =
     {
@@ -49,6 +52,7 @@ public class InteractionFlowManager : MonoBehaviour
         playerMover = newPlayerMover;
         playerObject = newPlayerObject;
         targetDoor = newTargetDoor;
+        targetDoorScript = null;
     }
 
     public void ConfigureResultFlash(LevelResultFlashUI newResultFlashUI)
@@ -84,7 +88,7 @@ public class InteractionFlowManager : MonoBehaviour
         StepPlayerTowardDoor();
 
         if (interactionCount >= MaxInteractionCount)
-            ResolveActionLimit();
+            BeginActionLimitResolution();
 
         return true;
     }
@@ -184,17 +188,35 @@ public class InteractionFlowManager : MonoBehaviour
         if (targetDoor == null)
             return true;
 
-        var door = targetDoor.GetComponentInChildren<DoorScript.Door>(true);
-        return door == null || door.open;
+        if (targetDoorScript == null)
+            targetDoorScript = targetDoor.GetComponentInChildren<DoorScript.Door>(true);
+
+        return targetDoorScript == null || targetDoorScript.open;
     }
 
-    private void ResolveActionLimit()
+    private void BeginActionLimitResolution()
     {
+        if (levelFinished)
+            return;
+
         levelFinished = true;
+
+        if (actionLimitRoutine != null)
+            StopCoroutine(actionLimitRoutine);
+
+        actionLimitRoutine = StartCoroutine(ResolveActionLimitAfterMovement());
+    }
+
+    private IEnumerator ResolveActionLimitAfterMovement()
+    {
+        while (playerMover != null && playerMover.IsMoving)
+            yield return null;
 
         var succeeded = IsPlayerOnGoalTile();
         if (resultFlashUI != null)
             resultFlashUI.Flash(succeeded);
+
+        actionLimitRoutine = null;
     }
 
     private bool IsPlayerOnGoalTile()
@@ -243,13 +265,21 @@ public class InteractionFlowManager : MonoBehaviour
         if (playerObject == null && playerMover != null)
             playerObject = playerMover.GetComponent<BoardObject>();
 
-        var boardObjects = BoardManager.FindSceneBoardObjects();
+        var needsBoardObjectLookup = playerObject == null || targetDoor == null || !targetDoor.gameObject.activeInHierarchy;
+        if (needsBoardObjectLookup)
+        {
+            var boardObjects = BoardManager.FindSceneBoardObjects();
+            if (playerObject == null)
+                playerObject = boardObjects.FirstOrDefault(item => item != null && item.ObjectType == BoardObjectType.Player && item.gameObject.activeInHierarchy);
 
-        if (playerObject == null)
-            playerObject = boardObjects.FirstOrDefault(item => item != null && item.ObjectType == BoardObjectType.Player && item.gameObject.activeInHierarchy);
-
-        if (targetDoor == null || !targetDoor.gameObject.activeInHierarchy)
-            targetDoor = boardObjects.FirstOrDefault(item => item != null && item.ObjectType == BoardObjectType.Door && item.gameObject.activeInHierarchy);
+            if (targetDoor == null || !targetDoor.gameObject.activeInHierarchy)
+            {
+                var previousDoor = targetDoor;
+                targetDoor = boardObjects.FirstOrDefault(item => item != null && item.ObjectType == BoardObjectType.Door && item.gameObject.activeInHierarchy);
+                if (targetDoor != previousDoor)
+                    targetDoorScript = null;
+            }
+        }
 
         if (resultFlashUI == null)
             resultFlashUI = FindAnyObjectByType<LevelResultFlashUI>();

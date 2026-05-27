@@ -106,7 +106,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 658c28d5cabf5394091f56443a1073ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridTileMover
-  keyboardInputEnabled: 1
   useBoardManager: 1
   tileSize: 1
   moveDuration: 0.18

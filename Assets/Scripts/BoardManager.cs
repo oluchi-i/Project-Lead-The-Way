@@ -54,14 +54,6 @@ public class BoardManager : MonoBehaviour
             }
         }
 
-        foreach (var boardObject in Resources.FindObjectsOfTypeAll<BoardObject>())
-        {
-            if (boardObject == null || !boardObject.gameObject.scene.IsValid())
-                continue;
-
-            AddBoardObject(boardObjects, seen, boardObject);
-        }
-
         return boardObjects;
     }
 
@@ -220,9 +212,35 @@ public class BoardManager : MonoBehaviour
         if (!CanEnterTile(boardObject, toTile))
             return false;
 
+        RemoveFromTile(boardObject, fromTile);
         boardObject.SetTilePosition(toTile);
-        RebuildRegistry();
+        AddToTile(boardObject, toTile);
         return true;
+    }
+
+    private void RemoveFromTile(BoardObject boardObject, Vector2Int tile)
+    {
+        if (boardObject == null || !objectsByTile.TryGetValue(tile, out var tileObjects))
+            return;
+
+        tileObjects.Remove(boardObject);
+        if (tileObjects.Count == 0)
+            objectsByTile.Remove(tile);
+    }
+
+    private void AddToTile(BoardObject boardObject, Vector2Int tile)
+    {
+        if (boardObject == null || !boardObject.OccupiesTile)
+            return;
+
+        if (!objectsByTile.TryGetValue(tile, out var tileObjects))
+        {
+            tileObjects = new List<BoardObject>();
+            objectsByTile.Add(tile, tileObjects);
+        }
+
+        if (!tileObjects.Contains(boardObject))
+            tileObjects.Add(boardObject);
     }
 
     public Vector2Int WorldToTile(Vector3 worldPosition)

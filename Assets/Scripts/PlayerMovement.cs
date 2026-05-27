@@ -16,14 +16,13 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private bool playDemoPathOnStart;
     public GameObject tile;
     public float speed = 1f;
-    private enum State{Idle, Walk};
-    State state;
+    private enum State { Idle, Walk }
+    private State state;
     // north +z, south -z, West -x, East +x
-    private Rigidbody rb;
     private float tileSize;
     private Coroutine movementRoutine;
     // Vector3.forward, Vector3.right, Vector3.back, Vector3.left
-    private List<Vector3> movementQueue = new List<Vector3>();
+    private readonly Queue<Vector3> movementQueue = new Queue<Vector3>();
     private float walkWeight = 0f;
     private float blendSpeed = 5f;
     private Coroutine managerRoutine;
@@ -33,7 +32,6 @@ public class PlayerMovement : MonoBehaviour
 
     void Awake()
     {
-        rb = GetComponent<Rigidbody>();
         tileSize = 1f;
 
         if (tile != null && tile.TryGetComponent<MeshRenderer>(out var meshRenderer))
@@ -53,13 +51,9 @@ public class PlayerMovement : MonoBehaviour
         QueueMove(Vector3.right * tileSize);
     }
 
-    void Update()
-    {
-        
-    }
     public void QueueMove(Vector3 direction)
     {
-        movementQueue.Add(direction);
+        movementQueue.Enqueue(direction);
         if (movementRoutine == null)
             movementRoutine = StartCoroutine(ProcessMovement());
     }
@@ -80,8 +74,7 @@ public class PlayerMovement : MonoBehaviour
         while (movementQueue.Count > 0)
         {
             ChangeState(State.Walk);
-            Vector3 currentDirection = movementQueue[0];
-            movementQueue.RemoveAt(0);
+            Vector3 currentDirection = movementQueue.Dequeue();
 
             startPosition = transform.position;
             targetPosition = transform.position + currentDirection;
@@ -110,6 +103,12 @@ public class PlayerMovement : MonoBehaviour
 
     private IEnumerator WalkAnimation()
     {
+        if (leftArm == null || rightArm == null || leftLeg == null || rightLeg == null)
+        {
+            managerRoutine = null;
+            yield break;
+        }
+
         while (state == State.Walk || walkWeight > 0)
         {
             float targetWeight = (state == State.Walk) ? 1f : 0f;
@@ -152,8 +151,18 @@ public class PlayerMovement : MonoBehaviour
             startPosition = transform.position;
             StopCoroutine(movementRoutine);
             state = State.Idle;
-            movementQueue.Insert(0, targetPosition - startPosition);
+            QueueMoveFirst(targetPosition - startPosition);
             movementRoutine = StartCoroutine(ProcessMovement());
         }
+    }
+
+    private void QueueMoveFirst(Vector3 direction)
+    {
+        var pendingMoves = movementQueue.ToArray();
+        movementQueue.Clear();
+        movementQueue.Enqueue(direction);
+
+        foreach (var pendingMove in pendingMoves)
+            movementQueue.Enqueue(pendingMove);
     }
 }
