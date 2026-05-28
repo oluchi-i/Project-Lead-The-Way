@@ -5,7 +5,8 @@ public class InteractionCounterUI : MonoBehaviour
 {
     [SerializeField] private InteractionFlowManager interactionFlowManager;
     [SerializeField] private Text countText;
-    [SerializeField] private string numberFormat = "{0}/{1}";
+    [SerializeField] private Image remainingFillImage;
+    [SerializeField] private string numberFormat = "{0}";
 
     private void Awake()
     {
@@ -31,8 +32,14 @@ public class InteractionCounterUI : MonoBehaviour
 
     public void Configure(InteractionFlowManager newInteractionFlowManager, Text newCountText)
     {
+        Configure(newInteractionFlowManager, newCountText, remainingFillImage);
+    }
+
+    public void Configure(InteractionFlowManager newInteractionFlowManager, Text newCountText, Image newRemainingFillImage)
+    {
         interactionFlowManager = newInteractionFlowManager;
         countText = newCountText;
+        remainingFillImage = newRemainingFillImage;
         Refresh();
     }
 
@@ -44,11 +51,14 @@ public class InteractionCounterUI : MonoBehaviour
 
     private void HandleInteractionCountChanged(int count)
     {
+        var maxCount = interactionFlowManager != null ? interactionFlowManager.MaxInteractionCount : 1;
+        var remainingCount = Mathf.Max(0, maxCount - count);
+
         if (countText != null)
-        {
-            var maxCount = interactionFlowManager != null ? interactionFlowManager.MaxInteractionCount : 1;
-            countText.text = string.Format(numberFormat, count, maxCount);
-        }
+            countText.text = string.Format(numberFormat, remainingCount, maxCount);
+
+        if (remainingFillImage != null)
+            remainingFillImage.fillAmount = maxCount > 0 ? (float)remainingCount / maxCount : 0f;
     }
 
     private void EnsureReferences()
@@ -58,5 +68,18 @@ public class InteractionCounterUI : MonoBehaviour
 
         if (countText == null)
             countText = GetComponentInChildren<Text>(true);
+
+        if (remainingFillImage == null)
+        {
+            var images = GetComponentsInChildren<Image>(true);
+            foreach (var image in images)
+            {
+                if (image.type == Image.Type.Filled)
+                {
+                    remainingFillImage = image;
+                    break;
+                }
+            }
+        }
     }
 }

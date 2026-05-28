@@ -12,6 +12,7 @@ public static class LeadTheWayObjectSetupTools
     private const string PoppinsBoldPath = "Assets/Art/UI/Fonts/Poppins-Bold.ttf";
     private const string ButtonRoundPath = "Assets/Art/UI/ButtonSet/Textures/buttons/button_round_130.png";
     private const string SmallPanelPath = "Assets/Art/UI/ButtonSet/Textures/controls/universal_panel_20.png";
+    private const string MediumCountdownDialPath = "Assets/Art/UI/Countdown/CountdownDialMedium.png";
 
     [MenuItem("Tools/Lead The Way/Board/Create Board Manager")]
     public static void CreateBoardManager()
@@ -612,21 +613,33 @@ public static class LeadTheWayObjectSetupTools
         counterRoot.transform.SetAsLastSibling();
         counterRoot.SetActive(true);
 
-        ConfigureRect(counterRoot.GetComponent<RectTransform>(), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(18f, -18f), new Vector2(168f, 54f));
+        ConfigureRect(counterRoot.GetComponent<RectTransform>(), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(18f, -18f), new Vector2(82f, 82f));
 
         var background = counterRoot.GetComponent<Image>();
         background.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(PanelSoftPath);
         background.type = background.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
         background.color = new Color(0.16f, 0.11f, 0.05f, 0.88f);
 
-        var labelText = FindOrCreateText(counterRoot.transform, "Label");
-        ConfigureCounterText(labelText, "ACTION COUNT", 10, FontStyle.Bold, TextAnchor.UpperLeft, new Vector2(12f, -7f), new Vector2(144f, 16f), new Color(1f, 0.82f, 0.24f, 1f));
+        var dialSprite = AssetDatabase.LoadAssetAtPath<Sprite>(MediumCountdownDialPath);
+        var dialBackground = EnsureChild(counterRoot.transform, "Countdown Dial Background", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+        ConfigureCountdownDialImage(dialBackground, dialSprite, new Color(1f, 0.93f, 0.72f, 0.2f), false);
+
+        var dialFill = EnsureChild(counterRoot.transform, "Countdown Dial Fill", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+        ConfigureCountdownDialImage(dialFill, dialSprite, new Color(1f, 0.68f, 0.03f, 1f), true);
+
+        var staleLabelText = FindDirect(counterRoot.transform, "Label");
+        if (staleLabelText != null)
+            Undo.DestroyObjectImmediate(staleLabelText.gameObject);
 
         var countText = FindOrCreateText(counterRoot.transform, "Count");
-        ConfigureCounterText(countText, $"0/{flowManager.MaxInteractionCount}", 26, FontStyle.Bold, TextAnchor.LowerLeft, new Vector2(12f, -18f), new Vector2(144f, 30f), new Color(1f, 0.93f, 0.72f, 1f));
+        ConfigureCounterText(countText, flowManager.MaxInteractionCount.ToString(), 34, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(10f, -10f), new Vector2(62f, 62f), new Color(1f, 0.93f, 0.72f, 1f));
+
+        var staleMaxText = FindDirect(counterRoot.transform, "Max");
+        if (staleMaxText != null)
+            Undo.DestroyObjectImmediate(staleMaxText.gameObject);
 
         Undo.RecordObject(counterUI, "Setup Interaction Counter");
-        counterUI.Configure(flowManager, countText);
+        counterUI.Configure(flowManager, countText, dialFill);
         EditorUtility.SetDirty(counterUI);
         EditorUtility.SetDirty(counterRoot);
     }
@@ -1095,5 +1108,31 @@ public static class LeadTheWayObjectSetupTools
         text.rectTransform.pivot = new Vector2(0f, 1f);
         text.rectTransform.anchoredPosition = anchoredPosition;
         text.rectTransform.sizeDelta = size;
+    }
+
+    private static void ConfigureCountdownDialImage(Image image, Sprite sprite, Color color, bool filled)
+    {
+        Undo.RecordObject(image, "Setup Countdown Dial");
+        Undo.RecordObject(image.rectTransform, "Setup Countdown Dial");
+
+        image.sprite = sprite;
+        image.color = color;
+        image.raycastTarget = false;
+        image.preserveAspect = true;
+        image.type = filled && sprite != null ? Image.Type.Filled : Image.Type.Simple;
+
+        if (filled)
+        {
+            image.fillMethod = Image.FillMethod.Radial360;
+            image.fillOrigin = (int)Image.Origin360.Top;
+            image.fillClockwise = false;
+            image.fillAmount = 1f;
+        }
+
+        image.rectTransform.anchorMin = new Vector2(0f, 1f);
+        image.rectTransform.anchorMax = new Vector2(0f, 1f);
+        image.rectTransform.pivot = new Vector2(0f, 1f);
+        image.rectTransform.anchoredPosition = new Vector2(10f, -10f);
+        image.rectTransform.sizeDelta = new Vector2(62f, 62f);
     }
 }
