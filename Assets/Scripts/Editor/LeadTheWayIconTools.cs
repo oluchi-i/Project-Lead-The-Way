@@ -7,7 +7,7 @@ using UnityEngine;
 
 public static class LeadTheWayIconTools
 {
-    private const string FurnitureIconFolder = "Assets/Art/Furniture/Icons";
+    private const string FurnitureIconFolder = "Assets/Art/Objects/Icons";
     private const string GeneratedIconFolder = "Assets/Art/UI/ObjectIcons";
     private const int IconSize = 256;
 

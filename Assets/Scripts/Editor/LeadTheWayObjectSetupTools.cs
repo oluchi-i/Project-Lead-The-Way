@@ -7,8 +7,8 @@ using UnityEngine.UI;
 
 public static partial class LeadTheWayObjectSetupTools
 {
-    private const string PanelSoftPath = "Assets/Prefabs/UI/Sprites/PanelSoft.asset";
-    private const string BadgeSoftPath = "Assets/Prefabs/UI/Sprites/BadgeSoft.asset";
+    private const string PanelSoftPath = "Assets/Art/UI/Sprites/PanelSoft.asset";
+    private const string BadgeSoftPath = "Assets/Art/UI/Sprites/BadgeSoft.asset";
     private const string PoppinsBoldPath = "Assets/Art/UI/Fonts/Poppins-Bold.ttf";
     private const string ButtonRoundPath = "Assets/Art/UI/ButtonSet/Textures/buttons/button_round_130.png";
     private const string SmallPanelPath = "Assets/Art/UI/ButtonSet/Textures/controls/universal_panel_20.png";

@@ -8,8 +8,8 @@ using UnityEngine;
 public static class LeadTheWayDoorPrefabTools
 {
     private const string InteractableDoorFolder = "Assets/Prefabs/Interactables/Doors";
-    private const string DoorOpenSoundPath = "Assets/Art/Doors/Audio/Door_Open.wav";
-    private const string DoorCloseSoundPath = "Assets/Art/Doors/Audio/Door_Close.wav";
+    private const string DoorOpenSoundPath = "Assets/Art/Environment/Doors/Audio/Door_Open.wav";
+    private const string DoorCloseSoundPath = "Assets/Art/Environment/Doors/Audio/Door_Close.wav";
     private const string DefaultDoorActionIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/play.png";
     private const string GeneratedDoorIconFolder = "Assets/Art/UI/ObjectIcons";
 
