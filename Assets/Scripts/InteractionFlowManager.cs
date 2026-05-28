@@ -159,8 +159,14 @@ public class InteractionFlowManager : MonoBehaviour
         var goals = new HashSet<Vector2Int>();
         foreach (var goalObject in boardManager.GetGoalObjects())
         {
-            if (goalObject != null && boardManager.CanEnterTile(playerObject, goalObject.TilePosition))
-                goals.Add(goalObject.TilePosition);
+            if (goalObject == null)
+                continue;
+
+            foreach (var goalTile in goalObject.GetOccupiedTiles())
+            {
+                if (boardManager.CanEnterTile(playerObject, goalTile) && HasEnterableGoalApproach(goalTile))
+                    goals.Add(goalTile);
+            }
         }
 
         var doorOpen = IsTargetDoorOpen();
@@ -181,6 +187,21 @@ public class InteractionFlowManager : MonoBehaviour
         }
 
         return goals;
+    }
+
+    private bool HasEnterableGoalApproach(Vector2Int goalTile)
+    {
+        if (boardManager.IsInsideBounds(goalTile))
+            return true;
+
+        foreach (var direction in Directions)
+        {
+            var candidate = goalTile + direction;
+            if (boardManager.IsInsideBounds(candidate) && boardManager.CanEnterTile(playerObject, candidate))
+                return true;
+        }
+
+        return false;
     }
 
     private bool IsTargetDoorOpen()
@@ -229,7 +250,7 @@ public class InteractionFlowManager : MonoBehaviour
         boardManager.RebuildRegistry();
         foreach (var goalObject in boardManager.GetGoalObjects())
         {
-            if (goalObject != null && goalObject.TilePosition == playerObject.TilePosition)
+            if (goalObject != null && goalObject.GetOccupiedTiles().Contains(playerObject.TilePosition))
                 return true;
         }
 

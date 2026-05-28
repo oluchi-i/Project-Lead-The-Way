@@ -225,7 +225,7 @@ public static class LeadTheWayObjectSetupTools
             if (EditorUtility.IsPersistent(boardObject))
                 continue;
 
-            report.Add($"{boardObject.name}: {boardObject.ObjectType}, tile {boardObject.TilePosition}, active={boardObject.gameObject.activeInHierarchy}, scene={boardObject.gameObject.scene.name}, blocks={boardObject.BlocksMovement}, movable={boardObject.Movable}");
+            report.Add($"{boardObject.name}: {boardObject.ObjectType}, anchor {boardObject.TilePosition}, footprint [{string.Join(", ", boardObject.GetOccupiedTiles())}], active={boardObject.gameObject.activeInHierarchy}, scene={boardObject.gameObject.scene.name}, blocks={boardObject.BlocksMovement}, movable={boardObject.Movable}");
         }
 
         report.Sort(StringComparer.Ordinal);

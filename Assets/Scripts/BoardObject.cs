@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class BoardObject : MonoBehaviour
@@ -6,6 +7,7 @@ public class BoardObject : MonoBehaviour
     [SerializeField] private string objectId;
     [SerializeField] private BoardObjectType objectType = BoardObjectType.Other;
     [SerializeField] private Vector2Int tilePosition;
+    [SerializeField] private List<Vector2Int> occupiedTileOffsets = new List<Vector2Int> { Vector2Int.zero };
     [SerializeField] private bool occupiesTile = true;
     [SerializeField] private bool blocksMovement;
     [SerializeField] private bool movable;
@@ -13,6 +15,7 @@ public class BoardObject : MonoBehaviour
     public string ObjectId => objectId;
     public BoardObjectType ObjectType => objectType;
     public Vector2Int TilePosition => tilePosition;
+    public IReadOnlyList<Vector2Int> OccupiedTileOffsets => occupiedTileOffsets;
     public bool OccupiesTile => occupiesTile;
     public bool BlocksMovement => blocksMovement;
     public bool Movable => movable;
@@ -27,6 +30,8 @@ public class BoardObject : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(objectId))
             objectId = CreateObjectId(gameObject.name);
+
+        EnsureDefaultFootprint();
     }
 
     public void Configure(BoardObjectType type, bool occupies, bool blocks, bool canMove)
@@ -51,6 +56,33 @@ public class BoardObject : MonoBehaviour
         tilePosition = tile;
     }
 
+    public List<Vector2Int> GetOccupiedTiles()
+    {
+        return GetOccupiedTiles(tilePosition);
+    }
+
+    public List<Vector2Int> GetOccupiedTiles(Vector2Int anchorTile)
+    {
+        var occupiedTiles = new List<Vector2Int>();
+        if (!occupiesTile)
+            return occupiedTiles;
+
+        if (occupiedTileOffsets == null || occupiedTileOffsets.Count == 0)
+        {
+            occupiedTiles.Add(anchorTile);
+            return occupiedTiles;
+        }
+
+        foreach (var offset in occupiedTileOffsets)
+        {
+            var tile = anchorTile + offset;
+            if (!occupiedTiles.Contains(tile))
+                occupiedTiles.Add(tile);
+        }
+
+        return occupiedTiles;
+    }
+
     public void SyncTileFromTransform()
     {
         SyncTileFromTransform(Vector3.zero, 1f);
@@ -70,5 +102,14 @@ public class BoardObject : MonoBehaviour
         var prefix = string.IsNullOrWhiteSpace(objectName) ? "object" : objectName.Trim().ToLowerInvariant();
         prefix = prefix.Replace(" ", "-");
         return $"{prefix}-{Guid.NewGuid():N}".Substring(0, Mathf.Min(prefix.Length + 9, prefix.Length + 33));
+    }
+
+    private void EnsureDefaultFootprint()
+    {
+        if (occupiedTileOffsets == null)
+            occupiedTileOffsets = new List<Vector2Int>();
+
+        if (occupiedTileOffsets.Count == 0)
+            occupiedTileOffsets.Add(Vector2Int.zero);
     }
 }

@@ -83,15 +83,9 @@ public class BoardManager : MonoBehaviour
 
         objectsById.Add(boardObject.ObjectId, boardObject);
 
-        if (boardObject.OccupiesTile)
+        foreach (var occupiedTile in boardObject.GetOccupiedTiles())
         {
-            if (!objectsByTile.TryGetValue(boardObject.TilePosition, out var tileObjects))
-            {
-                tileObjects = new List<BoardObject>();
-                objectsByTile.Add(boardObject.TilePosition, tileObjects);
-            }
-
-            tileObjects.Add(boardObject);
+            AddToTile(boardObject, occupiedTile);
         }
 
         return true;
@@ -136,6 +130,17 @@ public class BoardManager : MonoBehaviour
         if (movingObject == null)
             return false;
 
+        foreach (var occupiedTile in movingObject.GetOccupiedTiles(tile))
+        {
+            if (!CanEnterSingleTile(movingObject, occupiedTile))
+                return false;
+        }
+
+        return true;
+    }
+
+    private bool CanEnterSingleTile(BoardObject movingObject, Vector2Int tile)
+    {
         if (IsInsideBounds(tile))
             return !IsBlockedByObjects(tile, movingObject);
 
@@ -212,9 +217,14 @@ public class BoardManager : MonoBehaviour
         if (!CanEnterTile(boardObject, toTile))
             return false;
 
-        RemoveFromTile(boardObject, fromTile);
+        foreach (var occupiedTile in boardObject.GetOccupiedTiles(fromTile))
+            RemoveFromTile(boardObject, occupiedTile);
+
         boardObject.SetTilePosition(toTile);
-        AddToTile(boardObject, toTile);
+
+        foreach (var occupiedTile in boardObject.GetOccupiedTiles(toTile))
+            AddToTile(boardObject, occupiedTile);
+
         return true;
     }
 
