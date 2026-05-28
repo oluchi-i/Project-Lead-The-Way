@@ -30,11 +30,27 @@ public static class LeadTheWayObjectSetupTools
         var playerObject = playerMover != null
             ? playerMover.GetComponent<BoardObject>()
             : FindBoardObject(boardObjects, item => item.ObjectType == BoardObjectType.Player);
-        var startTile = FindBoardObject(boardObjects, item => IsNamed(item, "start") && item.ObjectType != BoardObjectType.Door);
-        var startDoor = FindBoardObject(boardObjects, item => IsNamed(item, "start") && item.ObjectType == BoardObjectType.Door);
-        var destinationDoor = FindBoardObject(boardObjects, item => IsNamed(item, "destination") && item.ObjectType == BoardObjectType.Door)
-            ?? FindBoardObject(boardObjects, item => IsNamed(item, "exit") && item.ObjectType == BoardObjectType.Door)
-            ?? FindBoardObject(boardObjects, item => item.ObjectType == BoardObjectType.Door && item != startDoor);
+        var startTile = IsUsableBoardObject(flowManager != null ? flowManager.StartTile : null)
+            ? flowManager.StartTile
+            : FindBoardObject(boardObjects, item => IsNamed(item, "start") && item.ObjectType != BoardObjectType.Door);
+        var startDoor = IsUsableDoor(flowManager != null ? flowManager.StartDoor : null)
+            ? flowManager.StartDoor
+            : FindBoardObject(boardObjects, item => IsNamed(item, "start") && item.ObjectType == BoardObjectType.Door);
+        var destinationDoor = IsUsableDoor(flowManager != null ? flowManager.DestinationDoor : null)
+            ? flowManager.DestinationDoor
+            : null;
+
+        if (destinationDoor == null)
+        {
+            destinationDoor = FindBoardObject(boardObjects, item => IsNamed(item, "destination") && item.ObjectType == BoardObjectType.Door && item != startDoor)
+                ?? FindBoardObject(boardObjects, item => IsNamed(item, "exit") && item.ObjectType == BoardObjectType.Door && item != startDoor);
+        }
+
+        if (startDoor == null && startTile != null)
+            startDoor = FindDoorAtOrNearTile(boardObjects, startTile.TilePosition, destinationDoor);
+
+        if (destinationDoor == null)
+            destinationDoor = FindBoardObject(boardObjects, item => item.ObjectType == BoardObjectType.Door && item != startDoor);
 
         if (playerMover != null)
         {
@@ -333,6 +349,49 @@ public static class LeadTheWayObjectSetupTools
         }
 
         return null;
+    }
+
+    private static BoardObject FindDoorAtOrNearTile(List<BoardObject> boardObjects, Vector2Int tile, BoardObject excludedDoor)
+    {
+        BoardObject adjacentDoor = null;
+
+        foreach (var boardObject in boardObjects)
+        {
+            if (!IsUsableDoor(boardObject) || boardObject == excludedDoor)
+                continue;
+
+            var distance = GetNearestManhattanDistance(boardObject, tile);
+            if (distance == 0)
+                return boardObject;
+
+            if (distance == 1 && adjacentDoor == null)
+                adjacentDoor = boardObject;
+        }
+
+        return adjacentDoor;
+    }
+
+    private static int GetNearestManhattanDistance(BoardObject boardObject, Vector2Int tile)
+    {
+        var nearestDistance = int.MaxValue;
+        foreach (var occupiedTile in boardObject.GetOccupiedTiles())
+        {
+            var distance = Mathf.Abs(occupiedTile.x - tile.x) + Mathf.Abs(occupiedTile.y - tile.y);
+            if (distance < nearestDistance)
+                nearestDistance = distance;
+        }
+
+        return nearestDistance;
+    }
+
+    private static bool IsUsableBoardObject(BoardObject boardObject)
+    {
+        return boardObject != null && boardObject.gameObject.activeInHierarchy;
+    }
+
+    private static bool IsUsableDoor(BoardObject boardObject)
+    {
+        return IsUsableBoardObject(boardObject) && boardObject.ObjectType == BoardObjectType.Door;
     }
 
     private static bool IsNamed(Object target, string namePart)

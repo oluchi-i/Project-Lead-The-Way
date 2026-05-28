@@ -102,9 +102,14 @@ public class InteractionFlowManager : MonoBehaviour
         InteractionCountChanged?.Invoke(interactionCount);
 
         if (CanRunIntro())
+        {
             introRoutine = StartCoroutine(RunIntro());
+        }
         else
+        {
+            WarnMissingIntroSetup();
             flowState = LevelFlowState.Playing;
+        }
     }
 
     private void Update()
@@ -187,21 +192,23 @@ public class InteractionFlowManager : MonoBehaviour
         yield return null;
 
         var entryDoor = GetDoorScript(startDoor, ref startDoorScript);
-        if (entryDoor != null)
+        if (entryDoor == null)
         {
-            entryDoor.Open();
-            yield return WaitForDoor(entryDoor);
+            Debug.LogWarning("InteractionFlowManager intro was cancelled because the start door has no Door component.", this);
+            flowState = LevelFlowState.Playing;
+            introRoutine = null;
+            yield break;
         }
+
+        entryDoor.Open();
+        yield return WaitForDoor(entryDoor);
 
         var path = CreateIntroPath(playerObject.TilePosition, gameplayStartTile);
         if (path.Count > 0)
             yield return playerMover.PlayScriptedPath(path);
 
-        if (entryDoor != null)
-        {
-            entryDoor.Close();
-            yield return WaitForDoor(entryDoor);
-        }
+        entryDoor.Close();
+        yield return WaitForDoor(entryDoor);
 
         boardManager.RebuildRegistry();
         flowState = LevelFlowState.Playing;
@@ -213,7 +220,9 @@ public class InteractionFlowManager : MonoBehaviour
         return boardManager != null
             && playerMover != null
             && playerObject != null
-            && startTile != null;
+            && startTile != null
+            && startDoor != null
+            && GetDoorScript(startDoor, ref startDoorScript) != null;
     }
 
     private bool HasRequiredGameplayReferences()
@@ -222,6 +231,20 @@ public class InteractionFlowManager : MonoBehaviour
             && playerMover != null
             && playerObject != null
             && destinationDoor != null;
+    }
+
+    private void WarnMissingIntroSetup()
+    {
+        if (boardManager == null || playerMover == null || playerObject == null || startTile == null || startDoor == null)
+        {
+            Debug.LogWarning(
+                "InteractionFlowManager skipped the level intro because one or more intro references are missing. Run Tools > Lead The Way > Optimize > Wire Current Scene References.",
+                this);
+            return;
+        }
+
+        if (GetDoorScript(startDoor, ref startDoorScript) == null)
+            Debug.LogWarning("InteractionFlowManager skipped the level intro because the configured start door has no Door component.", startDoor);
     }
 
     private List<Vector2Int> CreateIntroPath(Vector2Int fromTile, Vector2Int toTile)

@@ -24,9 +24,18 @@ public class PlayerMovement : MonoBehaviour
     private Coroutine animationRoutine;
     private float walkWeight;
     private float animationTimer;
+    private Transform leftArmTransform;
+    private Transform rightArmTransform;
+    private Transform leftLegTransform;
+    private Transform rightLegTransform;
+    private Quaternion leftArmRestRotation;
+    private Quaternion rightArmRestRotation;
+    private Quaternion leftLegRestRotation;
+    private Quaternion rightLegRestRotation;
 
     private void Awake()
     {
+        CacheLimbReferences();
         state = State.Idle;
     }
 
@@ -50,7 +59,7 @@ public class PlayerMovement : MonoBehaviour
 
     private IEnumerator WalkAnimation()
     {
-        if (leftArm == null || rightArm == null || leftLeg == null || rightLeg == null)
+        if (!HasLimbReferences())
         {
             animationRoutine = null;
             yield break;
@@ -65,10 +74,10 @@ public class PlayerMovement : MonoBehaviour
             var armSwingAngle = Mathf.Sin(animationTimer * swingSpeed) * armSwingAngleLim;
             var legSwingAngle = Mathf.Sin(animationTimer * swingSpeed) * legSwingAngleLim;
 
-            leftArm.transform.localRotation = Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(armSwingAngle, 0f, 0f), walkWeight);
-            rightArm.transform.localRotation = Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(-armSwingAngle, 0f, 0f), walkWeight);
-            leftLeg.transform.localRotation = Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(-legSwingAngle, 0f, 0f), walkWeight);
-            rightLeg.transform.localRotation = Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(legSwingAngle, 0f, 0f), walkWeight);
+            leftArmTransform.localRotation = leftArmRestRotation * Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(armSwingAngle, 0f, 0f), walkWeight);
+            rightArmTransform.localRotation = rightArmRestRotation * Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(-armSwingAngle, 0f, 0f), walkWeight);
+            leftLegTransform.localRotation = leftLegRestRotation * Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(-legSwingAngle, 0f, 0f), walkWeight);
+            rightLegTransform.localRotation = rightLegRestRotation * Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(legSwingAngle, 0f, 0f), walkWeight);
 
             animationTimer += Time.deltaTime;
             yield return null;
@@ -81,16 +90,44 @@ public class PlayerMovement : MonoBehaviour
 
     private void ResetLimbRotations()
     {
-        if (leftArm != null)
-            leftArm.transform.localRotation = Quaternion.identity;
+        if (leftArmTransform != null)
+            leftArmTransform.localRotation = leftArmRestRotation;
 
-        if (rightArm != null)
-            rightArm.transform.localRotation = Quaternion.identity;
+        if (rightArmTransform != null)
+            rightArmTransform.localRotation = rightArmRestRotation;
 
-        if (leftLeg != null)
-            leftLeg.transform.localRotation = Quaternion.identity;
+        if (leftLegTransform != null)
+            leftLegTransform.localRotation = leftLegRestRotation;
 
-        if (rightLeg != null)
-            rightLeg.transform.localRotation = Quaternion.identity;
+        if (rightLegTransform != null)
+            rightLegTransform.localRotation = rightLegRestRotation;
+    }
+
+    private void CacheLimbReferences()
+    {
+        leftArmTransform = leftArm != null ? leftArm.transform : null;
+        rightArmTransform = rightArm != null ? rightArm.transform : null;
+        leftLegTransform = leftLeg != null ? leftLeg.transform : null;
+        rightLegTransform = rightLeg != null ? rightLeg.transform : null;
+
+        if (leftArmTransform != null)
+            leftArmRestRotation = leftArmTransform.localRotation;
+
+        if (rightArmTransform != null)
+            rightArmRestRotation = rightArmTransform.localRotation;
+
+        if (leftLegTransform != null)
+            leftLegRestRotation = leftLegTransform.localRotation;
+
+        if (rightLegTransform != null)
+            rightLegRestRotation = rightLegTransform.localRotation;
+    }
+
+    private bool HasLimbReferences()
+    {
+        return leftArmTransform != null
+            && rightArmTransform != null
+            && leftLegTransform != null
+            && rightLegTransform != null;
     }
 }
