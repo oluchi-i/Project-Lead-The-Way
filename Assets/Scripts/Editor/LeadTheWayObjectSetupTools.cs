@@ -42,10 +42,16 @@ public static class LeadTheWayObjectSetupTools
     [MenuItem("Tools/Lead The Way/Board/Wire Interaction Flow References")]
     public static void WireInteractionFlowReferences()
     {
+        WireLevelFlowReferences();
+    }
+
+    [MenuItem("Tools/Lead The Way/Board/Wire Level Flow References")]
+    public static void WireLevelFlowReferences()
+    {
         var boardManager = UnityEngine.Object.FindAnyObjectByType<BoardManager>();
         if (boardManager == null)
         {
-            EditorUtility.DisplayDialog("Wire Interaction Flow", "Create a BoardManager first: Tools > Lead The Way > Board > Create Board Manager.", "OK");
+            EditorUtility.DisplayDialog("Wire Level Flow", "Create a BoardManager first: Tools > Lead The Way > Board > Create Board Manager.", "OK");
             return;
         }
 
@@ -55,10 +61,13 @@ public static class LeadTheWayObjectSetupTools
 
         var playerMover = UnityEngine.Object.FindAnyObjectByType<BoardPlayerMover>();
         var playerObject = playerMover != null ? playerMover.GetComponent<BoardObject>() : FindFirstSceneBoardObjectOfType(BoardObjectType.Player);
-        var targetDoor = FindFirstSceneBoardObjectOfType(BoardObjectType.Door);
+        var startTile = flowManager.StartTile != null ? flowManager.StartTile : FindNamedSceneBoardObject("start", item => item.ObjectType != BoardObjectType.Door);
+        var startDoor = flowManager.StartDoor != null ? flowManager.StartDoor : FindNamedSceneBoardObject("start", item => item.ObjectType == BoardObjectType.Door);
+        var destinationDoor = flowManager.DestinationDoor != null ? flowManager.DestinationDoor : FindDestinationDoorCandidate(startDoor);
 
-        Undo.RecordObject(flowManager, "Wire Interaction Flow");
-        flowManager.Configure(boardManager, playerMover, playerObject, targetDoor);
+        Undo.RecordObject(flowManager, "Wire Level Flow");
+        flowManager.Configure(boardManager, playerMover, playerObject, destinationDoor);
+        flowManager.ConfigureLevelFlow(startTile, startDoor, destinationDoor);
         EditorUtility.SetDirty(flowManager);
         EditorSceneManager.MarkSceneDirty(flowManager.gameObject.scene);
 
@@ -70,19 +79,23 @@ public static class LeadTheWayObjectSetupTools
             missing.Add("Player Mover");
         if (playerObject == null)
             missing.Add("Player Object");
-        if (targetDoor == null)
-            missing.Add("Target Door");
+        if (startTile == null)
+            missing.Add("Start Tile");
+        if (startDoor == null)
+            missing.Add("Start Door");
+        if (destinationDoor == null)
+            missing.Add("Destination Door");
 
         if (missing.Count > 0)
         {
             EditorUtility.DisplayDialog(
-                "Wire Interaction Flow",
-                $"Wired what could be found, but still missing: {string.Join(", ", missing)}.\n\nIf the player is missing, select the Player and run Tools > Lead The Way > Board > Setup Selected Player Progression.",
+                "Wire Level Flow",
+                $"Wired what could be found, but still missing: {string.Join(", ", missing)}.\n\nUse the setup commands for the missing scene objects, then run this again.",
                 "OK");
             return;
         }
 
-        EditorUtility.DisplayDialog("Wire Interaction Flow", "Wired BoardManager, PlayerMover, PlayerObject, and TargetDoor.", "OK");
+        EditorUtility.DisplayDialog("Wire Level Flow", "Wired BoardManager, Player, StartTile, StartDoor, and DestinationDoor.", "OK");
     }
 
     [MenuItem("Tools/Lead The Way/UI/Setup Gameplay UI")]
@@ -163,7 +176,9 @@ public static class LeadTheWayObjectSetupTools
             if (flowManager != null)
             {
                 Undo.RecordObject(flowManager, "Setup Player Progression");
-                flowManager.Configure(boardManager, playerMover, boardObject, FindFirstSceneBoardObjectOfType(BoardObjectType.Door));
+                var destinationDoor = flowManager.DestinationDoor != null ? flowManager.DestinationDoor : FindDestinationDoorCandidate(flowManager.StartDoor);
+                flowManager.Configure(boardManager, playerMover, boardObject, destinationDoor);
+                flowManager.ConfigureLevelFlow(flowManager.StartTile, flowManager.StartDoor, destinationDoor);
                 EditorUtility.SetDirty(flowManager);
             }
         }
@@ -177,6 +192,64 @@ public static class LeadTheWayObjectSetupTools
     public static void SetupSelectedDestinationTile()
     {
         SetupSelectedBoardObjects(BoardObjectType.Goal);
+    }
+
+    [MenuItem("Tools/Lead The Way/Board/Setup Selected Start Tile")]
+    public static void SetupSelectedStartTile()
+    {
+        var targets = GetSelectedSceneObjects();
+        if (targets.Count == 0)
+        {
+            EditorUtility.DisplayDialog("Setup Start Tile", "Select the StartTile GameObject in the Hierarchy first.", "OK");
+            return;
+        }
+
+        var boardManager = UnityEngine.Object.FindAnyObjectByType<BoardManager>();
+        var origin = boardManager != null ? boardManager.WorldOrigin : Vector3.zero;
+        var tileSize = boardManager != null ? boardManager.TileSize : 1f;
+        var flowManager = GetOrCreateInteractionFlowManager();
+        BoardObject firstStartTile = null;
+
+        foreach (var target in targets)
+        {
+            var boardObject = GetOrAddComponent<BoardObject>(target);
+            Undo.RecordObject(boardObject, "Setup Start Tile");
+            boardObject.Configure(BoardObjectType.Other, true, false, false);
+            boardObject.SyncTileFromTransform(origin, tileSize);
+            EditorUtility.SetDirty(boardObject);
+
+            if (firstStartTile == null)
+                firstStartTile = boardObject;
+        }
+
+        if (flowManager != null && firstStartTile != null)
+        {
+            Undo.RecordObject(flowManager, "Wire Start Tile");
+            flowManager.ConfigureLevelFlow(firstStartTile, flowManager.StartDoor, flowManager.DestinationDoor);
+            EditorUtility.SetDirty(flowManager);
+        }
+
+        if (boardManager != null)
+            boardManager.RebuildRegistry();
+
+        EditorSceneManager.MarkSceneDirty(targets[0].scene);
+        EditorUtility.DisplayDialog("Setup Start Tile", $"Configured {targets.Count} start tile object(s).", "OK");
+    }
+
+    [MenuItem("Tools/Lead The Way/Board/Set Selected Door As Start Door")]
+    public static void SetSelectedDoorAsStartDoor()
+    {
+        var door = SetupSelectedDoorReference(true);
+        if (door != null)
+            EditorUtility.DisplayDialog("Set Start Door", $"Set {door.name} as the level start door. It will not appear in the control UI.", "OK");
+    }
+
+    [MenuItem("Tools/Lead The Way/Board/Set Selected Door As Destination Door")]
+    public static void SetSelectedDoorAsDestinationDoor()
+    {
+        var door = SetupSelectedDoorReference(false);
+        if (door != null)
+            EditorUtility.DisplayDialog("Set Destination Door", $"Set {door.name} as the level destination door.", "OK");
     }
 
     [MenuItem("Tools/Lead The Way/Board/Sync Selected Tiles From Transforms")]
@@ -317,6 +390,74 @@ public static class LeadTheWayObjectSetupTools
         return systems;
     }
 
+    private static InteractionFlowManager GetOrCreateInteractionFlowManager()
+    {
+        var flowManager = UnityEngine.Object.FindAnyObjectByType<InteractionFlowManager>();
+        if (flowManager != null)
+            return flowManager;
+
+        return Undo.AddComponent<InteractionFlowManager>(GetOrCreateGameSystems());
+    }
+
+    private static BoardObject SetupSelectedDoorReference(bool isStartDoor)
+    {
+        var targets = GetSelectedSceneObjects();
+        if (targets.Count == 0)
+        {
+            EditorUtility.DisplayDialog(
+                isStartDoor ? "Set Start Door" : "Set Destination Door",
+                "Select a door GameObject in the Hierarchy first.",
+                "OK");
+            return null;
+        }
+
+        var target = targets[0];
+        var boardManager = UnityEngine.Object.FindAnyObjectByType<BoardManager>();
+        var origin = boardManager != null ? boardManager.WorldOrigin : Vector3.zero;
+        var tileSize = boardManager != null ? boardManager.TileSize : 1f;
+        var flowManager = GetOrCreateInteractionFlowManager();
+        var boardObject = GetOrAddComponent<BoardObject>(target);
+
+        Undo.RecordObject(boardObject, isStartDoor ? "Setup Start Door" : "Setup Destination Door");
+        boardObject.Configure(BoardObjectType.Door, true, true, false);
+        boardObject.SyncTileFromTransform(origin, tileSize);
+        EditorUtility.SetDirty(boardObject);
+
+        if (isStartDoor)
+        {
+            RemoveComponentIfExists<ControlObjectConnector>(target);
+            RemoveComponentIfExists<SelectableControlObject>(target);
+        }
+
+        if (flowManager != null)
+        {
+            Undo.RecordObject(flowManager, isStartDoor ? "Wire Start Door" : "Wire Destination Door");
+            var startTile = flowManager.StartTile != null ? flowManager.StartTile : FindNamedSceneBoardObject("start", item => item.ObjectType != BoardObjectType.Door);
+            var startDoor = isStartDoor ? boardObject : flowManager.StartDoor;
+            var destinationDoor = isStartDoor ? flowManager.DestinationDoor : boardObject;
+
+            flowManager.ConfigureLevelFlow(startTile, startDoor, destinationDoor);
+            flowManager.Configure(boardManager, UnityEngine.Object.FindAnyObjectByType<BoardPlayerMover>(), FindFirstSceneBoardObjectOfType(BoardObjectType.Player), destinationDoor);
+            EditorUtility.SetDirty(flowManager);
+        }
+
+        if (boardManager != null)
+            boardManager.RebuildRegistry();
+
+        EditorSceneManager.MarkSceneDirty(target.scene);
+        Selection.activeGameObject = target;
+        EditorGUIUtility.PingObject(target);
+        return boardObject;
+    }
+
+    private static void RemoveComponentIfExists<T>(GameObject target) where T : Component
+    {
+        if (target == null || !target.TryGetComponent<T>(out var component))
+            return;
+
+        Undo.DestroyObjectImmediate(component);
+    }
+
     private static BoardObject FindFirstSceneBoardObjectOfType(BoardObjectType type)
     {
         foreach (var boardObject in BoardManager.FindSceneBoardObjects())
@@ -325,6 +466,43 @@ public static class LeadTheWayObjectSetupTools
                 continue;
 
             if (boardObject.ObjectType == type)
+                return boardObject;
+        }
+
+        return null;
+    }
+
+    private static BoardObject FindNamedSceneBoardObject(string namePart, Predicate<BoardObject> predicate)
+    {
+        foreach (var boardObject in BoardManager.FindSceneBoardObjects())
+        {
+            if (boardObject == null || EditorUtility.IsPersistent(boardObject) || !boardObject.gameObject.activeInHierarchy)
+                continue;
+
+            if (!predicate(boardObject))
+                continue;
+
+            if (boardObject.name.IndexOf(namePart, StringComparison.OrdinalIgnoreCase) >= 0)
+                return boardObject;
+        }
+
+        return null;
+    }
+
+    private static BoardObject FindDestinationDoorCandidate(BoardObject startDoor)
+    {
+        var namedDoor = FindNamedSceneBoardObject("destination", item => item.ObjectType == BoardObjectType.Door)
+            ?? FindNamedSceneBoardObject("exit", item => item.ObjectType == BoardObjectType.Door);
+
+        if (namedDoor != null)
+            return namedDoor;
+
+        foreach (var boardObject in BoardManager.FindSceneBoardObjects())
+        {
+            if (boardObject == null || EditorUtility.IsPersistent(boardObject) || !boardObject.gameObject.activeInHierarchy)
+                continue;
+
+            if (boardObject.ObjectType == BoardObjectType.Door && boardObject != startDoor)
                 return boardObject;
         }
 

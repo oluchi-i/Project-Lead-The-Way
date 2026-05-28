@@ -18,12 +18,10 @@ public class Door : MonoBehaviour {
 	[Range(0f, 1f)]
 	public float spatialBlend = 0.2f;
 	private bool isAnimating;
+	public bool IsAnimating => isAnimating;
 	// Use this for initialization
 	void Start () {
-		asource = GetComponent<AudioSource> ();
-		asource.playOnAwake = false;
-		asource.volume = Mathf.Clamp01(soundVolume);
-		asource.spatialBlend = spatialBlend;
+		EnsureAudioSource ();
 		transform.localRotation = Quaternion.Euler (0, open ? DoorOpenAngle : DoorCloseAngle, 0);
 	}
 	
@@ -43,11 +41,43 @@ public class Door : MonoBehaviour {
 	}
 
 	public void OpenDoor(){
-		open =!open;
+		SetOpen (!open);
+	}
+
+	public void Open()
+	{
+		SetOpen(true);
+	}
+
+	public void Close()
+	{
+		SetOpen(false);
+	}
+
+	public void SetOpen(bool shouldOpen)
+	{
+		if (open == shouldOpen && !isAnimating)
+			return;
+
+		open = shouldOpen;
 		isAnimating = true;
 		var clip = open?openDoor:closeDoor;
-		if (clip != null)
+		EnsureAudioSource ();
+		if (clip != null && asource != null)
 			asource.PlayOneShot (clip, soundVolume);
+	}
+
+	private void EnsureAudioSource()
+	{
+		if (asource == null)
+			asource = GetComponent<AudioSource> ();
+
+		if (asource == null)
+			return;
+
+		asource.playOnAwake = false;
+		asource.volume = Mathf.Clamp01(soundVolume);
+		asource.spatialBlend = spatialBlend;
 	}
 }
 }
