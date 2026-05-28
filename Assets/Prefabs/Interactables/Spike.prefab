@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 8977069999863520340}
   - component: {fileID: 5740799922529863572}
   - component: {fileID: 6311966075501617647}
-  - component: {fileID: 31617435310732126}
   m_Layer: 0
   m_Name: Spike
   m_TagString: Untagged
@@ -64,40 +63,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 425719fee03fac54d8f7e4595dce91b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SelectableControlObject
-  slotNumber: 6
-  displayName: Spike
-  icon: {fileID: 0}
-  actions:
-  - label: Toggle Spikes
-    icon: {fileID: 21300000, guid: 9e197a1515abdbc4b91281eee95e8b33, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 5740799922529863572}
-          m_TargetAssemblyTypeName: SpikeToggle, Assembly-CSharp
-          m_MethodName: ToggleSpikes
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
---- !u!114 &31617435310732126
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3002487213547562634}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00ba92bac7e05f1449e7126f615a367e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ControlObjectConnector
-  slotNumber: 6
   displayName: Spike
   icon: {fileID: 0}
   actions:

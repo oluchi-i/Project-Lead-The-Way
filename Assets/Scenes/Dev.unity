@@ -7339,7 +7339,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 425719fee03fac54d8f7e4595dce91b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SelectableControlObject
-  slotNumber: 1
   displayName: Door
   icon: {fileID: 0}
   actions:
@@ -7365,39 +7364,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4073697980755798, guid: 1dfc1687a4c9f97439b6b6387eac8393, type: 3}
   m_PrefabInstance: {fileID: 1961062982}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &695911347
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 695911343}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00ba92bac7e05f1449e7126f615a367e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ControlObjectConnector
-  slotNumber: 1
-  displayName: Door
-  icon: {fileID: 0}
-  actions:
-  - label: Open / Close
-    icon: {fileID: 21300000, guid: adf19f966e0379040bb823cbe5375f3f, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 931563682}
-          m_TargetAssemblyTypeName: DoorScript.Door, Assembly-CSharp
-          m_MethodName: OpenDoor
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
 --- !u!1 &717171897
 GameObject:
   m_ObjectHideFlags: 0
@@ -14780,7 +14746,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 425719fee03fac54d8f7e4595dce91b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SelectableControlObject
-  slotNumber: 3
   displayName: Door
   icon: {fileID: 0}
   actions:
@@ -14806,39 +14771,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4894436672217640, guid: d5b34822e12447b41a9a59f29e8818c6, type: 3}
   m_PrefabInstance: {fileID: 62769150}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1419259050
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1419259046}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00ba92bac7e05f1449e7126f615a367e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ControlObjectConnector
-  slotNumber: 3
-  displayName: Door
-  icon: {fileID: 0}
-  actions:
-  - label: Open / Close
-    icon: {fileID: 21300000, guid: adf19f966e0379040bb823cbe5375f3f, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 271818126}
-          m_TargetAssemblyTypeName: DoorScript.Door, Assembly-CSharp
-          m_MethodName: OpenDoor
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
 --- !u!43 &1419274367
 Mesh:
   m_ObjectHideFlags: 0
@@ -15308,7 +15240,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 425719fee03fac54d8f7e4595dce91b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SelectableControlObject
-  slotNumber: 2
   displayName: Door
   icon: {fileID: 0}
   actions:
@@ -15334,39 +15265,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4227889827151656, guid: 4ef963e0884b85747ae4641402f3ab74, type: 3}
   m_PrefabInstance: {fileID: 1181018215}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1462499248
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1462499244}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00ba92bac7e05f1449e7126f615a367e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ControlObjectConnector
-  slotNumber: 2
-  displayName: Door
-  icon: {fileID: 0}
-  actions:
-  - label: Open / Close
-    icon: {fileID: 21300000, guid: adf19f966e0379040bb823cbe5375f3f, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 368185127}
-          m_TargetAssemblyTypeName: DoorScript.Door, Assembly-CSharp
-          m_MethodName: OpenDoor
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
 --- !u!1001 &1474242803
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -21928,7 +21826,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 425719fee03fac54d8f7e4595dce91b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SelectableControlObject
-  slotNumber: 4
   displayName: Door
   icon: {fileID: 0}
   actions:
@@ -21954,39 +21851,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4651603642805868, guid: 50f132ebf2f56c94fb5dda3d12b89795, type: 3}
   m_PrefabInstance: {fileID: 1724396564}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2097461656
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2097461652}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00ba92bac7e05f1449e7126f615a367e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ControlObjectConnector
-  slotNumber: 4
-  displayName: Door
-  icon: {fileID: 0}
-  actions:
-  - label: Open / Close
-    icon: {fileID: 21300000, guid: adf19f966e0379040bb823cbe5375f3f, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 405349422}
-          m_TargetAssemblyTypeName: DoorScript.Door, Assembly-CSharp
-          m_MethodName: OpenDoor
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
 --- !u!1 &2112068652
 GameObject:
   m_ObjectHideFlags: 0

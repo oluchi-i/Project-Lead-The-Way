@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 9181787704874279557}
   - component: {fileID: 1377466699949275199}
   - component: {fileID: 4687383673963637939}
-  - component: {fileID: 2488081998846022410}
   - component: {fileID: 3655676232340328035}
   m_Layer: 0
   m_Name: Box
@@ -121,90 +120,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 425719fee03fac54d8f7e4595dce91b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SelectableControlObject
-  slotNumber: 5
-  displayName: Box
-  icon: {fileID: 0}
-  actions:
-  - label: X +1
-    icon: {fileID: 21300000, guid: d31115fa9cb67004b96bc76f48802b9f, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 1377466699949275199}
-          m_TargetAssemblyTypeName: GridTileMover, Assembly-CSharp
-          m_MethodName: MovePositiveX
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
-  - label: X -1
-    icon: {fileID: 21300000, guid: 01d7b388e7827ca45a56bd1b632ffde1, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 1377466699949275199}
-          m_TargetAssemblyTypeName: GridTileMover, Assembly-CSharp
-          m_MethodName: MoveNegativeX
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
-  - label: Z -1
-    icon: {fileID: 21300000, guid: 9e197a1515abdbc4b91281eee95e8b33, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 1377466699949275199}
-          m_TargetAssemblyTypeName: GridTileMover, Assembly-CSharp
-          m_MethodName: MoveNegativeZ
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
-  - label: Z +1
-    icon: {fileID: 21300000, guid: e968566a79d16394f97ee27c34c6ac78, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 1377466699949275199}
-          m_TargetAssemblyTypeName: GridTileMover, Assembly-CSharp
-          m_MethodName: MovePositiveZ
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
---- !u!114 &2488081998846022410
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8662739222616045272}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00ba92bac7e05f1449e7126f615a367e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ControlObjectConnector
   displayName: Box
   icon: {fileID: 0}
   actions:

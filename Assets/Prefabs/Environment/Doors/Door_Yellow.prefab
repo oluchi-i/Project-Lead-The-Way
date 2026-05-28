@@ -213,7 +213,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1648630646340044413}
   - component: {fileID: 8763054735650929080}
-  - component: {fileID: 7484593330786953042}
   - component: {fileID: 3219894504264153641}
   m_Layer: 0
   m_Name: Door_Yellow
@@ -251,39 +250,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 425719fee03fac54d8f7e4595dce91b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SelectableControlObject
-  slotNumber: 1
-  displayName: Door
-  icon: {fileID: 0}
-  actions:
-  - label: Open / Close
-    icon: {fileID: 21300000, guid: adf19f966e0379040bb823cbe5375f3f, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 6993147889059987851}
-          m_TargetAssemblyTypeName: DoorScript.Door, Assembly-CSharp
-          m_MethodName: OpenDoor
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
---- !u!114 &7484593330786953042
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9111326256494475827}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00ba92bac7e05f1449e7126f615a367e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ControlObjectConnector
   displayName: Door
   icon: {fileID: 0}
   actions:

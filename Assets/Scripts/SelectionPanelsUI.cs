@@ -167,18 +167,18 @@ public class SelectionPanelsUI : MonoBehaviour
         ShowSceneHighlight(selectedObject);
         objectPanel.SetActive(false);
         actionPanel.SetActive(true);
-        actionPanelTitle.text = selectedObject.displayName;
+        actionPanelTitle.text = selectedObject.DisplayName;
 
         ClearContainer(actionButtonContainer, actionButtonTemplate);
 
-        for (var i = 0; i < selectedObject.actions.Count; i++)
-            CreateActionButton(selectedObject.actions[i], i + 1);
+        for (var i = 0; i < selectedObject.Actions.Count; i++)
+            CreateActionButton(selectedObject.Actions[i], i + 1);
     }
 
     private void CreateObjectButton(SelectableControlObject item)
     {
         var button = Instantiate(objectButtonTemplate, objectButtonContainer);
-        button.name = item.displayName + " Button";
+        button.name = item.DisplayName + " Button";
         button.gameObject.SetActive(true);
         button.onClick.AddListener(() =>
         {
@@ -189,9 +189,9 @@ public class SelectionPanelsUI : MonoBehaviour
 
         SetChildText(button.transform, "Number", GetRuntimeSlot(item).ToString());
         StyleNumberBadge(button.transform);
-        SetChildImage(button.transform, "Icon", item.icon);
-        SetChildText(button.transform, "Fallback Icon", GetFallbackIconText(item.displayName));
-        SetChildActive(button.transform, "Fallback Icon", item.icon == null);
+        SetChildImage(button.transform, "Icon", item.Icon);
+        SetChildText(button.transform, "Fallback Icon", GetFallbackIconText(item.DisplayName));
+        SetChildActive(button.transform, "Fallback Icon", item.Icon == null);
     }
 
     private void RenderObjectPage()
@@ -413,9 +413,9 @@ public class SelectionPanelsUI : MonoBehaviour
             return;
 
         var index = slotNumber - 1;
-        if (index >= 0 && index < currentObject.actions.Count)
+        if (index >= 0 && index < currentObject.Actions.Count)
         {
-            InvokeControlAction(currentObject.actions[index]);
+            InvokeControlAction(currentObject.Actions[index]);
             ClearFocus();
         }
     }

@@ -426,7 +426,6 @@ public static class LeadTheWayObjectSetupTools
 
         if (isStartDoor)
         {
-            RemoveComponentIfExists<ControlObjectConnector>(target);
             RemoveComponentIfExists<SelectableControlObject>(target);
         }
 
