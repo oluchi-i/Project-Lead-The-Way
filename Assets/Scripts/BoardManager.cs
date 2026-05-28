@@ -5,6 +5,8 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+#pragma warning disable 0649 // Unity assigns serialized fields from scene objects.
+
 public class BoardManager : MonoBehaviour
 {
     [SerializeField] private Vector2Int boardSize = new Vector2Int(10, 10);
@@ -309,3 +311,5 @@ public class BoardManager : MonoBehaviour
     }
 #endif
 }
+
+#pragma warning restore 0649

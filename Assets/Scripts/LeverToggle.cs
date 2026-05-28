@@ -1,5 +1,7 @@
 using UnityEngine;
 
+#pragma warning disable 0649 // Unity assigns serialized fields from prefabs.
+
 public class LeverToggle : MonoBehaviour
 {
     [SerializeField] private Transform arm;
@@ -65,3 +67,5 @@ public class LeverToggle : MonoBehaviour
         arm = armTransform;
     }
 }
+
+#pragma warning restore 0649

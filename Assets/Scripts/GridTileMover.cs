@@ -5,10 +5,10 @@ public class GridTileMover : MonoBehaviour
     [SerializeField] private bool useBoardManager = true;
     [SerializeField] private float tileSize = 1f;
     [SerializeField] private float moveDuration = 0.18f;
+    [SerializeField] private BoardManager boardManager;
+    [SerializeField] private BoardObject boardObject;
+    [SerializeField] private InteractionFlowManager interactionFlowManager;
 
-    private BoardManager boardManager;
-    private BoardObject boardObject;
-    private InteractionFlowManager interactionFlowManager;
     private bool isMoving;
     private float moveElapsed;
     private Vector3 moveStart;
@@ -19,9 +19,7 @@ public class GridTileMover : MonoBehaviour
 
     private void Awake()
     {
-        boardObject = GetComponent<BoardObject>();
-        boardManager = FindAnyObjectByType<BoardManager>();
-        interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+        EnsureReferences();
     }
 
     private void Update()
@@ -73,8 +71,7 @@ public class GridTileMover : MonoBehaviour
     public void ConfigureBoardMovement(bool enabled, bool keyboardEnabled)
     {
         useBoardManager = enabled;
-        boardObject = GetComponent<BoardObject>();
-        boardManager = FindAnyObjectByType<BoardManager>();
+        EnsureReferences();
     }
 
     private bool TryMove(Vector2Int boardDirection, Vector3 fallbackWorldDirection)
@@ -82,8 +79,7 @@ public class GridTileMover : MonoBehaviour
         if (isMoving)
             return false;
 
-        if (interactionFlowManager == null)
-            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+        EnsureReferences();
 
         if (interactionFlowManager != null && !interactionFlowManager.CanAcceptAction)
             return false;
@@ -102,8 +98,7 @@ public class GridTileMover : MonoBehaviour
 
         if (useBoardManager && TryMoveOnBoard(boardDirection, out var targetTile))
         {
-            var safeBoardManager = boardManager != null ? boardManager : FindAnyObjectByType<BoardManager>();
-            moveTarget = safeBoardManager.TileToWorld(targetTile, moveStart.y);
+            moveTarget = boardManager.TileToWorld(targetTile, moveStart.y);
             pendingInteractionOnMoveComplete = beganObjectAction;
         }
         else if (useBoardManager)
@@ -131,8 +126,7 @@ public class GridTileMover : MonoBehaviour
 
     private void RegisterCompletedInteraction()
     {
-        if (interactionFlowManager == null)
-            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+        EnsureReferences();
 
         if (interactionFlowManager != null)
             interactionFlowManager.CompleteObjectAction(pendingInteractionOnMoveComplete);
@@ -142,8 +136,7 @@ public class GridTileMover : MonoBehaviour
 
     private void MarkActionHandledWithoutInteraction()
     {
-        if (interactionFlowManager == null)
-            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+        EnsureReferences();
 
         if (interactionFlowManager != null)
             interactionFlowManager.MarkActionHandledWithoutInteraction();
@@ -153,11 +146,7 @@ public class GridTileMover : MonoBehaviour
     {
         targetTile = default;
 
-        if (boardObject == null)
-            boardObject = GetComponent<BoardObject>();
-
-        if (boardManager == null)
-            boardManager = FindAnyObjectByType<BoardManager>();
+        EnsureReferences();
 
         if (boardObject == null || boardManager == null)
             return false;
@@ -180,5 +169,17 @@ public class GridTileMover : MonoBehaviour
             isMoving = false;
             RegisterCompletedInteraction();
         }
+    }
+
+    private void EnsureReferences()
+    {
+        if (boardObject == null)
+            boardObject = GetComponent<BoardObject>();
+
+        if (boardManager == null)
+            boardManager = FindAnyObjectByType<BoardManager>();
+
+        if (interactionFlowManager == null)
+            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
     }
 }

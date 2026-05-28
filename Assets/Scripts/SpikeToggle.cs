@@ -1,5 +1,7 @@
 using UnityEngine;
 
+#pragma warning disable 0649 // Unity assigns serialized fields from prefabs.
+
 public class SpikeToggle : MonoBehaviour
 {
     [SerializeField] private Transform spikes;
@@ -65,3 +67,5 @@ public class SpikeToggle : MonoBehaviour
         spikes = spikesTransform;
     }
 }
+
+#pragma warning restore 0649

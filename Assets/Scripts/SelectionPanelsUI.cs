@@ -9,6 +9,8 @@ using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
 
+#pragma warning disable 0649 // Unity assigns these serialized fields from scenes and prefabs.
+
 public class SelectionPanelsUI : MonoBehaviour
 {
     [Header("Panels")]
@@ -769,3 +771,5 @@ public class SelectionPanelsUI : MonoBehaviour
             && backButton != null;
     }
 }
+
+#pragma warning restore 0649
