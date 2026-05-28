@@ -53,8 +53,8 @@ public static partial class LeadTheWayObjectSetupTools
             var objectContainer = EnsureHorizontalContainer(objectPanel.transform, "Object Button Container");
             ConfigureButtonContainer(objectContainer.transform);
     
-            var objectTemplate = EnsureControlButton(objectContainer.transform, "Object Button Template", true);
-            StyleControlButton(objectTemplate);
+            var objectTemplate = EnsureControlButton(objectContainer.transform, "Object Button Template", true, true);
+            StyleControlButton(objectTemplate, true);
     
             var previousIcon = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_left.png");
             var nextIcon = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_right.png");
@@ -73,8 +73,8 @@ public static partial class LeadTheWayObjectSetupTools
             var actionContainer = EnsureHorizontalContainer(actionPanel.transform, "Action Button Container");
             ConfigureButtonContainer(actionContainer.transform);
     
-            var actionTemplate = EnsureControlButton(actionContainer.transform, "Action Button Template", true);
-            StyleControlButton(actionTemplate);
+            var actionTemplate = EnsureControlButton(actionContainer.transform, "Action Button Template", true, false);
+            StyleControlButton(actionTemplate, false);
     
             var backButton = EnsureBackButton(actionPanel.transform);
     
@@ -248,7 +248,7 @@ public static partial class LeadTheWayObjectSetupTools
             layout.childForceExpandHeight = false;
         }
 
-        private static void StyleControlButton(Button button)
+        private static void StyleControlButton(Button button, bool isObjectButton)
         {
             button.transition = Selectable.Transition.None;
             button.navigation = new Navigation { mode = Navigation.Mode.None };
@@ -267,8 +267,8 @@ public static partial class LeadTheWayObjectSetupTools
             var icon = FindDeep(button.transform, "Icon")?.GetComponent<Image>();
             if (icon != null)
             {
-                ConfigureRect(icon.rectTransform, new Vector2(0.5f, 0.58f), new Vector2(0.5f, 0.58f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(20f, 20f));
-                icon.color = new Color(0.13f, 0.11f, 0.09f, 1f);
+                ConfigureRect(icon.rectTransform, new Vector2(0.5f, 0.59f), new Vector2(0.5f, 0.59f), new Vector2(0.5f, 0.5f), Vector2.zero, isObjectButton ? new Vector2(36f, 36f) : new Vector2(24f, 24f));
+                icon.color = isObjectButton ? Color.white : new Color(0.14f, 0.1f, 0.05f, 1f);
                 icon.preserveAspect = true;
                 icon.raycastTarget = false;
             }
@@ -289,7 +289,7 @@ public static partial class LeadTheWayObjectSetupTools
             var fallback = FindDeep(button.transform, "Fallback Icon")?.GetComponent<Text>();
             if (fallback != null)
             {
-                ConfigureRect(fallback.rectTransform, new Vector2(0.5f, 0.58f), new Vector2(0.5f, 0.58f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(34f, 26f));
+                ConfigureRect(fallback.rectTransform, new Vector2(0.5f, 0.59f), new Vector2(0.5f, 0.59f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(38f, 32f));
                 fallback.font = GetUIFont();
                 fallback.fontSize = 14;
                 fallback.fontStyle = FontStyle.Bold;
@@ -395,7 +395,7 @@ public static partial class LeadTheWayObjectSetupTools
             return container;
         }
 
-        private static Button EnsureControlButton(Transform parent, string name, bool startHidden)
+        private static Button EnsureControlButton(Transform parent, string name, bool startHidden, bool isObjectButton)
         {
             var buttonObject = EnsureChild(parent, name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
             ConfigureRect(buttonObject.GetComponent<RectTransform>(), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(58f, 58f));
@@ -412,13 +412,13 @@ public static partial class LeadTheWayObjectSetupTools
             button.navigation = new Navigation { mode = Navigation.Mode.None };
     
             var icon = EnsureChild(buttonObject.transform, "Icon", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-            ConfigureRect(icon.rectTransform, new Vector2(0.5f, 0.58f), new Vector2(0.5f, 0.58f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(24f, 24f));
-            icon.color = new Color(0.18f, 0.12f, 0.05f, 1f);
+            ConfigureRect(icon.rectTransform, new Vector2(0.5f, 0.59f), new Vector2(0.5f, 0.59f), new Vector2(0.5f, 0.5f), Vector2.zero, isObjectButton ? new Vector2(36f, 36f) : new Vector2(24f, 24f));
+            icon.color = isObjectButton ? Color.white : new Color(0.14f, 0.1f, 0.05f, 1f);
             icon.preserveAspect = true;
             icon.raycastTarget = false;
     
             var fallback = EnsureText(buttonObject.transform, "Fallback Icon", "?", 15, FontStyle.Bold, TextAnchor.MiddleCenter);
-            ConfigureRect(fallback.rectTransform, new Vector2(0.5f, 0.58f), new Vector2(0.5f, 0.58f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(34f, 28f));
+            ConfigureRect(fallback.rectTransform, new Vector2(0.5f, 0.59f), new Vector2(0.5f, 0.59f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(38f, 32f));
             fallback.color = new Color(0.18f, 0.12f, 0.05f, 1f);
             fallback.raycastTarget = false;
     

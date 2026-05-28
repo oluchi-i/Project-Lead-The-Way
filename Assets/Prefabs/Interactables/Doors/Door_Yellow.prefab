@@ -251,7 +251,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SelectableControlObject
   displayName: Door
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 973ecb463f683024bbf498ea8a048d3f, type: 3}
   actions:
   - label: Open / Close
     icon: {fileID: 21300000, guid: adf19f966e0379040bb823cbe5375f3f, type: 3}
@@ -285,6 +285,8 @@ MonoBehaviour:
   objectId: door_yellow-4ea94b3a
   objectType: 3
   tilePosition: {x: -1, y: 2}
+  occupiedTileOffsets:
+  - {x: 0, y: 0}
   occupiesTile: 1
   blocksMovement: 1
   movable: 0
@@ -514,7 +516,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   open: 0
   smooth: 1
-  asource: {fileID: 0}
+  asource: {fileID: 2942272494498910872}
   openDoor: {fileID: 8300000, guid: 44b63b0db16ce624b97e45ebde0a0971, type: 3}
   closeDoor: {fileID: 8300000, guid: bc37ad25465405a428a26ff0facd9a7b, type: 3}
   soundVolume: 1.5

@@ -26,7 +26,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3002487213547562634}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -2.33, y: 0, z: 0.45}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -48,7 +48,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpikeToggle
   spikes: {fileID: 4922404705949120156}
-  raisedOffset: 0.5
+  raisedOffset: -0.5
   moveDuration: 0.2
   startRaised: 0
 --- !u!114 &6311966075501617647
@@ -64,7 +64,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SelectableControlObject
   displayName: Spike
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 7b1cc4e3591d9ec4091001960e458381, type: 3}
   actions:
   - label: Toggle Spikes
     icon: {fileID: 21300000, guid: 9e197a1515abdbc4b91281eee95e8b33, type: 3}
@@ -200,7 +200,7 @@ Transform:
   m_GameObject: {fileID: 9181423305765067903}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0, y: -0.4, z: 0}
+  m_LocalPosition: {x: -0, y: 0.1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

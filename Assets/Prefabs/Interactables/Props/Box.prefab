@@ -108,6 +108,9 @@ MonoBehaviour:
   useBoardManager: 1
   tileSize: 1
   moveDuration: 0.18
+  boardManager: {fileID: 0}
+  boardObject: {fileID: 0}
+  interactionFlowManager: {fileID: 0}
 --- !u!114 &4687383673963637939
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -121,7 +124,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SelectableControlObject
   displayName: Box
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 9eff1c0c4f8cfbe45bddb483e17cc713, type: 3}
   actions:
   - label: X +1
     icon: {fileID: 21300000, guid: d31115fa9cb67004b96bc76f48802b9f, type: 3}
@@ -206,6 +209,8 @@ MonoBehaviour:
   objectId: box-917b9215
   objectType: 2
   tilePosition: {x: 5, y: 3}
+  occupiedTileOffsets:
+  - {x: 0, y: 0}
   occupiesTile: 1
   blocksMovement: 1
   movable: 1

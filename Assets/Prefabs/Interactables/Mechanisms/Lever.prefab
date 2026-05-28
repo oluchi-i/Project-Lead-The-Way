@@ -64,7 +64,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SelectableControlObject
   displayName: Lever
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 2ccd271960db625449530ddea352a0d7, type: 3}
   actions:
   - label: Toggle Lever
     icon: {fileID: 21300000, guid: adf19f966e0379040bb823cbe5375f3f, type: 3}

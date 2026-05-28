@@ -192,6 +192,7 @@ public class SelectionPanelsUI : MonoBehaviour
         SetChildText(button.transform, "Number", GetRuntimeSlot(item).ToString());
         StyleNumberBadge(button.transform);
         SetChildImage(button.transform, "Icon", item.Icon);
+        StyleButtonIcon(button.transform, item.Icon != null, true);
         SetChildText(button.transform, "Fallback Icon", GetFallbackIconText(item.DisplayName));
         SetChildActive(button.transform, "Fallback Icon", item.Icon == null);
     }
@@ -390,6 +391,7 @@ public class SelectionPanelsUI : MonoBehaviour
         StyleNumberBadge(button.transform);
         SetChildText(button.transform, "Label", action.label);
         SetChildImage(button.transform, "Icon", icon);
+        StyleButtonIcon(button.transform, icon != null, false);
         SetChildText(button.transform, "Fallback Icon", GetFallbackIconText(action.label));
         SetChildActive(button.transform, "Fallback Icon", icon == null);
         SetChildActive(button.transform, "Label", false);
@@ -654,6 +656,46 @@ public class SelectionPanelsUI : MonoBehaviour
 
         image.sprite = sprite;
         image.enabled = sprite != null;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+    }
+
+    private void StyleButtonIcon(Transform root, bool hasSprite, bool isObjectIcon)
+    {
+        var icon = FindDeep(root, "Icon");
+        if (icon != null)
+        {
+            var rect = icon.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                rect.anchorMin = new Vector2(0.5f, 0.59f);
+                rect.anchorMax = new Vector2(0.5f, 0.59f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = Vector2.zero;
+                rect.sizeDelta = isObjectIcon ? new Vector2(36f, 36f) : new Vector2(24f, 24f);
+            }
+
+            var image = icon.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = isObjectIcon ? Color.white : new Color(0.14f, 0.1f, 0.05f, 1f);
+                image.enabled = hasSprite;
+            }
+        }
+
+        var fallback = FindDeep(root, "Fallback Icon");
+        if (fallback != null)
+        {
+            var rect = fallback.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                rect.anchorMin = new Vector2(0.5f, 0.59f);
+                rect.anchorMax = new Vector2(0.5f, 0.59f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = Vector2.zero;
+                rect.sizeDelta = new Vector2(38f, 32f);
+            }
+        }
     }
 
     private void SetChildActive(Transform root, string childName, bool active)
