@@ -51,6 +51,22 @@ public class BoardObject : MonoBehaviour
         objectId = CreateObjectId(gameObject.name);
     }
 
+    public bool EnsureUniqueObjectId(HashSet<string> usedObjectIds)
+    {
+        if (usedObjectIds == null)
+            return false;
+
+        var changed = false;
+        if (string.IsNullOrWhiteSpace(objectId) || usedObjectIds.Contains(objectId))
+        {
+            objectId = CreateObjectId(gameObject.name);
+            changed = true;
+        }
+
+        usedObjectIds.Add(objectId);
+        return changed;
+    }
+
     public void SetTilePosition(Vector2Int tile)
     {
         tilePosition = tile;

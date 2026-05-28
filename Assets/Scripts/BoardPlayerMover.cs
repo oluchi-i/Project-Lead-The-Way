@@ -13,6 +13,7 @@ public class BoardPlayerMover : MonoBehaviour
 
     private bool isMoving;
     private Coroutine moveRoutine;
+    private bool loggedMissingReferences;
 
     public bool IsMoving => isMoving;
 
@@ -180,10 +181,13 @@ public class BoardPlayerMover : MonoBehaviour
         if (boardObject == null)
             boardObject = GetComponent<BoardObject>();
 
-        if (boardManager == null)
-            boardManager = FindAnyObjectByType<BoardManager>();
-
         if (walkAnimation == null)
             walkAnimation = GetComponent<PlayerMovement>();
+
+        if (!loggedMissingReferences && (boardManager == null || boardObject == null))
+        {
+            loggedMissingReferences = true;
+            Debug.LogWarning("BoardPlayerMover is missing required scene references. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
+        }
     }
 }

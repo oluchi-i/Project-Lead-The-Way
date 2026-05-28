@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[RequireComponent(typeof(AudioSource))]
 public class ButtonPress : MonoBehaviour
 {
     [SerializeField] private Transform cap;
@@ -27,11 +28,11 @@ public class ButtonPress : MonoBehaviour
         if (audioSource == null)
             audioSource = GetComponent<AudioSource>();
 
-        if (audioSource == null)
-            audioSource = gameObject.AddComponent<AudioSource>();
-
-        audioSource.playOnAwake = false;
-        audioSource.spatialBlend = 0.2f;
+        if (audioSource != null)
+        {
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 0.2f;
+        }
 
         if (cap == null)
             return;

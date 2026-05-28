@@ -14,6 +14,7 @@ public class GridTileMover : MonoBehaviour
     private Vector3 moveStart;
     private Vector3 moveTarget;
     private bool pendingInteractionOnMoveComplete;
+    private bool loggedMissingReferences;
 
     public bool IsMoving => isMoving;
 
@@ -93,6 +94,9 @@ public class GridTileMover : MonoBehaviour
         EnsureReferences();
 
         if (interactionFlowManager != null && !interactionFlowManager.CanAcceptAction)
+            return false;
+
+        if (useBoardManager && interactionFlowManager == null)
             return false;
 
         moveStart = transform.position;
@@ -187,10 +191,10 @@ public class GridTileMover : MonoBehaviour
         if (boardObject == null)
             boardObject = GetComponent<BoardObject>();
 
-        if (boardManager == null)
-            boardManager = FindAnyObjectByType<BoardManager>();
-
-        if (interactionFlowManager == null)
-            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+        if (!loggedMissingReferences && useBoardManager && (boardManager == null || boardObject == null || interactionFlowManager == null))
+        {
+            loggedMissingReferences = true;
+            Debug.LogWarning("GridTileMover is missing required board/action references. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
+        }
     }
 }

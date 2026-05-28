@@ -67,6 +67,8 @@ public class SelectionPanelsUI : MonoBehaviour
     private readonly Dictionary<SelectableControlObject, int> runtimeSlots = new Dictionary<SelectableControlObject, int>();
     private Material highlightMaterial;
     private int objectPage;
+    private bool loggedMissingInteractionFlow;
+    private bool loggedMissingPaginationReferences;
     private static readonly Color NavigationButtonColor = new Color(0.16f, 0.11f, 0.05f, 0.88f);
     private static readonly Color NavigationTextColor = new Color(1f, 0.93f, 0.72f, 1f);
 
@@ -78,7 +80,7 @@ public class SelectionPanelsUI : MonoBehaviour
             StyleBackButton();
         }
 
-        EnsureObjectPaginationButtons();
+        PrepareObjectPaginationButtons();
 
         if (objectPreviousPageButton != null)
             objectPreviousPageButton.onClick.AddListener(ShowPreviousObjectPage);
@@ -89,8 +91,7 @@ public class SelectionPanelsUI : MonoBehaviour
         if (audioSource == null)
             audioSource = GetComponent<AudioSource>();
 
-        if (interactionFlowManager == null)
-            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+        WarnIfInteractionFlowMissing();
 
         HideTemplate(objectButtonTemplate);
         HideTemplate(actionButtonTemplate);
@@ -273,7 +274,7 @@ public class SelectionPanelsUI : MonoBehaviour
         }
     }
 
-    private void EnsureObjectPaginationButtons()
+    private void PrepareObjectPaginationButtons()
     {
         if (objectPanel == null)
             return;
@@ -284,72 +285,12 @@ public class SelectionPanelsUI : MonoBehaviour
         if (nextPageIcon == null)
             nextPageIcon = LoadEditorSprite("Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_right.png");
 
-        if (objectPreviousPageButton == null)
-            objectPreviousPageButton = CreatePaginationButton("Previous Object Page", previousPageIcon, new Vector2(-74f, -8f), objectPanel.transform);
-
-        if (objectNextPageButton == null)
-            objectNextPageButton = CreatePaginationButton("Next Object Page", nextPageIcon, new Vector2(-18f, -8f), objectPanel.transform);
-
-        if (objectPageText == null)
-            objectPageText = CreatePaginationText("Object Page Text", new Vector2(-46f, -8f), objectPanel.transform);
-    }
-
-    private Button CreatePaginationButton(string name, Sprite icon, Vector2 anchoredPosition, Transform parent)
-    {
-        var buttonObject = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
-        buttonObject.transform.SetParent(parent, false);
-
-        var rect = buttonObject.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(1f, 1f);
-        rect.anchorMax = new Vector2(1f, 1f);
-        rect.pivot = new Vector2(0.5f, 1f);
-        rect.anchoredPosition = anchoredPosition;
-        rect.sizeDelta = new Vector2(18f, 16f);
-
-        var image = buttonObject.GetComponent<Image>();
-        image.color = NavigationButtonColor;
-
-        var iconObject = new GameObject("Icon", typeof(RectTransform), typeof(Image));
-        iconObject.transform.SetParent(buttonObject.transform, false);
-        var iconRect = iconObject.GetComponent<RectTransform>();
-        iconRect.anchorMin = new Vector2(0.5f, 0.5f);
-        iconRect.anchorMax = new Vector2(0.5f, 0.5f);
-        iconRect.pivot = new Vector2(0.5f, 0.5f);
-        iconRect.anchoredPosition = Vector2.zero;
-        iconRect.sizeDelta = new Vector2(10f, 10f);
-
-        var iconImage = iconObject.GetComponent<Image>();
-        iconImage.sprite = icon;
-        iconImage.color = NavigationTextColor;
-        iconImage.preserveAspect = true;
-        iconImage.raycastTarget = false;
-
-        var button = buttonObject.GetComponent<Button>();
-        button.transition = Selectable.Transition.None;
-        button.navigation = new Navigation { mode = Navigation.Mode.None };
-        return button;
-    }
-
-    private Text CreatePaginationText(string name, Vector2 anchoredPosition, Transform parent)
-    {
-        var textObject = new GameObject(name, typeof(RectTransform), typeof(Text));
-        textObject.transform.SetParent(parent, false);
-
-        var rect = textObject.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(1f, 1f);
-        rect.anchorMax = new Vector2(1f, 1f);
-        rect.pivot = new Vector2(0.5f, 1f);
-        rect.anchoredPosition = anchoredPosition;
-        rect.sizeDelta = new Vector2(34f, 16f);
-
-        var text = textObject.GetComponent<Text>();
-        text.font = objectPanelTitle != null ? objectPanelTitle.font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        text.fontSize = 11;
-        text.fontStyle = FontStyle.Bold;
-        text.alignment = TextAnchor.MiddleCenter;
-        text.color = new Color(0.24f, 0.17f, 0.08f, 0.82f);
-        text.raycastTarget = false;
-        return text;
+        if (!loggedMissingPaginationReferences
+            && (objectPreviousPageButton == null || objectNextPageButton == null || objectPageText == null))
+        {
+            loggedMissingPaginationReferences = true;
+            Debug.LogWarning("SelectionPanelsUI pagination references are not fully wired. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
+        }
     }
 
     private void StyleBackButton()
@@ -441,22 +382,17 @@ public class SelectionPanelsUI : MonoBehaviour
 
     private bool InvokeControlAction(ControlAction action)
     {
+        WarnIfInteractionFlowMissing();
+
         if (interactionFlowManager == null)
-            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+            return false;
 
         if (interactionFlowManager != null && !interactionFlowManager.CanAcceptAction)
             return false;
 
         action.Invoke();
 
-        if (interactionFlowManager == null)
-            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
-
-        if (interactionFlowManager == null)
-        {
-            PlaySound(actionClickSound);
-            return true;
-        }
+        WarnIfInteractionFlowMissing();
 
         if (interactionFlowManager.HasRegisteredInteractionThisFrame)
         {
@@ -527,10 +463,18 @@ public class SelectionPanelsUI : MonoBehaviour
 
     private bool CanInvokeAction()
     {
-        if (interactionFlowManager == null)
-            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+        WarnIfInteractionFlowMissing();
 
-        return interactionFlowManager == null || interactionFlowManager.CanAcceptAction;
+        return interactionFlowManager != null && interactionFlowManager.CanAcceptAction;
+    }
+
+    private void WarnIfInteractionFlowMissing()
+    {
+        if (interactionFlowManager != null || loggedMissingInteractionFlow)
+            return;
+
+        loggedMissingInteractionFlow = true;
+        Debug.LogWarning("SelectionPanelsUI is missing its InteractionFlowManager reference. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
     }
 
     private void GoBackToObjects()

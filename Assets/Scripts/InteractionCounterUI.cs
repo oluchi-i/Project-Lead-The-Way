@@ -67,9 +67,6 @@ public class InteractionCounterUI : MonoBehaviour
 
     private void EnsureReferences()
     {
-        if (interactionFlowManager == null)
-            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
-
         if (countText == null)
             countText = GetComponentInChildren<Text>(true);
 

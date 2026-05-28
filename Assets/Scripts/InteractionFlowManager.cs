@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -37,6 +36,7 @@ public class InteractionFlowManager : MonoBehaviour
     private Coroutine introRoutine;
     private Coroutine interactionResolutionRoutine;
     private int activeObjectActionCount;
+    private bool loggedMissingReferences;
 
     private static readonly Vector2Int[] Directions =
     {
@@ -61,6 +61,7 @@ public class InteractionFlowManager : MonoBehaviour
         {
             EnsureReferences();
             return flowState == LevelFlowState.Playing
+                && HasRequiredGameplayReferences()
                 && lastHandledActionFrame != Time.frameCount
                 && activeObjectActionCount == 0
                 && (playerMover == null || !playerMover.IsMoving);
@@ -213,6 +214,14 @@ public class InteractionFlowManager : MonoBehaviour
             && playerMover != null
             && playerObject != null
             && startTile != null;
+    }
+
+    private bool HasRequiredGameplayReferences()
+    {
+        return boardManager != null
+            && playerMover != null
+            && playerObject != null
+            && destinationDoor != null;
     }
 
     private List<Vector2Int> CreateIntroPath(Vector2Int fromTile, Vector2Int toTile)
@@ -437,71 +446,10 @@ public class InteractionFlowManager : MonoBehaviour
 
     private void EnsureReferences()
     {
-        if (boardManager == null)
-            boardManager = FindAnyObjectByType<BoardManager>();
+        if (loggedMissingReferences || HasRequiredGameplayReferences())
+            return;
 
-        if (playerMover == null)
-            playerMover = FindAnyObjectByType<BoardPlayerMover>();
-
-        if (playerObject == null && playerMover != null)
-            playerObject = playerMover.GetComponent<BoardObject>();
-
-        var needsBoardObjectLookup = playerObject == null
-            || startTile == null
-            || startDoor == null
-            || destinationDoor == null
-            || (startTile != null && !startTile.gameObject.activeInHierarchy)
-            || (startDoor != null && !startDoor.gameObject.activeInHierarchy)
-            || (destinationDoor != null && !destinationDoor.gameObject.activeInHierarchy);
-
-        if (needsBoardObjectLookup)
-        {
-            var boardObjects = BoardManager.FindSceneBoardObjects()
-                .Where(item => item != null && item.gameObject.activeInHierarchy)
-                .ToList();
-
-            if (playerObject == null)
-                playerObject = boardObjects.FirstOrDefault(item => item.ObjectType == BoardObjectType.Player);
-
-            if (startTile == null || !startTile.gameObject.activeInHierarchy)
-                startTile = FindNamedBoardObject(boardObjects, "start", item => item.ObjectType != BoardObjectType.Door);
-
-            if (startDoor == null || !startDoor.gameObject.activeInHierarchy)
-            {
-                var previousStartDoor = startDoor;
-                startDoor = FindNamedBoardObject(boardObjects, "start", item => item.ObjectType == BoardObjectType.Door);
-                if (startDoor != previousStartDoor)
-                    startDoorScript = null;
-            }
-
-            if (destinationDoor == null || !destinationDoor.gameObject.activeInHierarchy)
-            {
-                var previousDestinationDoor = destinationDoor;
-                destinationDoor = FindDestinationDoorCandidate(boardObjects);
-                if (destinationDoor != previousDestinationDoor)
-                    destinationDoorScript = null;
-            }
-        }
-
-        if (resultFlashUI == null)
-            resultFlashUI = FindAnyObjectByType<LevelResultFlashUI>();
-    }
-
-    private BoardObject FindDestinationDoorCandidate(List<BoardObject> boardObjects)
-    {
-        var namedDoor = FindNamedBoardObject(boardObjects, "destination", item => item.ObjectType == BoardObjectType.Door)
-            ?? FindNamedBoardObject(boardObjects, "exit", item => item.ObjectType == BoardObjectType.Door);
-
-        if (namedDoor != null)
-            return namedDoor;
-
-        return boardObjects.FirstOrDefault(item => item.ObjectType == BoardObjectType.Door && item != startDoor);
-    }
-
-    private static BoardObject FindNamedBoardObject(List<BoardObject> boardObjects, string namePart, Func<BoardObject, bool> predicate)
-    {
-        return boardObjects.FirstOrDefault(item =>
-            predicate(item)
-            && item.name.IndexOf(namePart, StringComparison.OrdinalIgnoreCase) >= 0);
+        loggedMissingReferences = true;
+        Debug.LogWarning("InteractionFlowManager is missing one or more required scene references. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
     }
 }
