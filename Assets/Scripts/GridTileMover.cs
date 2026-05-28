@@ -74,6 +74,17 @@ public class GridTileMover : MonoBehaviour
         EnsureReferences();
     }
 
+    public void Configure(BoardManager newBoardManager, BoardObject newBoardObject, InteractionFlowManager newInteractionFlowManager, bool enabled = true)
+    {
+        boardManager = newBoardManager;
+        boardObject = newBoardObject;
+        interactionFlowManager = newInteractionFlowManager;
+        useBoardManager = enabled;
+
+        if (boardManager != null)
+            tileSize = boardManager.TileSize;
+    }
+
     private bool TryMove(Vector2Int boardDirection, Vector3 fallbackWorldDirection)
     {
         if (isMoving)

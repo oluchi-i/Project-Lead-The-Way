@@ -5,7 +5,7 @@ using UnityEngine;
 public class BoardObject : MonoBehaviour
 {
     [SerializeField] private string objectId;
-    [SerializeField] private BoardObjectType objectType = BoardObjectType.Other;
+    [SerializeField] private BoardObjectType objectType = BoardObjectType.Decoration;
     [SerializeField] private Vector2Int tilePosition;
     [SerializeField] private List<Vector2Int> occupiedTileOffsets = new List<Vector2Int> { Vector2Int.zero };
     [SerializeField] private bool occupiesTile = true;

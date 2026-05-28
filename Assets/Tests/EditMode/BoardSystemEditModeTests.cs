@@ -24,7 +24,7 @@ public class BoardSystemEditModeTests
     {
         var boardObject = CreateBoardObject(
             "Wide Object",
-            BoardObjectType.Other,
+            BoardObjectType.Decoration,
             new Vector2Int(2, 3),
             true,
             true,
@@ -42,7 +42,7 @@ public class BoardSystemEditModeTests
         var boardManager = CreateBoardManager();
         var bed = CreateBoardObject(
             "Bed",
-            BoardObjectType.Other,
+            BoardObjectType.Decoration,
             new Vector2Int(2, 2),
             true,
             true,
@@ -61,8 +61,8 @@ public class BoardSystemEditModeTests
     public void MovableObjectCannotEnterTileBlockedByAnotherObject()
     {
         var boardManager = CreateBoardManager();
-        var box = CreateBoardObject("Box", BoardObjectType.Box, new Vector2Int(1, 1), true, true, true);
-        var blocker = CreateBoardObject("Blocker", BoardObjectType.Other, new Vector2Int(2, 1), true, true, false);
+        var box = CreateBoardObject("Box", BoardObjectType.MovableObject, new Vector2Int(1, 1), true, true, true);
+        var blocker = CreateBoardObject("Blocker", BoardObjectType.Decoration, new Vector2Int(2, 1), true, true, false);
 
         boardManager.Register(box);
         boardManager.Register(blocker);
@@ -74,8 +74,8 @@ public class BoardSystemEditModeTests
     public void InactiveBoardObjectsDoNotBlockMovementWhenRegistryRebuilds()
     {
         var boardManager = CreateBoardManager();
-        var box = CreateBoardObject("Box", BoardObjectType.Box, new Vector2Int(1, 1), true, true, true);
-        var inactiveBlocker = CreateBoardObject("Inactive Blocker", BoardObjectType.Other, new Vector2Int(2, 1), true, true, false);
+        var box = CreateBoardObject("Box", BoardObjectType.MovableObject, new Vector2Int(1, 1), true, true, true);
+        var inactiveBlocker = CreateBoardObject("Inactive Blocker", BoardObjectType.Decoration, new Vector2Int(2, 1), true, true, false);
         inactiveBlocker.gameObject.SetActive(false);
 
         boardManager.RebuildRegistry();
