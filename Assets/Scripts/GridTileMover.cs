@@ -13,6 +13,7 @@ public class GridTileMover : MonoBehaviour
     private float moveElapsed;
     private Vector3 moveStart;
     private Vector3 moveTarget;
+    private bool pendingInteractionOnMoveComplete;
 
     public bool IsMoving => isMoving;
 
@@ -89,14 +90,27 @@ public class GridTileMover : MonoBehaviour
 
         moveStart = transform.position;
 
+        var shouldRegisterInteraction = ShouldRegisterInteraction();
+        var beganObjectAction = false;
+        if (useBoardManager && shouldRegisterInteraction && interactionFlowManager != null)
+        {
+            if (!interactionFlowManager.TryBeginObjectAction())
+                return false;
+
+            beganObjectAction = true;
+        }
+
         if (useBoardManager && TryMoveOnBoard(boardDirection, out var targetTile))
         {
             var safeBoardManager = boardManager != null ? boardManager : FindAnyObjectByType<BoardManager>();
             moveTarget = safeBoardManager.TileToWorld(targetTile, moveStart.y);
-            RegisterSuccessfulInteraction();
+            pendingInteractionOnMoveComplete = beganObjectAction;
         }
         else if (useBoardManager)
         {
+            if (beganObjectAction)
+                interactionFlowManager.CompleteObjectAction(false);
+
             MarkActionHandledWithoutInteraction();
             return false;
         }
@@ -110,16 +124,20 @@ public class GridTileMover : MonoBehaviour
         return true;
     }
 
-    private void RegisterSuccessfulInteraction()
+    private bool ShouldRegisterInteraction()
     {
-        if (boardObject != null && boardObject.ObjectType == BoardObjectType.Player)
-            return;
+        return boardObject == null || boardObject.ObjectType != BoardObjectType.Player;
+    }
 
+    private void RegisterCompletedInteraction()
+    {
         if (interactionFlowManager == null)
             interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
 
         if (interactionFlowManager != null)
-            interactionFlowManager.RegisterInteraction();
+            interactionFlowManager.CompleteObjectAction(pendingInteractionOnMoveComplete);
+
+        pendingInteractionOnMoveComplete = false;
     }
 
     private void MarkActionHandledWithoutInteraction()
@@ -160,6 +178,7 @@ public class GridTileMover : MonoBehaviour
         {
             transform.position = moveTarget;
             isMoving = false;
+            RegisterCompletedInteraction();
         }
     }
 }

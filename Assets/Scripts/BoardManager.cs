@@ -77,11 +77,12 @@ public class BoardManager : MonoBehaviour
 
         if (objectsById.ContainsKey(boardObject.ObjectId))
         {
-            Debug.LogWarning($"BoardManager skipped duplicate BoardObject id '{boardObject.ObjectId}' on {boardObject.name}.", boardObject);
-            return false;
+            Debug.LogWarning($"BoardManager found duplicate BoardObject id '{boardObject.ObjectId}' on {boardObject.name}. Tile occupancy will still be registered.", boardObject);
         }
-
-        objectsById.Add(boardObject.ObjectId, boardObject);
+        else
+        {
+            objectsById.Add(boardObject.ObjectId, boardObject);
+        }
 
         foreach (var occupiedTile in boardObject.GetOccupiedTiles())
         {

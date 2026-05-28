@@ -36,6 +36,7 @@ public class InteractionFlowManager : MonoBehaviour
     private DoorScript.Door destinationDoorScript;
     private Coroutine introRoutine;
     private Coroutine interactionResolutionRoutine;
+    private int activeObjectActionCount;
 
     private static readonly Vector2Int[] Directions =
     {
@@ -61,6 +62,7 @@ public class InteractionFlowManager : MonoBehaviour
             EnsureReferences();
             return flowState == LevelFlowState.Playing
                 && lastHandledActionFrame != Time.frameCount
+                && activeObjectActionCount == 0
                 && (playerMover == null || !playerMover.IsMoving);
         }
     }
@@ -120,14 +122,39 @@ public class InteractionFlowManager : MonoBehaviour
         if (!CanAcceptAction)
             return false;
 
+        RegisterInteractionCore();
+        return true;
+    }
+
+    public bool TryBeginObjectAction()
+    {
+        if (!CanAcceptAction)
+            return false;
+
+        activeObjectActionCount++;
+        lastHandledActionFrame = Time.frameCount;
+        return true;
+    }
+
+    public void CompleteObjectAction(bool countsAsInteraction)
+    {
+        if (activeObjectActionCount > 0)
+            activeObjectActionCount--;
+
+        if (!countsAsInteraction || flowState != LevelFlowState.Playing)
+            return;
+
+        RegisterInteractionCore();
+    }
+
+    private void RegisterInteractionCore()
+    {
         interactionCount++;
         lastInteractionFrame = Time.frameCount;
         lastHandledActionFrame = Time.frameCount;
         InteractionCountChanged?.Invoke(interactionCount);
         StepPlayerTowardDoor();
         BeginInteractionResolution();
-
-        return true;
     }
 
     public void MarkActionHandledWithoutInteraction()
