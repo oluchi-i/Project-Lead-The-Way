@@ -14215,6 +14215,10 @@ MonoBehaviour:
   actionClickSound: {fileID: 8300000, guid: 25e4aa0a72006a7419cc9546b26cb5a8, type: 3}
   backClickSound: {fileID: 8300000, guid: 42bf3e2ecd28b8f4f9e34b9857d7ae39, type: 3}
   audioSource: {fileID: 1288162808}
+  objectIconCenterY: 0.5
+  actionIconCenterY: 0.5
+  numberBadgeOffsetY: -3
+  navigationButtonSprite: {fileID: 6564747003552216073, guid: ae4388e5cbfbb704ba5cf5fef248dd58, type: 2}
   interactionFlowManager: {fileID: 1528410954}
   showSceneHighlight: 1
   highlightColor: {r: 0.9056604, g: 0.3478221, b: 0.21787111, a: 1}
@@ -14229,7 +14233,7 @@ RectTransform:
   m_GameObject: {fileID: 1288162807}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.12, y: 1.12, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1864506444}

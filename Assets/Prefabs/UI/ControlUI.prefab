@@ -168,7 +168,7 @@ RectTransform:
   m_GameObject: {fileID: 400871830102842068}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.12, y: 1.12, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5109594536705453439}
@@ -200,6 +200,10 @@ MonoBehaviour:
   actionButtonContainer: {fileID: 6785702949825149742}
   actionButtonTemplate: {fileID: 3175919150935705387}
   backButton: {fileID: 6468554287175805768}
+  objectIconCenterY: 0.54
+  actionIconCenterY: 0.59
+  numberBadgeOffsetY: 3
+  navigationButtonSprite: {fileID: 6564747003552216073, guid: ae4388e5cbfbb704ba5cf5fef248dd58, type: 2}
   objects: []
 --- !u!1 &645254545903862968
 GameObject:

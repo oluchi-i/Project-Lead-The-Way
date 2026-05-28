@@ -13,6 +13,33 @@ public static class LeadTheWayObjectSetupTools
     private const string ArrowUpIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_up.png";
     private const string ArrowDownIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_down.png";
 
+    [MenuItem("Tools/Lead The Way/UI/Wire Control UI Audio Source")]
+    public static void WireControlUIAudioSource()
+    {
+        var controlUI = Object.FindAnyObjectByType<SelectionPanelsUI>(FindObjectsInactive.Include);
+        if (controlUI == null)
+        {
+            EditorUtility.DisplayDialog("Wire Control UI Audio Source", "No SelectionPanelsUI was found in the open scene.", "OK");
+            return;
+        }
+
+        var audioSource = controlUI.GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = Undo.AddComponent<AudioSource>(controlUI.gameObject);
+
+        var serializedUI = new SerializedObject(controlUI);
+        serializedUI.FindProperty("audioSource").objectReferenceValue = audioSource;
+        serializedUI.ApplyModifiedProperties();
+
+        EditorUtility.SetDirty(controlUI);
+        EditorUtility.SetDirty(audioSource);
+        EditorSceneManager.MarkSceneDirty(controlUI.gameObject.scene);
+
+        Selection.activeGameObject = controlUI.gameObject;
+        EditorGUIUtility.PingObject(controlUI.gameObject);
+        EditorUtility.DisplayDialog("Wire Control UI Audio Source", $"Wired {audioSource.name}'s AudioSource to SelectionPanelsUI.", "OK");
+    }
+
     [MenuItem("Tools/Lead The Way/Board/Setup Selected Movable Objects")]
     public static void SetupSelectedMovableObjects()
     {

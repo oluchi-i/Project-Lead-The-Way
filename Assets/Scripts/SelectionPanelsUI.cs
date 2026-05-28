@@ -41,6 +41,16 @@ public class SelectionPanelsUI : MonoBehaviour
     [SerializeField] private AudioClip backClickSound;
     [SerializeField] private AudioSource audioSource;
 
+    [Header("Icon Layout")]
+    [SerializeField, Range(0.45f, 0.65f), Tooltip("Vertical center used by object icons inside circular control buttons.")]
+    private float objectIconCenterY = 0.54f;
+    [SerializeField, Range(0.45f, 0.65f), Tooltip("Vertical center used by action icons inside circular control buttons.")]
+    private float actionIconCenterY = 0.59f;
+    [SerializeField, Range(-8f, 10f), Tooltip("Vertical position of the small number badges on control buttons.")]
+    private float numberBadgeOffsetY = 3f;
+    [SerializeField, Tooltip("Optional rounded sprite used by small navigation buttons such as Back.")]
+    private Sprite navigationButtonSprite;
+
     [Header("Flow")]
     [SerializeField] private InteractionFlowManager interactionFlowManager;
 
@@ -78,9 +88,6 @@ public class SelectionPanelsUI : MonoBehaviour
 
         if (audioSource == null)
             audioSource = GetComponent<AudioSource>();
-
-        if (audioSource == null)
-            audioSource = gameObject.AddComponent<AudioSource>();
 
         if (interactionFlowManager == null)
             interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
@@ -349,7 +356,15 @@ public class SelectionPanelsUI : MonoBehaviour
     {
         var image = backButton.GetComponent<Image>();
         if (image != null)
+        {
+            if (navigationButtonSprite != null)
+            {
+                image.sprite = navigationButtonSprite;
+                image.type = Image.Type.Sliced;
+            }
+
             image.color = NavigationButtonColor;
+        }
 
         var label = backButton.GetComponentInChildren<Text>(true);
         if (label != null)
@@ -668,8 +683,9 @@ public class SelectionPanelsUI : MonoBehaviour
             var rect = icon.GetComponent<RectTransform>();
             if (rect != null)
             {
-                rect.anchorMin = new Vector2(0.5f, 0.59f);
-                rect.anchorMax = new Vector2(0.5f, 0.59f);
+                var iconCenterY = isObjectIcon ? objectIconCenterY : actionIconCenterY;
+                rect.anchorMin = new Vector2(0.5f, iconCenterY);
+                rect.anchorMax = new Vector2(0.5f, iconCenterY);
                 rect.pivot = new Vector2(0.5f, 0.5f);
                 rect.anchoredPosition = Vector2.zero;
                 rect.sizeDelta = isObjectIcon ? new Vector2(36f, 36f) : new Vector2(24f, 24f);
@@ -689,8 +705,8 @@ public class SelectionPanelsUI : MonoBehaviour
             var rect = fallback.GetComponent<RectTransform>();
             if (rect != null)
             {
-                rect.anchorMin = new Vector2(0.5f, 0.59f);
-                rect.anchorMax = new Vector2(0.5f, 0.59f);
+                rect.anchorMin = new Vector2(0.5f, objectIconCenterY);
+                rect.anchorMax = new Vector2(0.5f, objectIconCenterY);
                 rect.pivot = new Vector2(0.5f, 0.5f);
                 rect.anchoredPosition = Vector2.zero;
                 rect.sizeDelta = new Vector2(38f, 32f);
@@ -716,7 +732,7 @@ public class SelectionPanelsUI : MonoBehaviour
                 backgroundRect.anchorMin = new Vector2(0.5f, 0f);
                 backgroundRect.anchorMax = new Vector2(0.5f, 0f);
                 backgroundRect.pivot = new Vector2(0.5f, 0f);
-                backgroundRect.anchoredPosition = new Vector2(0f, 3f);
+                backgroundRect.anchoredPosition = new Vector2(0f, numberBadgeOffsetY);
                 backgroundRect.sizeDelta = new Vector2(24f, 15f);
             }
 
@@ -740,7 +756,7 @@ public class SelectionPanelsUI : MonoBehaviour
             numberRect.anchorMin = new Vector2(0.5f, 0f);
             numberRect.anchorMax = new Vector2(0.5f, 0f);
             numberRect.pivot = new Vector2(0.5f, 0f);
-            numberRect.anchoredPosition = new Vector2(0f, 3f);
+            numberRect.anchoredPosition = new Vector2(0f, numberBadgeOffsetY);
             numberRect.sizeDelta = new Vector2(24f, 15f);
         }
 
