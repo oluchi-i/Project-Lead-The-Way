@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public static partial class LeadTheWayObjectSetupTools
@@ -40,12 +39,6 @@ public static partial class LeadTheWayObjectSetupTools
         Selection.activeGameObject = systems;
         EditorGUIUtility.PingObject(boardManager);
         EditorUtility.DisplayDialog("Create Board Manager", "Created BoardManager on Game Systems.", "OK");
-    }
-
-    [MenuItem("Tools/Lead The Way/Board/Wire Interaction Flow References")]
-    public static void WireInteractionFlowReferences()
-    {
-        WireLevelFlowReferences();
     }
 
     [MenuItem("Tools/Lead The Way/Board/Wire Level Flow References")]
@@ -267,81 +260,6 @@ public static partial class LeadTheWayObjectSetupTools
 
         EditorSceneManager.MarkSceneDirty(selectedBoardObjects[0].gameObject.scene);
         EditorUtility.DisplayDialog("Sync Board Tiles", $"Synced {selectedBoardObjects.Count} BoardObject tile position(s) from their transforms.", "OK");
-    }
-
-    [MenuItem("Tools/Lead The Way/Board/Report Registered Board Objects")]
-    public static void ReportRegisteredBoardObjects()
-    {
-        var boardManager = UnityEngine.Object.FindAnyObjectByType<BoardManager>();
-        if (boardManager == null)
-        {
-            EditorUtility.DisplayDialog("Board Report", "No BoardManager exists in the active scene yet.", "OK");
-            return;
-        }
-
-        boardManager.RebuildRegistry();
-
-        var report = new List<string>();
-        foreach (var boardObject in BoardManager.FindSceneBoardObjects(true))
-        {
-            if (EditorUtility.IsPersistent(boardObject))
-                continue;
-
-            report.Add($"{boardObject.name}: {boardObject.ObjectType}, anchor {boardObject.TilePosition}, footprint [{string.Join(", ", boardObject.GetOccupiedTiles())}], active={boardObject.gameObject.activeInHierarchy}, scene={boardObject.gameObject.scene.name}, blocks={boardObject.BlocksMovement}, movable={boardObject.Movable}");
-        }
-
-        report.Sort(StringComparer.Ordinal);
-        Debug.Log($"Lead The Way Board Report: Registered {report.Count} BoardObject(s).");
-        foreach (var line in report)
-            Debug.Log("Lead The Way Board Object: " + line);
-
-        EditorUtility.DisplayDialog("Board Report", $"Registered {report.Count} BoardObject(s). Check the Console for details.", "OK");
-    }
-
-    [MenuItem("Tools/Lead The Way/Board/Repair Duplicate Board Object IDs")]
-    public static void RepairDuplicateBoardObjectIds()
-    {
-        var seenIds = new HashSet<string>();
-        var repairedCount = 0;
-        var inspectedCount = 0;
-        Scene firstChangedScene = default;
-
-        foreach (var boardObject in BoardManager.FindSceneBoardObjects(true))
-        {
-            if (boardObject == null || EditorUtility.IsPersistent(boardObject))
-                continue;
-
-            inspectedCount++;
-            boardObject.EnsureObjectId();
-
-            if (seenIds.Add(boardObject.ObjectId))
-                continue;
-
-            Undo.RecordObject(boardObject, "Repair Duplicate Board Object ID");
-            boardObject.RegenerateObjectId();
-            while (!seenIds.Add(boardObject.ObjectId))
-                boardObject.RegenerateObjectId();
-
-            EditorUtility.SetDirty(boardObject);
-            if (repairedCount == 0)
-                firstChangedScene = boardObject.gameObject.scene;
-
-            repairedCount++;
-        }
-
-        var boardManager = UnityEngine.Object.FindAnyObjectByType<BoardManager>();
-        if (boardManager != null)
-            boardManager.RebuildRegistry();
-
-        if (repairedCount > 0 && firstChangedScene.IsValid())
-            EditorSceneManager.MarkSceneDirty(firstChangedScene);
-
-        EditorUtility.DisplayDialog(
-            "Repair Board IDs",
-            repairedCount == 0
-                ? $"Checked {inspectedCount} BoardObject(s). No duplicate IDs found."
-                : $"Checked {inspectedCount} BoardObject(s) and repaired {repairedCount} duplicate ID(s).",
-            "OK");
     }
 
     private static void SetupSelectedBoardObjects(BoardObjectType? forcedType)

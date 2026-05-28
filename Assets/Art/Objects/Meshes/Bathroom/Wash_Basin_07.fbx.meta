@@ -1,9 +1,26 @@
 fileFormatVersion: 2
 guid: ad9dac0a125074949b076ea1e36b474a
+AssetOrigin:
+  serializedVersion: 1
+  productId: 260522
+  packageName: Cute Furniture FREE - Low Poly 3D Models Pack
+  packageVersion: 2.2
+  assetPath: Assets/ithappy/Cute_Furniture_Free/Meshes/Bathroom/Wash_Basin_07.fbx
+  uploadId: 912186
 ModelImporter:
-  serializedVersion: 22200
+  serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Color
+    second: {fileID: 2100000, guid: 40aa5f4044fb46342a130a6cc52aaeed, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Glass
+    second: {fileID: 2100000, guid: 0e14494d1af90c8458d863a289ce5c87, type: 2}
   materials:
     materialImportMode: 2
     materialName: 1
@@ -16,8 +33,6 @@ ModelImporter:
     optimizeGameObjects: 0
     removeConstantScaleCurves: 0
     motionNodeName: 
-    rigImportErrors: 
-    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -58,6 +73,9 @@ ModelImporter:
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
     optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
@@ -107,10 +125,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 260522
-  packageName: Cute Furniture FREE - Low Poly 3D Models Pack
-  packageVersion: 2.2
-  assetPath: Assets/ithappy/Cute_Furniture_Free/Meshes/Bathroom/Wash_Basin_07.fbx
-  uploadId: 912186

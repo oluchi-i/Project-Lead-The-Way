@@ -51,11 +51,6 @@ public class BoardObject : MonoBehaviour
         objectId = CreateObjectId(gameObject.name);
     }
 
-    public void RegenerateObjectId()
-    {
-        objectId = CreateObjectId(gameObject.name);
-    }
-
     public void SetTilePosition(Vector2Int tile)
     {
         tilePosition = tile;

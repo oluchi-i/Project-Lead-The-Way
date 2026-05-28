@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -7,34 +6,8 @@ using UnityEngine;
 
 public static class LeadTheWayIconTools
 {
-    private const string FurnitureIconFolder = "Assets/Art/Objects/Icons";
     private const string GeneratedIconFolder = "Assets/Art/UI/ObjectIcons";
     private const int IconSize = 256;
-
-    [MenuItem("Tools/Lead The Way/UI/Icons/Configure Furniture Icons As Sprites")]
-    public static void ConfigureFurnitureIconsAsSprites()
-    {
-        ConfigureTextureFolderAsSprites(FurnitureIconFolder);
-    }
-
-    [MenuItem("Tools/Lead The Way/UI/Icons/Configure Selected Textures As Sprites")]
-    public static void ConfigureSelectedTexturesAsSprites()
-    {
-        var texturePaths = Selection.objects
-            .Select(AssetDatabase.GetAssetPath)
-            .Where(path => !string.IsNullOrWhiteSpace(path))
-            .SelectMany(GetTexturePaths)
-            .Distinct()
-            .ToList();
-
-        if (texturePaths.Count == 0)
-        {
-            EditorUtility.DisplayDialog("Configure Selected Textures", "Select one or more PNG/JPG/TGA textures or folders first.", "OK");
-            return;
-        }
-
-        ConfigureTexturesAsSprites(texturePaths);
-    }
 
     [MenuItem("Tools/Lead The Way/UI/Icons/Generate Icons From Selected Objects")]
     public static void GenerateIconsFromSelectedObjects()
@@ -71,61 +44,6 @@ public static class LeadTheWayIconTools
             generatedCount == 1
                 ? $"Generated 1 icon in {GeneratedIconFolder}."
                 : $"Generated {generatedCount} icons in {GeneratedIconFolder}.",
-            "OK");
-    }
-
-    private static void ConfigureTextureFolderAsSprites(string folderPath)
-    {
-        if (!AssetDatabase.IsValidFolder(folderPath))
-        {
-            EditorUtility.DisplayDialog("Configure Icons", $"Folder does not exist:\n{folderPath}", "OK");
-            return;
-        }
-
-        var texturePaths = GetTexturePaths(folderPath).ToList();
-        ConfigureTexturesAsSprites(texturePaths);
-    }
-
-    private static IEnumerable<string> GetTexturePaths(string path)
-    {
-        if (AssetDatabase.IsValidFolder(path))
-        {
-            return AssetDatabase
-                .FindAssets("t:Texture2D", new[] { path })
-                .Select(AssetDatabase.GUIDToAssetPath)
-                .Where(IsSupportedTexturePath);
-        }
-
-        return IsSupportedTexturePath(path) ? new[] { path } : Enumerable.Empty<string>();
-    }
-
-    private static bool IsSupportedTexturePath(string path)
-    {
-        var extension = Path.GetExtension(path).ToLowerInvariant();
-        return extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".tga";
-    }
-
-    private static void ConfigureTexturesAsSprites(IReadOnlyCollection<string> texturePaths)
-    {
-        if (texturePaths.Count == 0)
-        {
-            EditorUtility.DisplayDialog("Configure Icons", "No supported texture files were found.", "OK");
-            return;
-        }
-
-        var changedCount = 0;
-        foreach (var texturePath in texturePaths)
-        {
-            if (ConfigureTextureAsSprite(texturePath))
-                changedCount++;
-        }
-
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh();
-
-        EditorUtility.DisplayDialog(
-            "Configure Icons",
-            $"Configured {texturePaths.Count} texture(s) as UI sprites. Updated import settings on {changedCount}.",
             "OK");
     }
 
