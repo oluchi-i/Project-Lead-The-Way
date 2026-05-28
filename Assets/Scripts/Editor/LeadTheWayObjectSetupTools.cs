@@ -281,7 +281,7 @@ public static partial class LeadTheWayObjectSetupTools
         boardManager.RebuildRegistry();
 
         var report = new List<string>();
-        foreach (var boardObject in BoardManager.FindSceneBoardObjects())
+        foreach (var boardObject in BoardManager.FindSceneBoardObjects(true))
         {
             if (EditorUtility.IsPersistent(boardObject))
                 continue;

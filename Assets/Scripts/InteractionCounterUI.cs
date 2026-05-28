@@ -8,6 +8,8 @@ public class InteractionCounterUI : MonoBehaviour
     [SerializeField] private Image remainingFillImage;
     [SerializeField] private string numberFormat = "{0}";
 
+    private InteractionFlowManager subscribedFlowManager;
+
     private void Awake()
     {
         EnsureReferences();
@@ -18,16 +20,14 @@ public class InteractionCounterUI : MonoBehaviour
     {
         EnsureReferences();
 
-        if (interactionFlowManager != null)
-            interactionFlowManager.InteractionCountChanged += HandleInteractionCountChanged;
+        Subscribe();
 
         Refresh();
     }
 
     private void OnDisable()
     {
-        if (interactionFlowManager != null)
-            interactionFlowManager.InteractionCountChanged -= HandleInteractionCountChanged;
+        Unsubscribe();
     }
 
     public void Configure(InteractionFlowManager newInteractionFlowManager, Text newCountText)
@@ -37,9 +37,13 @@ public class InteractionCounterUI : MonoBehaviour
 
     public void Configure(InteractionFlowManager newInteractionFlowManager, Text newCountText, Image newRemainingFillImage)
     {
+        if (interactionFlowManager != newInteractionFlowManager)
+            Unsubscribe();
+
         interactionFlowManager = newInteractionFlowManager;
         countText = newCountText;
         remainingFillImage = newRemainingFillImage;
+        Subscribe();
         Refresh();
     }
 
@@ -81,5 +85,24 @@ public class InteractionCounterUI : MonoBehaviour
                 }
             }
         }
+    }
+
+    private void Subscribe()
+    {
+        if (!isActiveAndEnabled || interactionFlowManager == null || subscribedFlowManager == interactionFlowManager)
+            return;
+
+        Unsubscribe();
+        interactionFlowManager.InteractionCountChanged += HandleInteractionCountChanged;
+        subscribedFlowManager = interactionFlowManager;
+    }
+
+    private void Unsubscribe()
+    {
+        if (subscribedFlowManager == null)
+            return;
+
+        subscribedFlowManager.InteractionCountChanged -= HandleInteractionCountChanged;
+        subscribedFlowManager = null;
     }
 }

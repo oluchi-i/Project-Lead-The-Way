@@ -62,7 +62,8 @@ public class LevelResultFlashUI : MonoBehaviour
         if (overlay == null)
             overlay = GetComponent<Image>();
 
-        overlay.raycastTarget = false;
+        if (overlay != null)
+            overlay.raycastTarget = false;
     }
 
     private void SetAlpha(float alpha)

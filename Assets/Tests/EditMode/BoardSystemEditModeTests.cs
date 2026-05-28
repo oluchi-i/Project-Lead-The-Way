@@ -71,6 +71,19 @@ public class BoardSystemEditModeTests
     }
 
     [Test]
+    public void InactiveBoardObjectsDoNotBlockMovementWhenRegistryRebuilds()
+    {
+        var boardManager = CreateBoardManager();
+        var box = CreateBoardObject("Box", BoardObjectType.Box, new Vector2Int(1, 1), true, true, true);
+        var inactiveBlocker = CreateBoardObject("Inactive Blocker", BoardObjectType.Other, new Vector2Int(2, 1), true, true, false);
+        inactiveBlocker.gameObject.SetActive(false);
+
+        boardManager.RebuildRegistry();
+
+        Assert.IsTrue(boardManager.CanEnterTile(box, new Vector2Int(2, 1)));
+    }
+
+    [Test]
     public void PlayerCanEnterRegisteredGoalTileOutsideBoardBounds()
     {
         var boardManager = CreateBoardManager();

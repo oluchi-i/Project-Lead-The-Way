@@ -38,7 +38,7 @@ public class BoardManager : MonoBehaviour
             Register(boardObject);
     }
 
-    public static List<BoardObject> FindSceneBoardObjects()
+    public static List<BoardObject> FindSceneBoardObjects(bool includeInactive = false)
     {
         var boardObjects = new List<BoardObject>();
         var seen = new HashSet<BoardObject>();
@@ -52,16 +52,19 @@ public class BoardManager : MonoBehaviour
             foreach (var root in roots)
             {
                 foreach (var boardObject in root.GetComponentsInChildren<BoardObject>(true))
-                    AddBoardObject(boardObjects, seen, boardObject);
+                    AddBoardObject(boardObjects, seen, boardObject, includeInactive);
             }
         }
 
         return boardObjects;
     }
 
-    private static void AddBoardObject(List<BoardObject> boardObjects, HashSet<BoardObject> seen, BoardObject boardObject)
+    private static void AddBoardObject(List<BoardObject> boardObjects, HashSet<BoardObject> seen, BoardObject boardObject, bool includeInactive)
     {
         if (boardObject == null)
+            return;
+
+        if (!includeInactive && !boardObject.gameObject.activeInHierarchy)
             return;
 
         if (!seen.Add(boardObject))

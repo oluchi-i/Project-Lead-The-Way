@@ -36,8 +36,7 @@ public class ButtonPress : MonoBehaviour
         if (cap == null)
             return;
 
-        raisedLocalPosition = cap.localPosition;
-        pressedLocalPosition = raisedLocalPosition + Vector3.down * pressDepth;
+        CachePositions();
     }
 
     private void Update()
@@ -82,6 +81,8 @@ public class ButtonPress : MonoBehaviour
     {
         cap = capTransform;
         pressSound = soundClip;
+        if (cap != null)
+            CachePositions();
     }
 
     private void StartMove(Vector3 target, float duration, bool releasing)
@@ -92,5 +93,11 @@ public class ButtonPress : MonoBehaviour
         currentDuration = duration;
         isReleasing = releasing;
         isMoving = true;
+    }
+
+    private void CachePositions()
+    {
+        raisedLocalPosition = cap.localPosition;
+        pressedLocalPosition = raisedLocalPosition + Vector3.down * pressDepth;
     }
 }

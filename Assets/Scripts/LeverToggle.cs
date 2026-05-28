@@ -25,8 +25,7 @@ public class LeverToggle : MonoBehaviour
         if (arm == null)
             return;
 
-        offRotation = arm.localRotation;
-        onRotation = offRotation * Quaternion.Euler(toggledXRotation, 0f, 0f);
+        CacheRotations();
         isOn = startOn;
         arm.localRotation = isOn ? onRotation : offRotation;
     }
@@ -65,6 +64,17 @@ public class LeverToggle : MonoBehaviour
     public void Configure(Transform armTransform)
     {
         arm = armTransform;
+        if (arm != null)
+        {
+            CacheRotations();
+            arm.localRotation = isOn ? onRotation : offRotation;
+        }
+    }
+
+    private void CacheRotations()
+    {
+        offRotation = arm.localRotation;
+        onRotation = offRotation * Quaternion.Euler(toggledXRotation, 0f, 0f);
     }
 }
 

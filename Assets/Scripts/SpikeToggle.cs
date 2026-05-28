@@ -25,8 +25,7 @@ public class SpikeToggle : MonoBehaviour
         if (spikes == null)
             return;
 
-        loweredLocalPosition = spikes.localPosition;
-        raisedLocalPosition = loweredLocalPosition + Vector3.up * raisedOffset;
+        CachePositions();
         isRaised = startRaised;
         spikes.localPosition = isRaised ? raisedLocalPosition : loweredLocalPosition;
     }
@@ -65,6 +64,17 @@ public class SpikeToggle : MonoBehaviour
     public void Configure(Transform spikesTransform)
     {
         spikes = spikesTransform;
+        if (spikes != null)
+        {
+            CachePositions();
+            spikes.localPosition = isRaised ? raisedLocalPosition : loweredLocalPosition;
+        }
+    }
+
+    private void CachePositions()
+    {
+        loweredLocalPosition = spikes.localPosition;
+        raisedLocalPosition = loweredLocalPosition + Vector3.up * raisedOffset;
     }
 }
 
