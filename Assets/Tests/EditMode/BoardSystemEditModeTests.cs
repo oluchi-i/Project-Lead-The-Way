@@ -1,10 +1,16 @@
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using UnityEngine;
 
 public class BoardSystemEditModeTests
 {
+    private const string Level01ScenePath = "Assets/Scenes/Level01.unity";
+    private const string BuildSettingsPath = "ProjectSettings/EditorBuildSettings.asset";
+
     private readonly List<GameObject> createdObjects = new List<GameObject>();
 
     [TearDown]
@@ -118,6 +124,60 @@ public class BoardSystemEditModeTests
         Assert.AreEqual(startPosition, moverObject.transform.position);
     }
 
+    [Test]
+    public void BuildSettingsUseLevel01AsOnlyEnabledScene()
+    {
+        var buildSettings = ReadProjectFile(BuildSettingsPath);
+
+        Assert.That(Regex.Matches(buildSettings, @"^\s*enabled:\s*1$", RegexOptions.Multiline).Count, Is.EqualTo(1));
+        Assert.That(buildSettings, Does.Contain($"path: {Level01ScenePath}"));
+        Assert.That(buildSettings, Does.Not.Contain("path: Assets/Scenes/Dev.unity"));
+        Assert.That(buildSettings, Does.Not.Contain("path: Assets/Scenes/Player.unity"));
+    }
+
+    [Test]
+    public void Level01HasRequiredFlowReferencesSerialized()
+    {
+        var scene = ReadProjectFile(Level01ScenePath);
+
+        AssertSerializedReference(scene, "boardManager");
+        AssertSerializedReference(scene, "playerMover");
+        AssertSerializedReference(scene, "playerObject");
+        AssertSerializedReference(scene, "startTile");
+        AssertSerializedReference(scene, "startDoor");
+        AssertSerializedReference(scene, "destinationDoor");
+        AssertSerializedReference(scene, "resultFlashUI");
+        Assert.That(scene, Does.Contain("maxInteractionCount: 6"));
+    }
+
+    [Test]
+    public void Level01HasNoDuplicateBoardObjectIds()
+    {
+        var scene = ReadProjectFile(Level01ScenePath);
+        var ids = Regex.Matches(scene, @"^\s*objectId:\s*(\S+)", RegexOptions.Multiline)
+            .Cast<Match>()
+            .Select(match => match.Groups[1].Value)
+            .ToList();
+
+        var duplicateIds = ids.GroupBy(id => id)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToList();
+
+        Assert.That(duplicateIds, Is.Empty);
+    }
+
+    [Test]
+    public void Level01ResultFeedbackHasAudioAndVisualReferences()
+    {
+        var scene = ReadProjectFile(Level01ScenePath);
+
+        AssertSerializedReference(scene, "overlay");
+        AssertSerializedReference(scene, "audioSource");
+        AssertSerializedReference(scene, "successSound");
+        AssertSerializedReference(scene, "failureSound");
+    }
+
     private BoardManager CreateBoardManager()
     {
         return CreateObject("Board Manager").AddComponent<BoardManager>();
@@ -154,5 +214,17 @@ public class BoardSystemEditModeTests
         var field = typeof(T).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(field, $"Expected field '{fieldName}' on {typeof(T).Name}.");
         field.SetValue(target, value);
+    }
+
+    private static void AssertSerializedReference(string yaml, string fieldName)
+    {
+        var pattern = $@"^\s*{Regex.Escape(fieldName)}:\s*\{{fileID:\s*(?!0\}})[^}}]+\}}";
+        Assert.That(Regex.IsMatch(yaml, pattern, RegexOptions.Multiline), Is.True, $"Expected '{fieldName}' to be wired.");
+    }
+
+    private static string ReadProjectFile(string relativePath)
+    {
+        var projectRoot = Directory.GetParent(Application.dataPath).FullName;
+        return File.ReadAllText(Path.Combine(projectRoot, relativePath));
     }
 }
