@@ -105,6 +105,19 @@ public class BoardSystemEditModeTests
         Assert.AreEqual(1, flowManager.MaxInteractionCount);
     }
 
+    [Test]
+    public void GridTileMoverDoesNotFallbackToWorldMovementWhenBoardMovementIsDisabled()
+    {
+        var moverObject = CreateObject("Loose Mover");
+        var mover = moverObject.AddComponent<GridTileMover>();
+        mover.ConfigureBoardMovement(false, false);
+
+        var startPosition = moverObject.transform.position;
+
+        Assert.IsFalse(mover.TryMovePositiveX());
+        Assert.AreEqual(startPosition, moverObject.transform.position);
+    }
+
     private BoardManager CreateBoardManager()
     {
         return CreateObject("Board Manager").AddComponent<BoardManager>();

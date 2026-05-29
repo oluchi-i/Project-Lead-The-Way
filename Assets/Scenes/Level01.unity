@@ -13500,6 +13500,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 306af7f8d2ed09f4da90570cd3967ee5, type: 3}
+--- !u!114 &1243736840 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3219894504264153641, guid: 306af7f8d2ed09f4da90570cd3967ee5, type: 3}
+  m_PrefabInstance: {fileID: 1243736839}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80f2ee657fc3648458b9fcdb13ebf8d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoardObject
 --- !u!43 &1245043983
 Mesh:
   m_ObjectHideFlags: 0
@@ -14222,7 +14233,7 @@ RectTransform:
   m_GameObject: {fileID: 1288162807}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.12, y: 1.12, z: 1}
+  m_LocalScale: {x: 1.2, y: 1.2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1864506444}
@@ -18802,17 +18813,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1648630646340044413, guid: 306af7f8d2ed09f4da90570cd3967ee5, type: 3}
   m_PrefabInstance: {fileID: 1243736839}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1243736840 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3219894504264153641, guid: 306af7f8d2ed09f4da90570cd3967ee5, type: 3}
-  m_PrefabInstance: {fileID: 1243736839}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 80f2ee657fc3648458b9fcdb13ebf8d6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BoardObject
 --- !u!1001 &1729403221
 PrefabInstance:
   m_ObjectHideFlags: 0
