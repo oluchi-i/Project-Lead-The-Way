@@ -2,6 +2,8 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
+#pragma warning disable 0649 // Unity assigns serialized fields from scene objects.
+
 [RequireComponent(typeof(Image))]
 public class LevelResultFlashUI : MonoBehaviour
 {
@@ -9,6 +11,10 @@ public class LevelResultFlashUI : MonoBehaviour
     [SerializeField] private Color successColor = new Color(0.15f, 1f, 0.28f, 0.58f);
     [SerializeField] private Color failureColor = new Color(1f, 0.08f, 0.08f, 0.62f);
     [SerializeField] private float flashDuration = 0.18f;
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip successSound;
+    [SerializeField] private AudioClip failureSound;
+    [SerializeField, Range(0f, 1f)] private float soundVolume = 0.8f;
 
     private Coroutine flashRoutine;
 
@@ -32,6 +38,7 @@ public class LevelResultFlashUI : MonoBehaviour
         if (flashRoutine != null)
             StopCoroutine(flashRoutine);
 
+        PlayResultSound(success);
         flashRoutine = StartCoroutine(FlashRoutine(success ? successColor : failureColor));
     }
 
@@ -64,6 +71,24 @@ public class LevelResultFlashUI : MonoBehaviour
 
         if (overlay != null)
             overlay.raycastTarget = false;
+
+        if (audioSource == null)
+            audioSource = GetComponent<AudioSource>();
+
+        if (audioSource != null)
+        {
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 0f;
+        }
+    }
+
+    private void PlayResultSound(bool success)
+    {
+        EnsureReferences();
+
+        var clip = success ? successSound : failureSound;
+        if (audioSource != null && clip != null)
+            audioSource.PlayOneShot(clip, soundVolume);
     }
 
     private void SetAlpha(float alpha)
@@ -77,3 +102,5 @@ public class LevelResultFlashUI : MonoBehaviour
         overlay.enabled = alpha > 0f;
     }
 }
+
+#pragma warning restore 0649
