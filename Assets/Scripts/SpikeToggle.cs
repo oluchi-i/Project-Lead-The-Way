@@ -17,6 +17,8 @@ public class SpikeToggle : MonoBehaviour
     private bool isMoving;
     private bool isRaised;
 
+    public bool IsRaised => isRaised;
+
     private void Awake()
     {
         if (spikes == null)
@@ -73,8 +75,8 @@ public class SpikeToggle : MonoBehaviour
 
     private void CachePositions()
     {
-        loweredLocalPosition = spikes.localPosition;
-        raisedLocalPosition = loweredLocalPosition + Vector3.up * raisedOffset;
+        raisedLocalPosition = spikes.localPosition;
+        loweredLocalPosition = raisedLocalPosition + Vector3.up * raisedOffset;
     }
 }
 

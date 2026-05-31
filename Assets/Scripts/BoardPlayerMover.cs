@@ -105,6 +105,19 @@ public class BoardPlayerMover : MonoBehaviour
         moveRoutine = null;
     }
 
+    private void CheckCurrentTile()
+    {
+        BoardObject spike = boardManager.GetObjectsAt(boardObject.TilePosition).Find(obj => obj.ObjectType == BoardObjectType.Hazard);
+        Debug.Log(spike);
+        if (spike != null)
+            Debug.Log(spike.gameObject.GetComponent<SpikeToggle>().IsRaised);
+        if (spike != null && spike.gameObject.GetComponent<SpikeToggle>().IsRaised)
+        {
+            Debug.Log("kill");
+            walkAnimation.Kill();
+        }
+    }
+
     private IEnumerator MoveToTile(Vector2Int fromTile, Vector2Int toTile, bool updateBoardPosition)
     {
         isMoving = true;
@@ -146,9 +159,11 @@ public class BoardPlayerMover : MonoBehaviour
 
         if (walkAnimation != null)
             walkAnimation.SetWalking(false);
-
+        
         isMoving = false;
         moveRoutine = null;
+
+        CheckCurrentTile();
     }
 
     private IEnumerator RotateToward(Vector3 direction)
