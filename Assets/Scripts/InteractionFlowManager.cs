@@ -23,7 +23,7 @@ public class InteractionFlowManager : MonoBehaviour
     [SerializeField] private BoardObject startDoor;
     [FormerlySerializedAs("targetDoor")]
     [SerializeField] private BoardObject destinationDoor;
-    [SerializeField] private Vector2Int gameplayStartTile = new Vector2Int(5, 2);
+    [SerializeField] private Vector2Int gameplayStartTile;
     [SerializeField] private LevelResultFlashUI resultFlashUI;
     [SerializeField] private int maxInteractionCount = 6;
     [SerializeField] private int interactionCount;

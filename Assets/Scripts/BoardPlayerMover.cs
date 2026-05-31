@@ -108,9 +108,6 @@ public class BoardPlayerMover : MonoBehaviour
     private void CheckCurrentTile()
     {
         BoardObject spike = boardManager.GetObjectsAt(boardObject.TilePosition).Find(obj => obj.ObjectType == BoardObjectType.Hazard);
-        Debug.Log(spike);
-        if (spike != null)
-            Debug.Log(spike.gameObject.GetComponent<SpikeToggle>().IsRaised);
         if (spike != null && spike.gameObject.GetComponent<SpikeToggle>().IsRaised)
         {
             Debug.Log("kill");
