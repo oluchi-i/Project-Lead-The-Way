@@ -6,6 +6,8 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
 
+#pragma warning disable 0649 // Unity assigns serialized fields from scenes.
+
 public class InteractionFlowManager : MonoBehaviour
 {
     private enum LevelFlowState
@@ -476,3 +478,5 @@ public class InteractionFlowManager : MonoBehaviour
         Debug.LogWarning("InteractionFlowManager is missing one or more required scene references. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
     }
 }
+
+#pragma warning restore 0649
