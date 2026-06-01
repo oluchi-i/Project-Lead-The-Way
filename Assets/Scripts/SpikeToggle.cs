@@ -1,5 +1,7 @@
 using UnityEngine;
 
+#pragma warning disable 0649 // Unity assigns serialized fields from prefabs.
+
 public class SpikeToggle : MonoBehaviour
 {
     [SerializeField] private Transform spikes;
@@ -15,6 +17,8 @@ public class SpikeToggle : MonoBehaviour
     private bool isMoving;
     private bool isRaised;
 
+    public bool IsRaised => isRaised;
+
     private void Awake()
     {
         if (spikes == null)
@@ -23,8 +27,7 @@ public class SpikeToggle : MonoBehaviour
         if (spikes == null)
             return;
 
-        loweredLocalPosition = spikes.localPosition;
-        raisedLocalPosition = loweredLocalPosition + Vector3.up * raisedOffset;
+        CachePositions();
         isRaised = startRaised;
         spikes.localPosition = isRaised ? raisedLocalPosition : loweredLocalPosition;
     }
@@ -63,5 +66,18 @@ public class SpikeToggle : MonoBehaviour
     public void Configure(Transform spikesTransform)
     {
         spikes = spikesTransform;
+        if (spikes != null)
+        {
+            CachePositions();
+            spikes.localPosition = isRaised ? raisedLocalPosition : loweredLocalPosition;
+        }
+    }
+
+    private void CachePositions()
+    {
+        raisedLocalPosition = spikes.localPosition;
+        loweredLocalPosition = raisedLocalPosition + Vector3.up * raisedOffset;
     }
 }
+
+#pragma warning restore 0649

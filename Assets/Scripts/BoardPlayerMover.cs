@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(BoardObject))]
@@ -12,6 +13,7 @@ public class BoardPlayerMover : MonoBehaviour
 
     private bool isMoving;
     private Coroutine moveRoutine;
+    private bool loggedMissingReferences;
 
     public bool IsMoving => isMoving;
 
@@ -50,11 +52,70 @@ public class BoardPlayerMover : MonoBehaviour
         if (moveRoutine != null)
             StopCoroutine(moveRoutine);
 
-        moveRoutine = StartCoroutine(MoveToTile(fromTile, toTile));
+        moveRoutine = StartCoroutine(MoveToTile(fromTile, toTile, false));
         return true;
     }
 
-    private IEnumerator MoveToTile(Vector2Int fromTile, Vector2Int toTile)
+    public void PlaceAtTile(Vector2Int tile)
+    {
+        EnsureReferences();
+
+        if (moveRoutine != null)
+        {
+            StopCoroutine(moveRoutine);
+            moveRoutine = null;
+        }
+
+        isMoving = false;
+
+        if (boardObject != null)
+            boardObject.SetTilePosition(tile);
+
+        if (boardManager != null)
+        {
+            transform.position = boardManager.TileToWorld(tile, transform.position.y);
+            boardManager.RebuildRegistry();
+        }
+    }
+
+    public IEnumerator PlayScriptedPath(IReadOnlyList<Vector2Int> tiles)
+    {
+        if (isMoving || tiles == null || tiles.Count == 0)
+            yield break;
+
+        EnsureReferences();
+
+        if (boardManager == null || boardObject == null)
+            yield break;
+
+        if (moveRoutine != null)
+            StopCoroutine(moveRoutine);
+
+        for (var i = 0; i < tiles.Count; i++)
+        {
+            var fromTile = boardObject.TilePosition;
+            var toTile = tiles[i];
+            if (fromTile == toTile)
+                continue;
+
+            yield return MoveToTile(fromTile, toTile, true);
+        }
+
+        boardManager.RebuildRegistry();
+        moveRoutine = null;
+    }
+
+    private void CheckCurrentTile()
+    {
+        BoardObject spike = boardManager.GetObjectsAt(boardObject.TilePosition).Find(obj => obj.ObjectType == BoardObjectType.Hazard);
+        if (spike != null && spike.gameObject.GetComponent<SpikeToggle>().IsRaised)
+        {
+            Debug.Log("kill");
+            walkAnimation.Kill();
+        }
+    }
+
+    private IEnumerator MoveToTile(Vector2Int fromTile, Vector2Int toTile, bool updateBoardPosition)
     {
         isMoving = true;
 
@@ -87,11 +148,19 @@ public class BoardPlayerMover : MonoBehaviour
 
         transform.position = targetPosition;
 
+        if (updateBoardPosition)
+        {
+            boardObject.SetTilePosition(toTile);
+            boardManager.RebuildRegistry();
+        }
+
         if (walkAnimation != null)
             walkAnimation.SetWalking(false);
-
+        
         isMoving = false;
         moveRoutine = null;
+
+        CheckCurrentTile();
     }
 
     private IEnumerator RotateToward(Vector3 direction)
@@ -124,10 +193,13 @@ public class BoardPlayerMover : MonoBehaviour
         if (boardObject == null)
             boardObject = GetComponent<BoardObject>();
 
-        if (boardManager == null)
-            boardManager = FindAnyObjectByType<BoardManager>();
-
         if (walkAnimation == null)
             walkAnimation = GetComponent<PlayerMovement>();
+
+        if (!loggedMissingReferences && (boardManager == null || boardObject == null))
+        {
+            loggedMissingReferences = true;
+            Debug.LogWarning("BoardPlayerMover is missing required scene references. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
+        }
     }
 }

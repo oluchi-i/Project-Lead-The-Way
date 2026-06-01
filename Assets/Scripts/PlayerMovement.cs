@@ -1,6 +1,5 @@
-using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
+using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -11,57 +10,45 @@ public class PlayerMovement : MonoBehaviour
     public GameObject rightLeg;
     public float armSwingAngleLim = 30f;
     public float legSwingAngleLim = 30f;
-
-    [Header("Other Stuff")]
-    [SerializeField] private bool playDemoPathOnStart;
-    public GameObject tile;
     public float speed = 1f;
-    private enum State { Idle, Walk }
+
+    [SerializeField] private float blendSpeed = 5f;
+
+    private enum State
+    {
+        Idle,
+        Walk,
+        Death
+    }
+
     private State state;
-    // north +z, south -z, West -x, East +x
-    private float tileSize;
-    private Coroutine movementRoutine;
-    // Vector3.forward, Vector3.right, Vector3.back, Vector3.left
-    private readonly Queue<Vector3> movementQueue = new Queue<Vector3>();
-    private float walkWeight = 0f;
-    private float blendSpeed = 5f;
-    private Coroutine managerRoutine;
-    private float animatorTimer = 0;
-    private Vector3 startPosition;
-    private Vector3 targetPosition;
+    private Coroutine animationRoutine;
+    private float walkWeight;
+    private float animationTimer;
+    private Transform leftArmTransform;
+    private Transform rightArmTransform;
+    private Transform leftLegTransform;
+    private Transform rightLegTransform;
+    private Quaternion leftArmRestRotation;
+    private Quaternion rightArmRestRotation;
+    private Quaternion leftLegRestRotation;
+    private Quaternion rightLegRestRotation;
 
-    void Awake()
+
+    [Header ("Death Animation")]
+    public float explosionForce;
+    public float upwardForce;
+    public Transform[] bodyParts;
+
+    private void Awake()
     {
-        tileSize = 1f;
-
-        if (tile != null && tile.TryGetComponent<MeshRenderer>(out var meshRenderer))
-            tileSize = meshRenderer.bounds.size.x;
-
+        CacheLimbReferences();
         state = State.Idle;
-    }
-
-    void Start()
-    {
-        if (!playDemoPathOnStart)
-            return;
-
-        QueueMove(Vector3.forward * tileSize);
-        QueueMove(Vector3.forward * tileSize);
-        QueueMove(Vector3.right * tileSize);
-        QueueMove(Vector3.right * tileSize);
-    }
-
-    public void QueueMove(Vector3 direction)
-    {
-        movementQueue.Enqueue(direction);
-        if (movementRoutine == null)
-            movementRoutine = StartCoroutine(ProcessMovement());
     }
 
     public void ConfigureForBoardMovement()
     {
-        playDemoPathOnStart = false;
-        tileSize = Mathf.Max(0.01f, tileSize);
+        SetWalking(false);
     }
 
     public void SetWalking(bool isWalking)
@@ -69,100 +56,129 @@ public class PlayerMovement : MonoBehaviour
         ChangeState(isWalking ? State.Walk : State.Idle);
     }
 
-    private IEnumerator ProcessMovement()
-    {
-        while (movementQueue.Count > 0)
-        {
-            ChangeState(State.Walk);
-            Vector3 currentDirection = movementQueue.Dequeue();
-
-            startPosition = transform.position;
-            targetPosition = transform.position + currentDirection;
-            transform.rotation = Quaternion.LookRotation(currentDirection);
-            
-            while ((transform.position - targetPosition).sqrMagnitude > 0.01f)
-            {
-                transform.position += transform.forward * speed * Time.deltaTime;
-                yield return null;
-            }
-
-            transform.position = targetPosition;
-        }
-        ChangeState(State.Idle);
-    }
-
     private void ChangeState(State newState)
     {
         state = newState;
-
-        if (managerRoutine == null)
+        if (state == State.Death)
         {
-            managerRoutine = StartCoroutine(WalkAnimation());
+            DeathAnimation();
+            return;
         }
+        if (animationRoutine == null)
+            animationRoutine = StartCoroutine(WalkAnimation());
+    }
+
+    public void Kill()
+    {
+        ChangeState(State.Death);
+    }
+    
+private void DeathAnimation()
+    { 
+        Vector3 blastDirection, randomSpin;
+
+        Transform body = transform.GetChild(0);
+        body.SetParent(null);
+        Collider bodyCollider = body.GetComponent<Collider>();
+        bodyCollider.enabled = true;
+
+        Rigidbody bodyRB = body.GetComponent<Rigidbody>();
+        bodyRB.isKinematic = false;
+
+        blastDirection = new Vector3(Random.Range(-1f, 1f), Random.Range(0.2f, 1f) * upwardForce, Random.Range(-1f, 1f)).normalized;
+        bodyRB.AddForce(blastDirection * explosionForce *  Random.Range(0.5f, explosionForce * 1.5f), ForceMode.Impulse);
+
+        randomSpin = new Vector3(Random.Range(-100, 100), Random.Range(-100, 100), Random.Range(-100, 100));
+        bodyRB.AddTorque(randomSpin, ForceMode.Impulse);
+        
+        foreach (Transform part in bodyParts)
+        {
+            part.SetParent(null);
+            Collider collider = part.GetComponentInChildren<Collider>();
+            if (collider != null) collider.enabled = true;
+
+            Rigidbody partRB = part.GetComponent<Rigidbody>();
+            partRB.isKinematic = false;
+
+            blastDirection = new Vector3(Random.Range(-1f, 1f), Random.Range(0.2f, 1f) * upwardForce, Random.Range(-1f, 1f)).normalized;
+            partRB.AddForce(blastDirection * explosionForce *  Random.Range(0.5f, explosionForce * 1.5f), ForceMode.Impulse);
+
+            randomSpin = new Vector3(Random.Range(-100, 100), Random.Range(-100, 100), Random.Range(-100, 100));
+            partRB.AddTorque(randomSpin, ForceMode.Impulse);
+        }     
     }
 
     private IEnumerator WalkAnimation()
     {
-        if (leftArm == null || rightArm == null || leftLeg == null || rightLeg == null)
+        if (!HasLimbReferences())
         {
-            managerRoutine = null;
+            animationRoutine = null;
             yield break;
         }
 
-        while (state == State.Walk || walkWeight > 0)
+        while (state == State.Walk || walkWeight > 0f)
         {
-            float targetWeight = (state == State.Walk) ? 1f : 0f;
+            var targetWeight = state == State.Walk ? 1f : 0f;
             walkWeight = Mathf.MoveTowards(walkWeight, targetWeight, blendSpeed * Time.deltaTime);
-            float armSwingAngle = Mathf.Sin(animatorTimer * speed * 10f) * armSwingAngleLim;
-            float legSwingAngle = Mathf.Sin(animatorTimer * speed * 10f) * legSwingAngleLim;
-            
-            Quaternion walkLeftArm = Quaternion.Euler(armSwingAngle, 0, 0);
-            Quaternion walkRightArm = Quaternion.Euler(-armSwingAngle, 0, 0);
-            Quaternion walkLeftLeg = Quaternion.Euler(-legSwingAngle, 0, 0);
-            Quaternion walkRightLeg = Quaternion.Euler(legSwingAngle, 0, 0);
 
-            leftArm.transform.localRotation = Quaternion.Lerp(Quaternion.identity, walkLeftArm, walkWeight);
-            rightArm.transform.localRotation = Quaternion.Lerp(Quaternion.identity, walkRightArm, walkWeight);
-            leftLeg.transform.localRotation = Quaternion.Lerp(Quaternion.identity, walkLeftLeg, walkWeight);
-            rightLeg.transform.localRotation = Quaternion.Lerp(Quaternion.identity, walkRightLeg, walkWeight);
-        
-            animatorTimer += Time.deltaTime;
+            var swingSpeed = Mathf.Max(0.01f, speed) * 10f;
+            var armSwingAngle = Mathf.Sin(animationTimer * swingSpeed) * armSwingAngleLim;
+            var legSwingAngle = Mathf.Sin(animationTimer * swingSpeed) * legSwingAngleLim;
 
+            leftArmTransform.localRotation = leftArmRestRotation * Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(armSwingAngle, 0f, 0f), walkWeight);
+            rightArmTransform.localRotation = rightArmRestRotation * Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(-armSwingAngle, 0f, 0f), walkWeight);
+            leftLegTransform.localRotation = leftLegRestRotation * Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(-legSwingAngle, 0f, 0f), walkWeight);
+            rightLegTransform.localRotation = rightLegRestRotation * Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(legSwingAngle, 0f, 0f), walkWeight);
+
+            animationTimer += Time.deltaTime;
             yield return null;
         }
 
-        leftArm.transform.localRotation = Quaternion.identity;
-        rightArm.transform.localRotation = Quaternion.identity;
-        leftLeg.transform.localRotation = Quaternion.identity;
-        rightLeg.transform.localRotation = Quaternion.identity;
-        
-        animatorTimer = 0;
-        managerRoutine = null;
+        ResetLimbRotations();
+        animationTimer = 0f;
+        animationRoutine = null;
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void ResetLimbRotations()
     {
-        if (!playDemoPathOnStart || movementRoutine == null)
-            return;
+        if (leftArmTransform != null)
+            leftArmTransform.localRotation = leftArmRestRotation;
 
-        if (collision.gameObject.CompareTag("Wall"))
-        {
-            targetPosition = startPosition;
-            startPosition = transform.position;
-            StopCoroutine(movementRoutine);
-            state = State.Idle;
-            QueueMoveFirst(targetPosition - startPosition);
-            movementRoutine = StartCoroutine(ProcessMovement());
-        }
+        if (rightArmTransform != null)
+            rightArmTransform.localRotation = rightArmRestRotation;
+
+        if (leftLegTransform != null)
+            leftLegTransform.localRotation = leftLegRestRotation;
+
+        if (rightLegTransform != null)
+            rightLegTransform.localRotation = rightLegRestRotation;
     }
 
-    private void QueueMoveFirst(Vector3 direction)
+    private void CacheLimbReferences()
     {
-        var pendingMoves = movementQueue.ToArray();
-        movementQueue.Clear();
-        movementQueue.Enqueue(direction);
+        leftArmTransform = leftArm != null ? leftArm.transform : null;
+        rightArmTransform = rightArm != null ? rightArm.transform : null;
+        leftLegTransform = leftLeg != null ? leftLeg.transform : null;
+        rightLegTransform = rightLeg != null ? rightLeg.transform : null;
 
-        foreach (var pendingMove in pendingMoves)
-            movementQueue.Enqueue(pendingMove);
+        if (leftArmTransform != null)
+            leftArmRestRotation = leftArmTransform.localRotation;
+
+        if (rightArmTransform != null)
+            rightArmRestRotation = rightArmTransform.localRotation;
+
+        if (leftLegTransform != null)
+            leftLegRestRotation = leftLegTransform.localRotation;
+
+        if (rightLegTransform != null)
+            rightLegRestRotation = rightLegTransform.localRotation;
+    }
+
+    private bool HasLimbReferences()
+    {
+        return leftArmTransform != null
+            && rightArmTransform != null
+            && leftLegTransform != null
+            && rightLegTransform != null;
     }
 }

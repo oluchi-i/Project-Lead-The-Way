@@ -5,22 +5,22 @@ public class GridTileMover : MonoBehaviour
     [SerializeField] private bool useBoardManager = true;
     [SerializeField] private float tileSize = 1f;
     [SerializeField] private float moveDuration = 0.18f;
+    [SerializeField] private BoardManager boardManager;
+    [SerializeField] private BoardObject boardObject;
+    [SerializeField] private InteractionFlowManager interactionFlowManager;
 
-    private BoardManager boardManager;
-    private BoardObject boardObject;
-    private InteractionFlowManager interactionFlowManager;
     private bool isMoving;
     private float moveElapsed;
     private Vector3 moveStart;
     private Vector3 moveTarget;
+    private bool pendingInteractionOnMoveComplete;
+    private bool loggedMissingReferences;
 
     public bool IsMoving => isMoving;
 
     private void Awake()
     {
-        boardObject = GetComponent<BoardObject>();
-        boardManager = FindAnyObjectByType<BoardManager>();
-        interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+        EnsureReferences();
     }
 
     private void Update()
@@ -31,78 +31,98 @@ public class GridTileMover : MonoBehaviour
 
     public void MovePositiveX()
     {
-        TryMove(Vector2Int.right, Vector3.right);
+        TryMove(Vector2Int.right);
     }
 
     public void MoveNegativeX()
     {
-        TryMove(Vector2Int.left, Vector3.left);
+        TryMove(Vector2Int.left);
     }
 
     public void MovePositiveZ()
     {
-        TryMove(Vector2Int.up, Vector3.forward);
+        TryMove(Vector2Int.up);
     }
 
     public void MoveNegativeZ()
     {
-        TryMove(Vector2Int.down, Vector3.back);
+        TryMove(Vector2Int.down);
     }
 
     public bool TryMovePositiveX()
     {
-        return TryMove(Vector2Int.right, Vector3.right);
+        return TryMove(Vector2Int.right);
     }
 
     public bool TryMoveNegativeX()
     {
-        return TryMove(Vector2Int.left, Vector3.left);
+        return TryMove(Vector2Int.left);
     }
 
     public bool TryMovePositiveZ()
     {
-        return TryMove(Vector2Int.up, Vector3.forward);
+        return TryMove(Vector2Int.up);
     }
 
     public bool TryMoveNegativeZ()
     {
-        return TryMove(Vector2Int.down, Vector3.back);
+        return TryMove(Vector2Int.down);
     }
 
     public void ConfigureBoardMovement(bool enabled, bool keyboardEnabled)
     {
         useBoardManager = enabled;
-        boardObject = GetComponent<BoardObject>();
-        boardManager = FindAnyObjectByType<BoardManager>();
+        EnsureReferences();
     }
 
-    private bool TryMove(Vector2Int boardDirection, Vector3 fallbackWorldDirection)
+    public void Configure(BoardManager newBoardManager, BoardObject newBoardObject, InteractionFlowManager newInteractionFlowManager, bool enabled = true)
+    {
+        boardManager = newBoardManager;
+        boardObject = newBoardObject;
+        interactionFlowManager = newInteractionFlowManager;
+        useBoardManager = enabled;
+
+        if (boardManager != null)
+            tileSize = boardManager.TileSize;
+    }
+
+    private bool TryMove(Vector2Int boardDirection)
     {
         if (isMoving)
             return false;
 
-        if (interactionFlowManager == null)
-            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+        EnsureReferences();
 
-        if (interactionFlowManager != null && !interactionFlowManager.CanAcceptAction)
+        if (!useBoardManager || boardManager == null || boardObject == null || interactionFlowManager == null)
+            return false;
+
+        if (!interactionFlowManager.CanAcceptAction)
             return false;
 
         moveStart = transform.position;
 
-        if (useBoardManager && TryMoveOnBoard(boardDirection, out var targetTile))
+        var shouldRegisterInteraction = ShouldRegisterInteraction();
+        var beganObjectAction = false;
+        if (shouldRegisterInteraction)
         {
-            var safeBoardManager = boardManager != null ? boardManager : FindAnyObjectByType<BoardManager>();
-            moveTarget = safeBoardManager.TileToWorld(targetTile, moveStart.y);
-            RegisterSuccessfulInteraction();
+            if (!interactionFlowManager.TryBeginObjectAction())
+                return false;
+
+            beganObjectAction = true;
         }
-        else if (useBoardManager)
+
+        if (TryMoveOnBoard(boardDirection, out var targetTile))
         {
-            MarkActionHandledWithoutInteraction();
-            return false;
+            moveTarget = boardManager.TileToWorld(targetTile, moveStart.y);
+            pendingInteractionOnMoveComplete = beganObjectAction;
         }
         else
         {
-            moveTarget = moveStart + fallbackWorldDirection * tileSize;
+            if (beganObjectAction)
+                interactionFlowManager.CompleteObjectAction(false);
+
+            MarkActionHandledWithoutInteraction();
+            return false;
         }
 
         moveElapsed = 0f;
@@ -110,22 +130,24 @@ public class GridTileMover : MonoBehaviour
         return true;
     }
 
-    private void RegisterSuccessfulInteraction()
+    private bool ShouldRegisterInteraction()
     {
-        if (boardObject != null && boardObject.ObjectType == BoardObjectType.Player)
-            return;
+        return boardObject == null || boardObject.ObjectType != BoardObjectType.Player;
+    }
 
-        if (interactionFlowManager == null)
-            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+    private void RegisterCompletedInteraction()
+    {
+        EnsureReferences();
 
         if (interactionFlowManager != null)
-            interactionFlowManager.RegisterInteraction();
+            interactionFlowManager.CompleteObjectAction(pendingInteractionOnMoveComplete);
+
+        pendingInteractionOnMoveComplete = false;
     }
 
     private void MarkActionHandledWithoutInteraction()
     {
-        if (interactionFlowManager == null)
-            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+        EnsureReferences();
 
         if (interactionFlowManager != null)
             interactionFlowManager.MarkActionHandledWithoutInteraction();
@@ -135,11 +157,7 @@ public class GridTileMover : MonoBehaviour
     {
         targetTile = default;
 
-        if (boardObject == null)
-            boardObject = GetComponent<BoardObject>();
-
-        if (boardManager == null)
-            boardManager = FindAnyObjectByType<BoardManager>();
+        EnsureReferences();
 
         if (boardObject == null || boardManager == null)
             return false;
@@ -160,6 +178,19 @@ public class GridTileMover : MonoBehaviour
         {
             transform.position = moveTarget;
             isMoving = false;
+            RegisterCompletedInteraction();
+        }
+    }
+
+    private void EnsureReferences()
+    {
+        if (boardObject == null)
+            boardObject = GetComponent<BoardObject>();
+
+        if (!loggedMissingReferences && useBoardManager && (boardManager == null || boardObject == null || interactionFlowManager == null))
+        {
+            loggedMissingReferences = true;
+            Debug.LogWarning("GridTileMover is missing required board/action references. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
         }
     }
 }

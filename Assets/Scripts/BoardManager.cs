@@ -5,6 +5,8 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+#pragma warning disable 0649 // Unity assigns serialized fields from scene objects.
+
 public class BoardManager : MonoBehaviour
 {
     [SerializeField] private Vector2Int boardSize = new Vector2Int(10, 10);
@@ -36,7 +38,7 @@ public class BoardManager : MonoBehaviour
             Register(boardObject);
     }
 
-    public static List<BoardObject> FindSceneBoardObjects()
+    public static List<BoardObject> FindSceneBoardObjects(bool includeInactive = false)
     {
         var boardObjects = new List<BoardObject>();
         var seen = new HashSet<BoardObject>();
@@ -50,16 +52,19 @@ public class BoardManager : MonoBehaviour
             foreach (var root in roots)
             {
                 foreach (var boardObject in root.GetComponentsInChildren<BoardObject>(true))
-                    AddBoardObject(boardObjects, seen, boardObject);
+                    AddBoardObject(boardObjects, seen, boardObject, includeInactive);
             }
         }
 
         return boardObjects;
     }
 
-    private static void AddBoardObject(List<BoardObject> boardObjects, HashSet<BoardObject> seen, BoardObject boardObject)
+    private static void AddBoardObject(List<BoardObject> boardObjects, HashSet<BoardObject> seen, BoardObject boardObject, bool includeInactive)
     {
         if (boardObject == null)
+            return;
+
+        if (!includeInactive && !boardObject.gameObject.activeInHierarchy)
             return;
 
         if (!seen.Add(boardObject))
@@ -77,21 +82,16 @@ public class BoardManager : MonoBehaviour
 
         if (objectsById.ContainsKey(boardObject.ObjectId))
         {
-            Debug.LogWarning($"BoardManager skipped duplicate BoardObject id '{boardObject.ObjectId}' on {boardObject.name}.", boardObject);
-            return false;
+            Debug.LogWarning($"BoardManager found duplicate BoardObject id '{boardObject.ObjectId}' on {boardObject.name}. Tile occupancy will still be registered.", boardObject);
+        }
+        else
+        {
+            objectsById.Add(boardObject.ObjectId, boardObject);
         }
 
-        objectsById.Add(boardObject.ObjectId, boardObject);
-
-        if (boardObject.OccupiesTile)
+        foreach (var occupiedTile in boardObject.GetOccupiedTiles())
         {
-            if (!objectsByTile.TryGetValue(boardObject.TilePosition, out var tileObjects))
-            {
-                tileObjects = new List<BoardObject>();
-                objectsByTile.Add(boardObject.TilePosition, tileObjects);
-            }
-
-            tileObjects.Add(boardObject);
+            AddToTile(boardObject, occupiedTile);
         }
 
         return true;
@@ -136,6 +136,17 @@ public class BoardManager : MonoBehaviour
         if (movingObject == null)
             return false;
 
+        foreach (var occupiedTile in movingObject.GetOccupiedTiles(tile))
+        {
+            if (!CanEnterSingleTile(movingObject, occupiedTile))
+                return false;
+        }
+
+        return true;
+    }
+
+    private bool CanEnterSingleTile(BoardObject movingObject, Vector2Int tile)
+    {
         if (IsInsideBounds(tile))
             return !IsBlockedByObjects(tile, movingObject);
 
@@ -212,9 +223,14 @@ public class BoardManager : MonoBehaviour
         if (!CanEnterTile(boardObject, toTile))
             return false;
 
-        RemoveFromTile(boardObject, fromTile);
+        foreach (var occupiedTile in boardObject.GetOccupiedTiles(fromTile))
+            RemoveFromTile(boardObject, occupiedTile);
+
         boardObject.SetTilePosition(toTile);
-        AddToTile(boardObject, toTile);
+
+        foreach (var occupiedTile in boardObject.GetOccupiedTiles(toTile))
+            AddToTile(boardObject, occupiedTile);
+
         return true;
     }
 
@@ -298,3 +314,5 @@ public class BoardManager : MonoBehaviour
     }
 #endif
 }
+
+#pragma warning restore 0649

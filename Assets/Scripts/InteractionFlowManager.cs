@@ -1,26 +1,42 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 
 public class InteractionFlowManager : MonoBehaviour
 {
+    private enum LevelFlowState
+    {
+        Intro,
+        Playing,
+        Success,
+        Failure
+    }
+
     [SerializeField] private BoardManager boardManager;
     [SerializeField] private BoardPlayerMover playerMover;
     [SerializeField] private BoardObject playerObject;
-    [SerializeField] private BoardObject targetDoor;
+    [SerializeField] private BoardObject startTile;
+    [SerializeField] private BoardObject startDoor;
+    [FormerlySerializedAs("targetDoor")]
+    [SerializeField] private BoardObject destinationDoor;
+    [SerializeField] private Vector2Int gameplayStartTile;
     [SerializeField] private LevelResultFlashUI resultFlashUI;
     [SerializeField] private int maxInteractionCount = 6;
     [SerializeField] private int interactionCount;
 
     private int lastInteractionFrame = -1;
     private int lastHandledActionFrame = -1;
-    private bool levelFinished;
-    private DoorScript.Door targetDoorScript;
-    private Coroutine actionLimitRoutine;
+    private LevelFlowState flowState = LevelFlowState.Intro;
+    private DoorScript.Door startDoorScript;
+    private DoorScript.Door destinationDoorScript;
+    private Coroutine introRoutine;
+    private Coroutine interactionResolutionRoutine;
+    private int activeObjectActionCount;
+    private bool loggedMissingReferences;
 
     private static readonly Vector2Int[] Directions =
     {
@@ -30,6 +46,10 @@ public class InteractionFlowManager : MonoBehaviour
         Vector2Int.down
     };
 
+    public BoardObject StartTile => startTile;
+    public BoardObject StartDoor => startDoor;
+    public BoardObject DestinationDoor => destinationDoor;
+    public Vector2Int GameplayStartTile => gameplayStartTile;
     public int InteractionCount => interactionCount;
     public int MaxInteractionCount => Mathf.Max(1, maxInteractionCount);
     public event Action<int> InteractionCountChanged;
@@ -40,19 +60,30 @@ public class InteractionFlowManager : MonoBehaviour
         get
         {
             EnsureReferences();
-            return !levelFinished
+            return flowState == LevelFlowState.Playing
+                && HasRequiredGameplayReferences()
                 && lastHandledActionFrame != Time.frameCount
+                && activeObjectActionCount == 0
                 && (playerMover == null || !playerMover.IsMoving);
         }
     }
 
-    public void Configure(BoardManager newBoardManager, BoardPlayerMover newPlayerMover, BoardObject newPlayerObject, BoardObject newTargetDoor)
+    public void Configure(BoardManager newBoardManager, BoardPlayerMover newPlayerMover, BoardObject newPlayerObject, BoardObject newDestinationDoor)
     {
         boardManager = newBoardManager;
         playerMover = newPlayerMover;
         playerObject = newPlayerObject;
-        targetDoor = newTargetDoor;
-        targetDoorScript = null;
+        destinationDoor = newDestinationDoor;
+        destinationDoorScript = null;
+    }
+
+    public void ConfigureLevelFlow(BoardObject newStartTile, BoardObject newStartDoor, BoardObject newDestinationDoor)
+    {
+        startTile = newStartTile;
+        startDoor = newStartDoor;
+        destinationDoor = newDestinationDoor;
+        startDoorScript = null;
+        destinationDoorScript = null;
     }
 
     public void ConfigureResultFlash(LevelResultFlashUI newResultFlashUI)
@@ -63,6 +94,22 @@ public class InteractionFlowManager : MonoBehaviour
     private void Awake()
     {
         EnsureReferences();
+    }
+
+    private void Start()
+    {
+        EnsureReferences();
+        InteractionCountChanged?.Invoke(interactionCount);
+
+        if (CanRunIntro())
+        {
+            introRoutine = StartCoroutine(RunIntro());
+        }
+        else
+        {
+            WarnMissingIntroSetup();
+            flowState = LevelFlowState.Playing;
+        }
     }
 
     private void Update()
@@ -81,16 +128,39 @@ public class InteractionFlowManager : MonoBehaviour
         if (!CanAcceptAction)
             return false;
 
+        RegisterInteractionCore();
+        return true;
+    }
+
+    public bool TryBeginObjectAction()
+    {
+        if (!CanAcceptAction)
+            return false;
+
+        activeObjectActionCount++;
+        lastHandledActionFrame = Time.frameCount;
+        return true;
+    }
+
+    public void CompleteObjectAction(bool countsAsInteraction)
+    {
+        if (activeObjectActionCount > 0)
+            activeObjectActionCount--;
+
+        if (!countsAsInteraction || flowState != LevelFlowState.Playing)
+            return;
+
+        RegisterInteractionCore();
+    }
+
+    private void RegisterInteractionCore()
+    {
         interactionCount++;
         lastInteractionFrame = Time.frameCount;
         lastHandledActionFrame = Time.frameCount;
         InteractionCountChanged?.Invoke(interactionCount);
         StepPlayerTowardDoor();
-
-        if (interactionCount >= MaxInteractionCount)
-            BeginActionLimitResolution();
-
-        return true;
+        BeginInteractionResolution();
     }
 
     public void MarkActionHandledWithoutInteraction()
@@ -102,7 +172,7 @@ public class InteractionFlowManager : MonoBehaviour
     {
         EnsureReferences();
 
-        if (boardManager == null || playerMover == null || playerObject == null || targetDoor == null)
+        if (boardManager == null || playerMover == null || playerObject == null || destinationDoor == null)
             return;
 
         if (playerMover.IsMoving)
@@ -112,6 +182,103 @@ public class InteractionFlowManager : MonoBehaviour
 
         if (TryFindNextStep(out var direction))
             playerMover.TryStep(direction);
+    }
+
+    private IEnumerator RunIntro()
+    {
+        flowState = LevelFlowState.Intro;
+        boardManager.RebuildRegistry();
+        playerMover.PlaceAtTile(startTile.TilePosition);
+        yield return null;
+
+        var entryDoor = GetDoorScript(startDoor, ref startDoorScript);
+        if (entryDoor == null)
+        {
+            Debug.LogWarning("InteractionFlowManager intro was cancelled because the start door has no Door component.", this);
+            flowState = LevelFlowState.Playing;
+            introRoutine = null;
+            yield break;
+        }
+
+        entryDoor.Open();
+        yield return WaitForDoor(entryDoor);
+
+        var path = CreateIntroPath(playerObject.TilePosition, gameplayStartTile);
+        if (path.Count > 0)
+            yield return playerMover.PlayScriptedPath(path);
+
+        entryDoor.Close();
+        yield return WaitForDoor(entryDoor);
+
+        boardManager.RebuildRegistry();
+        flowState = LevelFlowState.Playing;
+        introRoutine = null;
+    }
+
+    private bool CanRunIntro()
+    {
+        return boardManager != null
+            && playerMover != null
+            && playerObject != null
+            && startTile != null
+            && startDoor != null
+            && GetDoorScript(startDoor, ref startDoorScript) != null;
+    }
+
+    private bool HasRequiredGameplayReferences()
+    {
+        return boardManager != null
+            && playerMover != null
+            && playerObject != null
+            && destinationDoor != null;
+    }
+
+    private void WarnMissingIntroSetup()
+    {
+        if (boardManager == null || playerMover == null || playerObject == null || startTile == null || startDoor == null)
+        {
+            Debug.LogWarning(
+                "InteractionFlowManager skipped the level intro because one or more intro references are missing. Run Tools > Lead The Way > Optimize > Wire Current Scene References.",
+                this);
+            return;
+        }
+
+        if (GetDoorScript(startDoor, ref startDoorScript) == null)
+            Debug.LogWarning("InteractionFlowManager skipped the level intro because the configured start door has no Door component.", startDoor);
+    }
+
+    private List<Vector2Int> CreateIntroPath(Vector2Int fromTile, Vector2Int toTile)
+    {
+        var path = new List<Vector2Int>();
+        var current = fromTile;
+
+        while (current.x != toTile.x)
+        {
+            current += current.x < toTile.x ? Vector2Int.right : Vector2Int.left;
+            path.Add(current);
+        }
+
+        while (current.y != toTile.y)
+        {
+            current += current.y < toTile.y ? Vector2Int.up : Vector2Int.down;
+            path.Add(current);
+        }
+
+        return path;
+    }
+
+    private IEnumerator WaitForDoor(DoorScript.Door door)
+    {
+        if (door == null)
+            yield break;
+
+        var elapsed = 0f;
+        const float maxWait = 1.5f;
+        while (door.IsAnimating && elapsed < maxWait)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
     }
 
     private bool TryFindNextStep(out Vector2Int nextDirection)
@@ -159,17 +326,25 @@ public class InteractionFlowManager : MonoBehaviour
         var goals = new HashSet<Vector2Int>();
         foreach (var goalObject in boardManager.GetGoalObjects())
         {
-            if (goalObject != null && boardManager.CanEnterTile(playerObject, goalObject.TilePosition))
-                goals.Add(goalObject.TilePosition);
+            if (goalObject == null)
+                continue;
+
+            foreach (var goalTile in goalObject.GetOccupiedTiles())
+            {
+                if (boardManager.CanEnterTile(playerObject, goalTile) && HasEnterableGoalApproach(goalTile))
+                    goals.Add(goalTile);
+            }
         }
 
-        var doorOpen = IsTargetDoorOpen();
+        var doorOpen = IsDestinationDoorOpen();
         if (goals.Count > 0 && doorOpen)
             return goals;
 
         goals.Clear();
-        var doorTile = targetDoor.TilePosition;
+        if (destinationDoor == null)
+            return goals;
 
+        var doorTile = destinationDoor.TilePosition;
         foreach (var direction in Directions)
         {
             var candidate = doorTile + direction;
@@ -183,40 +358,78 @@ public class InteractionFlowManager : MonoBehaviour
         return goals;
     }
 
-    private bool IsTargetDoorOpen()
+    private bool HasEnterableGoalApproach(Vector2Int goalTile)
     {
-        if (targetDoor == null)
+        if (boardManager.IsInsideBounds(goalTile))
             return true;
 
-        if (targetDoorScript == null)
-            targetDoorScript = targetDoor.GetComponentInChildren<DoorScript.Door>(true);
+        foreach (var direction in Directions)
+        {
+            var candidate = goalTile + direction;
+            if (boardManager.IsInsideBounds(candidate) && boardManager.CanEnterTile(playerObject, candidate))
+                return true;
+        }
 
-        return targetDoorScript == null || targetDoorScript.open;
+        return false;
     }
 
-    private void BeginActionLimitResolution()
+    private bool IsDestinationDoorOpen()
     {
-        if (levelFinished)
+        var door = GetDoorScript(destinationDoor, ref destinationDoorScript);
+        return door == null || door.open;
+    }
+
+    private DoorScript.Door GetDoorScript(BoardObject doorObject, ref DoorScript.Door cachedDoor)
+    {
+        if (doorObject == null)
+            return null;
+
+        if (cachedDoor == null)
+            cachedDoor = doorObject.GetComponentInChildren<DoorScript.Door>(true);
+
+        return cachedDoor;
+    }
+
+    private void BeginInteractionResolution()
+    {
+        if (flowState != LevelFlowState.Playing)
             return;
 
-        levelFinished = true;
+        if (interactionResolutionRoutine != null)
+            StopCoroutine(interactionResolutionRoutine);
 
-        if (actionLimitRoutine != null)
-            StopCoroutine(actionLimitRoutine);
-
-        actionLimitRoutine = StartCoroutine(ResolveActionLimitAfterMovement());
+        interactionResolutionRoutine = StartCoroutine(ResolveInteractionAfterMovement());
     }
 
-    private IEnumerator ResolveActionLimitAfterMovement()
+    private IEnumerator ResolveInteractionAfterMovement()
     {
         while (playerMover != null && playerMover.IsMoving)
             yield return null;
 
-        var succeeded = IsPlayerOnGoalTile();
+        if (IsPlayerOnGoalTile())
+            CompleteLevel(true);
+        else if (interactionCount >= MaxInteractionCount)
+            CompleteLevel(false);
+
+        interactionResolutionRoutine = null;
+    }
+
+    private void CompleteLevel(bool succeeded)
+    {
+        if (flowState == LevelFlowState.Success || flowState == LevelFlowState.Failure)
+            return;
+
+        flowState = succeeded ? LevelFlowState.Success : LevelFlowState.Failure;
+
+        if (succeeded)
+        {
+            var exitDoor = GetDoorScript(destinationDoor, ref destinationDoorScript);
+            if (exitDoor != null)
+                exitDoor.Close();
+        }
+
         if (resultFlashUI != null)
             resultFlashUI.Flash(succeeded);
-
-        actionLimitRoutine = null;
     }
 
     private bool IsPlayerOnGoalTile()
@@ -229,7 +442,7 @@ public class InteractionFlowManager : MonoBehaviour
         boardManager.RebuildRegistry();
         foreach (var goalObject in boardManager.GetGoalObjects())
         {
-            if (goalObject != null && goalObject.TilePosition == playerObject.TilePosition)
+            if (goalObject != null && goalObject.GetOccupiedTiles().Contains(playerObject.TilePosition))
                 return true;
         }
 
@@ -256,32 +469,10 @@ public class InteractionFlowManager : MonoBehaviour
 
     private void EnsureReferences()
     {
-        if (boardManager == null)
-            boardManager = FindAnyObjectByType<BoardManager>();
+        if (loggedMissingReferences || HasRequiredGameplayReferences())
+            return;
 
-        if (playerMover == null)
-            playerMover = FindAnyObjectByType<BoardPlayerMover>();
-
-        if (playerObject == null && playerMover != null)
-            playerObject = playerMover.GetComponent<BoardObject>();
-
-        var needsBoardObjectLookup = playerObject == null || targetDoor == null || !targetDoor.gameObject.activeInHierarchy;
-        if (needsBoardObjectLookup)
-        {
-            var boardObjects = BoardManager.FindSceneBoardObjects();
-            if (playerObject == null)
-                playerObject = boardObjects.FirstOrDefault(item => item != null && item.ObjectType == BoardObjectType.Player && item.gameObject.activeInHierarchy);
-
-            if (targetDoor == null || !targetDoor.gameObject.activeInHierarchy)
-            {
-                var previousDoor = targetDoor;
-                targetDoor = boardObjects.FirstOrDefault(item => item != null && item.ObjectType == BoardObjectType.Door && item.gameObject.activeInHierarchy);
-                if (targetDoor != previousDoor)
-                    targetDoorScript = null;
-            }
-        }
-
-        if (resultFlashUI == null)
-            resultFlashUI = FindAnyObjectByType<LevelResultFlashUI>();
+        loggedMissingReferences = true;
+        Debug.LogWarning("InteractionFlowManager is missing one or more required scene references. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
     }
 }
