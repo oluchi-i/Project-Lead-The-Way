@@ -13,6 +13,9 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
     [SerializeField] private Text checkpointLabel;
     [SerializeField] private Image panelBackground;
     [SerializeField] private int currentCheckpointIndex;
+    [Header("Timing")]
+    [Tooltip("Central duration used when the camera and player move between map checkpoints.")]
+    [SerializeField, Min(0.01f)] private float transitionDuration = 1.5f;
     [SerializeField] private bool snapFollowersToCurrentCheckpointOnStart = true;
     [SerializeField] private bool enforceCameraFollowerAsMainCamera = true;
 
@@ -50,6 +53,7 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
             return;
 
         waitingForMove = false;
+        cameraFollower?.RefreshLookAt(true);
         if (introMoveInProgress)
         {
             introMoveInProgress = false;
@@ -110,8 +114,8 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
     private void MoveTo(int checkpointIndex)
     {
         currentCheckpointIndex = checkpointIndex;
-        cameraFollower?.MoveToCheckpoint(currentCheckpointIndex);
-        playerFollower?.MoveToCheckpoint(currentCheckpointIndex);
+        cameraFollower?.MoveToCheckpoint(currentCheckpointIndex, transitionDuration);
+        playerFollower?.MoveToCheckpoint(currentCheckpointIndex, transitionDuration);
         waitingForMove = true;
         Refresh();
     }

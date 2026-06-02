@@ -4,8 +4,9 @@ using UnityEngine.Events;
 
 public sealed class MapPathFollower : MonoBehaviour
 {
+    private const float DefaultMoveDuration = 1.5f;
+
     [SerializeField] private MapPath path;
-    [SerializeField, Min(0.01f)] private float moveDuration = 1.5f;
     [SerializeField] private bool rotateAlongPath = true;
     [SerializeField] private Transform lookAtTarget;
     [SerializeField, Min(0.01f)] private float rotationSpeed = 12f;
@@ -55,7 +56,20 @@ public sealed class MapPathFollower : MonoBehaviour
         MoveToProgress(targetProgress);
     }
 
+    public void MoveToCheckpoint(int checkpointIndex, float duration)
+    {
+        if (path == null || !path.TryGetCheckpointProgress(checkpointIndex, out var targetProgress))
+            return;
+
+        MoveToProgress(targetProgress, duration);
+    }
+
     public void MoveToProgress(float targetProgress)
+    {
+        MoveToProgress(targetProgress, DefaultMoveDuration);
+    }
+
+    public void MoveToProgress(float targetProgress, float duration)
     {
         if (path == null)
             return;
@@ -66,7 +80,7 @@ public sealed class MapPathFollower : MonoBehaviour
             movementAnimation?.SetWalking(false);
         }
 
-        activeMove = StartCoroutine(MoveRoutine(Mathf.Clamp01(targetProgress)));
+        activeMove = StartCoroutine(MoveRoutine(Mathf.Clamp01(targetProgress), Mathf.Max(0.01f, duration)));
     }
 
     public void JumpToCheckpoint(int checkpointIndex)
@@ -85,21 +99,26 @@ public sealed class MapPathFollower : MonoBehaviour
         ApplyProgress(currentProgress, true);
     }
 
-    private IEnumerator MoveRoutine(float targetProgress)
+    private IEnumerator MoveRoutine(float targetProgress, float duration)
     {
         var startProgress = currentProgress;
         var travelDirection = GetSegmentFacingDirection(startProgress, targetProgress);
         var elapsed = 0f;
+        var movementDuration = duration;
 
         if (turnBeforeMove && lookAtTarget == null)
-            yield return TurnTowardRoutine(travelDirection);
+        {
+            var boundedTurnDuration = Mathf.Min(turnDuration, duration * 0.4f);
+            movementDuration = Mathf.Max(0.01f, duration - boundedTurnDuration);
+            yield return TurnTowardRoutine(travelDirection, boundedTurnDuration);
+        }
 
         movementAnimation?.SetWalking(true);
 
-        while (elapsed < moveDuration)
+        while (elapsed < movementDuration)
         {
             elapsed += Time.deltaTime;
-            var t = Mathf.SmoothStep(0f, 1f, elapsed / moveDuration);
+            var t = Mathf.SmoothStep(0f, 1f, elapsed / movementDuration);
             currentProgress = Mathf.Lerp(startProgress, targetProgress, t);
             ApplyProgress(currentProgress, false, travelDirection);
             yield return null;
@@ -109,14 +128,14 @@ public sealed class MapPathFollower : MonoBehaviour
         var finalFacingDirection = GetArrivalFacingDirection(targetProgress, travelDirection);
         ApplyProgress(currentProgress, false, finalFacingDirection);
         if (turnBeforeMove && lookAtTarget == null && IsStartProgress(targetProgress))
-            yield return TurnTowardRoutine(finalFacingDirection);
+            RotateToward(finalFacingDirection, true);
 
         activeMove = null;
         movementAnimation?.SetWalking(false);
         checkpointReached?.Invoke();
     }
 
-    private IEnumerator TurnTowardRoutine(Vector3 direction)
+    private IEnumerator TurnTowardRoutine(Vector3 direction, float duration)
     {
         if (direction.sqrMagnitude <= 0.0001f)
             yield break;
@@ -125,10 +144,10 @@ public sealed class MapPathFollower : MonoBehaviour
         var targetRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
         var elapsed = 0f;
 
-        while (elapsed < turnDuration)
+        while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            var t = Mathf.SmoothStep(0f, 1f, elapsed / turnDuration);
+            var t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
             transform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
             yield return null;
         }
@@ -139,6 +158,20 @@ public sealed class MapPathFollower : MonoBehaviour
     private void OnDisable()
     {
         movementAnimation?.SetWalking(false);
+    }
+
+    private void LateUpdate()
+    {
+        if (activeMove == null)
+            RefreshLookAt(true);
+    }
+
+    public void RefreshLookAt(bool snapRotation)
+    {
+        if (lookAtTarget == null)
+            return;
+
+        RotateToward(lookAtTarget.position - transform.position, snapRotation);
     }
 
     private void ApplyProgress(float progress, bool snapRotation)
