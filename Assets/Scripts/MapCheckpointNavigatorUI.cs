@@ -9,12 +9,15 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
     [SerializeField] private MapPathFollower playerFollower;
     [SerializeField] private Button previousButton;
     [SerializeField] private Button nextButton;
+    [SerializeField] private Button startButton;
     [SerializeField] private Text checkpointLabel;
     [SerializeField] private int currentCheckpointIndex;
     [SerializeField] private bool snapFollowersToCurrentCheckpointOnStart = true;
     [SerializeField] private bool enforceCameraFollowerAsMainCamera = true;
 
     private bool waitingForMove;
+    private bool mapStarted;
+    private bool introMoveInProgress;
 
     private void Awake()
     {
@@ -22,6 +25,8 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
             previousButton.onClick.AddListener(MovePrevious);
         if (nextButton != null)
             nextButton.onClick.AddListener(MoveNext);
+        if (startButton != null)
+            startButton.onClick.AddListener(StartFirstLevel);
     }
 
     private void Start()
@@ -44,6 +49,12 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
             return;
 
         waitingForMove = false;
+        if (introMoveInProgress)
+        {
+            introMoveInProgress = false;
+            mapStarted = true;
+        }
+
         Refresh();
     }
 
@@ -54,6 +65,7 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         MapPathFollower newPlayerFollower,
         Button newPreviousButton,
         Button newNextButton,
+        Button newStartButton,
         Text newCheckpointLabel)
     {
         cameraPath = newCameraPath;
@@ -62,8 +74,18 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         playerFollower = newPlayerFollower;
         previousButton = newPreviousButton;
         nextButton = newNextButton;
+        startButton = newStartButton;
         checkpointLabel = newCheckpointLabel;
         Refresh();
+    }
+
+    public void StartFirstLevel()
+    {
+        if (!CanMoveTo(1))
+            return;
+
+        introMoveInProgress = true;
+        MoveTo(1);
     }
 
     public void MovePrevious()
@@ -106,14 +128,32 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
 
     private void Refresh()
     {
+        var showIntro = !mapStarted && !introMoveInProgress && currentCheckpointIndex == 0;
+        var showLevelNavigation = mapStarted && !introMoveInProgress;
+
         if (checkpointLabel != null)
+        {
             checkpointLabel.text = GetCheckpointText();
+            checkpointLabel.gameObject.SetActive(showLevelNavigation);
+        }
+
+        if (startButton != null)
+        {
+            startButton.gameObject.SetActive(showIntro);
+            startButton.interactable = CanMoveTo(1);
+        }
 
         if (previousButton != null)
+        {
+            previousButton.gameObject.SetActive(showLevelNavigation);
             previousButton.interactable = CanMoveTo(currentCheckpointIndex - 1);
+        }
 
         if (nextButton != null)
+        {
+            nextButton.gameObject.SetActive(showLevelNavigation);
             nextButton.interactable = CanMoveTo(currentCheckpointIndex + 1);
+        }
     }
 
     private string GetCheckpointText()
@@ -125,7 +165,7 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         if (string.IsNullOrWhiteSpace(label))
             label = currentCheckpointIndex == 0 ? "Start" : "Level " + currentCheckpointIndex;
 
-        return $"{label} (Checkpoint {currentCheckpointIndex})";
+        return label.ToUpperInvariant();
     }
 
     private void EnforceCameraFollowerAsMainCamera()

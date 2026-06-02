@@ -7,6 +7,10 @@ using UnityEngine.SceneManagement;
 public static class LeadTheWayPalmovMapPrototypeTools
 {
     private const string ScenePath = "Assets/Scenes/WorldMapPrototype.unity";
+    private const string WorldMapRootName = "Palmov All-Locations World Map Prototype";
+    private const string PathRootName = "World Map Path System";
+    private const string WorldMapPlayerName = "World Map Player";
+    private const string WorldMapCameraName = "World Map Camera";
     private const string PackRoot = "Assets/Palmov Island/Low Poly Atmospheric Locations Pack/Prefabs";
     private const string LocationFolder = PackRoot + "/Location with environment";
     private const int Columns = 5;
@@ -66,6 +70,65 @@ public static class LeadTheWayPalmovMapPrototypeTools
             "Generate Palmov World Map Prototype",
             $"Generated {locationPrefabPaths.Count} authored location prefab(s) in {ScenePath}.",
             "OK");
+    }
+
+    [MenuItem("Tools/Lead The Way/Map/Normalize Current World Map To Unit Scale")]
+    public static void NormalizeCurrentWorldMapToUnitScale()
+    {
+        var root = GameObject.Find(WorldMapRootName);
+        if (root == null)
+        {
+            EditorUtility.DisplayDialog(
+                "Normalize World Map",
+                $"Could not find {WorldMapRootName} in the active scene.",
+                "OK");
+            return;
+        }
+
+        var sourceScale = DetectLocationScale(root.transform);
+        if (sourceScale <= 0.0001f)
+        {
+            EditorUtility.DisplayDialog(
+                "Normalize World Map",
+                "Could not find a uniformly scaled location or bridge object to use as the normalization source.",
+                "OK");
+            return;
+        }
+
+        if (Mathf.Approximately(sourceScale, 1f))
+        {
+            EditorUtility.DisplayDialog(
+                "Normalize World Map",
+                "The detected location scale is already 1, so no normalization was applied.",
+                "OK");
+            return;
+        }
+
+        var multiplier = 1f / sourceScale;
+        if (!EditorUtility.DisplayDialog(
+            "Normalize World Map",
+            $"This one-time tool will set location/bridge prefab roots to scale 1,1,1 and scale map positions by {multiplier:0.###} so the composition stays aligned.\n\nRun it only once on this scene.",
+            "Normalize",
+            "Cancel"))
+        {
+            return;
+        }
+
+        var undoGroup = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName("Normalize World Map To Unit Scale");
+
+        NormalizePrefabGroup(root.transform.Find("All Locations"), multiplier);
+        NormalizePrefabGroup(root.transform.Find("Connector Bridge"), multiplier);
+        ScaleGeneratedWater(root.transform.Find("Water"), multiplier);
+        ScaleDirectChildrenPositions(root.transform.Find("Path Waypoints"), multiplier);
+        ScaleMapPathSystem(multiplier);
+        ScaleNamedObjectPosition(WorldMapCameraName, multiplier);
+        ScaleNamedObjectPosition("World Map Sun", multiplier);
+        ScaleWorldMapPlayer(multiplier);
+
+        Undo.CollapseUndoOperations(undoGroup);
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        Debug.Log($"Lead The Way Map: normalized current world map to unit location scale using multiplier {multiplier:0.###}.");
     }
 
     private static List<string> GetLocationPrefabPaths()
@@ -136,6 +199,132 @@ public static class LeadTheWayPalmovMapPrototypeTools
         water.transform.localScale = new Vector3(5.35f, 1f, Mathf.Max(2.15f, rows * 1.45f));
         Object.DestroyImmediate(water.GetComponent<Collider>());
         water.GetComponent<MeshRenderer>().sharedMaterial = CreateMaterial("Generated Simple Water", new Color(0.33f, 0.76f, 0.9f));
+    }
+
+    private static float DetectLocationScale(Transform root)
+    {
+        var scale = DetectScaleFromGroup(root.Find("All Locations"));
+        if (scale > 0.0001f)
+            return scale;
+
+        return DetectScaleFromGroup(root.Find("Connector Bridge"));
+    }
+
+    private static float DetectScaleFromGroup(Transform group)
+    {
+        if (group == null)
+            return 0f;
+
+        for (var i = 0; i < group.childCount; i++)
+        {
+            var child = group.GetChild(i);
+            if (IsUniformNonUnitScale(child.localScale))
+                return child.localScale.x;
+        }
+
+        return 0f;
+    }
+
+    private static bool IsUniformNonUnitScale(Vector3 scale)
+    {
+        return Mathf.Abs(scale.x - scale.y) <= 0.001f
+            && Mathf.Abs(scale.x - scale.z) <= 0.001f
+            && Mathf.Abs(scale.x - 1f) > 0.001f
+            && scale.x > 0.0001f;
+    }
+
+    private static void NormalizePrefabGroup(Transform group, float multiplier)
+    {
+        if (group == null)
+            return;
+
+        for (var i = 0; i < group.childCount; i++)
+        {
+            var child = group.GetChild(i);
+            Undo.RecordObject(child, "Normalize Map Prefab Root");
+            child.position = ScalePosition(child.position, multiplier);
+            if (IsUniformNonUnitScale(child.localScale))
+                child.localScale = Vector3.one;
+            EditorUtility.SetDirty(child);
+        }
+    }
+
+    private static void ScaleGeneratedWater(Transform waterRoot, float multiplier)
+    {
+        if (waterRoot == null)
+            return;
+
+        for (var i = 0; i < waterRoot.childCount; i++)
+        {
+            var child = waterRoot.GetChild(i);
+            Undo.RecordObject(child, "Scale Generated Map Water");
+            child.position = ScalePosition(child.position, multiplier);
+            child.localScale = new Vector3(
+                child.localScale.x * multiplier,
+                child.localScale.y,
+                child.localScale.z * multiplier);
+            EditorUtility.SetDirty(child);
+        }
+    }
+
+    private static void ScaleDirectChildrenPositions(Transform parent, float multiplier)
+    {
+        if (parent == null)
+            return;
+
+        for (var i = 0; i < parent.childCount; i++)
+            ScaleTransformPosition(parent.GetChild(i), multiplier);
+    }
+
+    private static void ScaleMapPathSystem(float multiplier)
+    {
+        var pathRoot = GameObject.Find(PathRootName);
+        if (pathRoot == null)
+            return;
+
+        foreach (var path in pathRoot.GetComponentsInChildren<MapPath>(true))
+            ScaleDirectChildrenPositions(path.transform, multiplier);
+    }
+
+    private static void ScaleNamedObjectPosition(string objectName, float multiplier)
+    {
+        var target = GameObject.Find(objectName);
+        if (target == null)
+            return;
+
+        ScaleTransformPosition(target.transform, multiplier);
+    }
+
+    private static void ScaleWorldMapPlayer(float multiplier)
+    {
+        var player = GameObject.Find(WorldMapPlayerName);
+        if (player == null)
+            return;
+
+        ScaleTransformPosition(player.transform, multiplier);
+        Undo.RecordObject(player.transform, "Scale World Map Player");
+        player.transform.localScale *= multiplier;
+        EditorUtility.SetDirty(player.transform);
+
+        var visual = player.transform.Find("Player Visual");
+        if (visual != null)
+        {
+            Undo.RecordObject(visual, "Normalize World Map Player Visual");
+            visual.localScale = Vector3.one;
+            EditorUtility.SetDirty(visual);
+        }
+    }
+
+    private static void ScaleTransformPosition(Transform target, float multiplier)
+    {
+        Undo.RecordObject(target, "Scale World Map Position");
+        target.position = ScalePosition(target.position, multiplier);
+        EditorUtility.SetDirty(target);
+    }
+
+    private static Vector3 ScalePosition(Vector3 position, float multiplier)
+    {
+        return new Vector3(position.x * multiplier, position.y * multiplier, position.z * multiplier);
     }
 
     private static void BuildSingleConnectorBridge(Transform parent, int locationCount)

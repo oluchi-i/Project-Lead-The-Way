@@ -12,7 +12,9 @@ public static class LeadTheWayMapPathTools
     private const string ArrowLeftIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_left.png";
     private const string ArrowRightIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_right.png";
     private const string PanelSoftPath = "Assets/Art/UI/Sprites/PanelSoft.asset";
+    private const string WorldMapPlayerPrefabPath = "Assets/Prefabs/Player/Player.prefab";
     private const float MiniatureMapFieldOfView = 36f;
+    private const float WorldMapPlayerVisualScale = 1f;
 
     [MenuItem("Tools/Lead The Way/Map Path/Create Camera And Player Path Setup")]
     public static void CreateCameraAndPlayerPathSetup()
@@ -58,7 +60,12 @@ public static class LeadTheWayMapPathTools
 
         var previousButton = EnsureIconButton(navigatorObject.transform, "Previous Checkpoint", ArrowLeftIconPath, new Vector2(-164f, 0f));
         var nextButton = EnsureIconButton(navigatorObject.transform, "Next Checkpoint", ArrowRightIconPath, new Vector2(164f, 0f));
+        var startButton = EnsureStartButton(navigatorObject.transform);
         var label = EnsureLabel(navigatorObject.transform, "Checkpoint Label");
+        previousButton.gameObject.SetActive(false);
+        nextButton.gameObject.SetActive(false);
+        label.gameObject.SetActive(false);
+        startButton.gameObject.SetActive(true);
 
         var navigator = EnsureComponent<MapCheckpointNavigatorUI>(navigatorObject);
         var cameraPath = FindMapPath("Camera Path");
@@ -72,6 +79,7 @@ public static class LeadTheWayMapPathTools
             playerFollower,
             previousButton,
             nextButton,
+            startButton,
             label);
 
         EnsureEventSystem();
@@ -106,6 +114,22 @@ public static class LeadTheWayMapPathTools
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
         Selection.activeGameObject = camera.gameObject;
         Debug.Log($"Lead The Way Map Path: Applied miniature camera view to {camera.gameObject.name}. Field Of View: {MiniatureMapFieldOfView}");
+    }
+
+    [MenuItem("Tools/Lead The Way/Map Path/Setup World Map Player Visual")]
+    public static void SetupWorldMapPlayerVisual()
+    {
+        var playerPath = FindMapPath("Player Path");
+        var playerFollower = EnsureWorldMapPlayerFollower(playerPath);
+        if (playerFollower == null)
+        {
+            Debug.LogWarning("Lead The Way Map Path: Player Path is missing, so the world map player visual could not be set up.");
+            return;
+        }
+
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        Selection.activeGameObject = playerFollower.gameObject;
+        Debug.Log("Lead The Way Map Path: Set up World Map Player visual and walking animation.");
     }
 
 
@@ -393,12 +417,78 @@ public static class LeadTheWayMapPathTools
             follower = Undo.AddComponent<MapPathFollower>(playerObject);
 
         Undo.RecordObject(follower, "Wire World Map Player Follower");
+        var movementAnimation = EnsureWorldMapPlayerVisual(playerObject);
         follower.Configure(playerPath);
         follower.ConfigureLookTarget(null);
+        follower.ConfigureMovementAnimation(movementAnimation);
         follower.JumpToCheckpoint(0);
         EditorUtility.SetDirty(follower);
         EditorUtility.SetDirty(playerObject);
         return follower;
+    }
+
+    private static PlayerMovement EnsureWorldMapPlayerVisual(GameObject playerObject)
+    {
+        var visualTransform = playerObject.transform.Find("Player Visual");
+        GameObject visualObject;
+        if (visualTransform != null)
+        {
+            visualObject = visualTransform.gameObject;
+        }
+        else
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(WorldMapPlayerPrefabPath);
+            if (prefab != null)
+            {
+                visualObject = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+                Undo.RegisterCreatedObjectUndo(visualObject, "Create World Map Player Visual");
+            }
+            else
+            {
+                visualObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                Undo.RegisterCreatedObjectUndo(visualObject, "Create World Map Player Visual");
+            }
+
+            visualObject.name = "Player Visual";
+            visualObject.transform.SetParent(playerObject.transform, false);
+        }
+
+        Undo.RecordObject(visualObject.transform, "Configure World Map Player Visual");
+        visualObject.transform.localPosition = Vector3.zero;
+        visualObject.transform.localRotation = Quaternion.identity;
+        visualObject.transform.localScale = Vector3.one * WorldMapPlayerVisualScale;
+        visualObject.SetActive(true);
+
+        DisableVisualPhysics(visualObject);
+
+        var movementAnimation = visualObject.GetComponentInChildren<PlayerMovement>(true);
+        if (movementAnimation != null)
+        {
+            Undo.RecordObject(movementAnimation, "Configure World Map Player Animation");
+            movementAnimation.ConfigureForBoardMovement();
+            EditorUtility.SetDirty(movementAnimation);
+        }
+
+        EditorUtility.SetDirty(visualObject);
+        return movementAnimation;
+    }
+
+    private static void DisableVisualPhysics(GameObject root)
+    {
+        foreach (var collider in root.GetComponentsInChildren<Collider>(true))
+        {
+            Undo.RecordObject(collider, "Disable World Map Player Collider");
+            collider.enabled = false;
+            EditorUtility.SetDirty(collider);
+        }
+
+        foreach (var rigidbody in root.GetComponentsInChildren<Rigidbody>(true))
+        {
+            Undo.RecordObject(rigidbody, "Disable World Map Player Physics");
+            rigidbody.isKinematic = true;
+            rigidbody.useGravity = false;
+            EditorUtility.SetDirty(rigidbody);
+        }
     }
 
     private static MapPathFollower EnsureWorldMapCameraFollower(MapPath cameraPath, Transform lookTarget)
@@ -593,13 +683,60 @@ public static class LeadTheWayMapPathTools
         rect.sizeDelta = new Vector2(270f, 50f);
 
         var label = EnsureComponent<Text>(labelObject);
-        label.text = "Start (Checkpoint 0)";
+        label.text = "-";
         label.font = GetDefaultFont();
         label.fontStyle = FontStyle.Bold;
         label.fontSize = 20;
         label.alignment = TextAnchor.MiddleCenter;
         label.color = new Color(1f, 0.91f, 0.68f, 1f);
         return label;
+    }
+
+    private static Button EnsureStartButton(Transform parent)
+    {
+        var buttonObject = FindOrCreateChild(parent, "Start Button");
+        var rect = EnsureRectTransform(buttonObject);
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = new Vector2(190f, 52f);
+
+        var image = EnsureComponent<Image>(buttonObject);
+        image.sprite = LoadSprite(PanelSoftPath);
+        image.type = image.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        image.color = new Color(1f, 0.68f, 0.05f, 1f);
+
+        var button = EnsureComponent<Button>(buttonObject);
+        button.targetGraphic = image;
+
+        var colors = button.colors;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = new Color(1f, 0.86f, 0.32f, 1f);
+        colors.pressedColor = new Color(0.86f, 0.45f, 0.02f, 1f);
+        colors.selectedColor = colors.normalColor;
+        colors.disabledColor = new Color(0.48f, 0.42f, 0.34f, 0.55f);
+        button.colors = colors;
+
+        var textObject = FindOrCreateChild(buttonObject.transform, "Text");
+        var textRect = EnsureRectTransform(textObject);
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.pivot = new Vector2(0.5f, 0.5f);
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
+
+        var text = EnsureComponent<Text>(textObject);
+        text.text = "START";
+        text.font = GetDefaultFont();
+        text.fontStyle = FontStyle.Bold;
+        text.fontSize = 21;
+        text.alignment = TextAnchor.MiddleCenter;
+        text.color = new Color(0.18f, 0.12f, 0.06f, 1f);
+        text.raycastTarget = false;
+
+        buttonObject.SetActive(true);
+        return button;
     }
 
     private static Sprite LoadSprite(string path)

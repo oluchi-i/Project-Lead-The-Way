@@ -9,6 +9,7 @@ public sealed class MapPathFollower : MonoBehaviour
     [SerializeField] private bool rotateAlongPath = true;
     [SerializeField] private Transform lookAtTarget;
     [SerializeField, Min(0.01f)] private float rotationSpeed = 12f;
+    [SerializeField] private PlayerMovement movementAnimation;
     [SerializeField] private UnityEvent checkpointReached = new UnityEvent();
 
     private Coroutine activeMove;
@@ -30,6 +31,11 @@ public sealed class MapPathFollower : MonoBehaviour
     public void ConfigureLookTarget(Transform target)
     {
         lookAtTarget = target;
+    }
+
+    public void ConfigureMovementAnimation(PlayerMovement animation)
+    {
+        movementAnimation = animation;
     }
 
     public void MoveToCheckpoint(int checkpointIndex)
@@ -62,6 +68,7 @@ public sealed class MapPathFollower : MonoBehaviour
             activeMove = null;
         }
 
+        movementAnimation?.SetWalking(false);
         currentProgress = Mathf.Clamp01(targetProgress);
         ApplyProgress(currentProgress, true);
     }
@@ -70,6 +77,7 @@ public sealed class MapPathFollower : MonoBehaviour
     {
         var startProgress = currentProgress;
         var elapsed = 0f;
+        movementAnimation?.SetWalking(true);
 
         while (elapsed < moveDuration)
         {
@@ -83,7 +91,13 @@ public sealed class MapPathFollower : MonoBehaviour
         currentProgress = targetProgress;
         ApplyProgress(currentProgress, false);
         activeMove = null;
+        movementAnimation?.SetWalking(false);
         checkpointReached?.Invoke();
+    }
+
+    private void OnDisable()
+    {
+        movementAnimation?.SetWalking(false);
     }
 
     private void ApplyProgress(float progress, bool snapRotation)

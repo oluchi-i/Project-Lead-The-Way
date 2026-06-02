@@ -59,11 +59,15 @@ public class PlayerMovement : MonoBehaviour
     private void ChangeState(State newState)
     {
         state = newState;
+        if (!isActiveAndEnabled)
+            return;
+
         if (state == State.Death)
         {
             DeathAnimation();
             return;
         }
+
         if (animationRoutine == null)
             animationRoutine = StartCoroutine(WalkAnimation());
     }
@@ -137,6 +141,14 @@ private void DeathAnimation()
         ResetLimbRotations();
         animationTimer = 0f;
         animationRoutine = null;
+    }
+
+    private void OnDisable()
+    {
+        state = State.Idle;
+        animationRoutine = null;
+        walkWeight = 0f;
+        ResetLimbRotations();
     }
 
     private void ResetLimbRotations()

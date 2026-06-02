@@ -37,7 +37,7 @@ public sealed class MapPath : MonoBehaviour
             if (seenCheckpoints == checkpointIndex)
             {
                 label = string.IsNullOrWhiteSpace(checkpoint.DisplayName)
-                    ? checkpoint.name
+                    ? GetDefaultCheckpointLabel(checkpointIndex)
                     : checkpoint.DisplayName;
                 return true;
             }
@@ -47,6 +47,11 @@ public sealed class MapPath : MonoBehaviour
 
         label = string.Empty;
         return false;
+    }
+
+    private static string GetDefaultCheckpointLabel(int checkpointIndex)
+    {
+        return checkpointIndex == 0 ? "Start" : "Level " + checkpointIndex;
     }
 
     public Vector3 GetPoint(float t)
