@@ -11,6 +11,7 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
     [SerializeField] private Button nextButton;
     [SerializeField] private Button startButton;
     [SerializeField] private Text checkpointLabel;
+    [SerializeField] private Image panelBackground;
     [SerializeField] private int currentCheckpointIndex;
     [SerializeField] private bool snapFollowersToCurrentCheckpointOnStart = true;
     [SerializeField] private bool enforceCameraFollowerAsMainCamera = true;
@@ -54,6 +55,10 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
             introMoveInProgress = false;
             mapStarted = true;
         }
+        else if (currentCheckpointIndex == 0)
+        {
+            mapStarted = false;
+        }
 
         Refresh();
     }
@@ -66,7 +71,8 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         Button newPreviousButton,
         Button newNextButton,
         Button newStartButton,
-        Text newCheckpointLabel)
+        Text newCheckpointLabel,
+        Image newPanelBackground)
     {
         cameraPath = newCameraPath;
         playerPath = newPlayerPath;
@@ -76,6 +82,7 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         nextButton = newNextButton;
         startButton = newStartButton;
         checkpointLabel = newCheckpointLabel;
+        panelBackground = newPanelBackground;
         Refresh();
     }
 
@@ -128,8 +135,12 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
 
     private void Refresh()
     {
-        var showIntro = !mapStarted && !introMoveInProgress && currentCheckpointIndex == 0;
-        var showLevelNavigation = mapStarted && !introMoveInProgress;
+        var isMovingBetweenCheckpoints = waitingForMove || IsMoving();
+        var showIntro = !mapStarted && !introMoveInProgress && !isMovingBetweenCheckpoints && currentCheckpointIndex == 0;
+        var showLevelNavigation = mapStarted && !introMoveInProgress && !isMovingBetweenCheckpoints;
+
+        if (panelBackground != null)
+            panelBackground.enabled = showLevelNavigation;
 
         if (checkpointLabel != null)
         {

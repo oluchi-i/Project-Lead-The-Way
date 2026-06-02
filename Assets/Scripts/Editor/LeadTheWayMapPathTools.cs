@@ -80,7 +80,8 @@ public static class LeadTheWayMapPathTools
             previousButton,
             nextButton,
             startButton,
-            label);
+            label,
+            panelImage);
 
         EnsureEventSystem();
         EditorUtility.SetDirty(navigatorObject);
@@ -700,12 +701,12 @@ public static class LeadTheWayMapPathTools
         rect.anchorMax = new Vector2(0.5f, 0.5f);
         rect.pivot = new Vector2(0.5f, 0.5f);
         rect.anchoredPosition = Vector2.zero;
-        rect.sizeDelta = new Vector2(190f, 52f);
+        rect.sizeDelta = new Vector2(178f, 48f);
 
         var image = EnsureComponent<Image>(buttonObject);
         image.sprite = LoadSprite(PanelSoftPath);
         image.type = image.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
-        image.color = new Color(1f, 0.68f, 0.05f, 1f);
+        image.color = new Color(1f, 0.67f, 0.06f, 1f);
 
         var button = EnsureComponent<Button>(buttonObject);
         button.targetGraphic = image;
@@ -730,7 +731,7 @@ public static class LeadTheWayMapPathTools
         text.text = "START";
         text.font = GetDefaultFont();
         text.fontStyle = FontStyle.Bold;
-        text.fontSize = 21;
+        text.fontSize = 22;
         text.alignment = TextAnchor.MiddleCenter;
         text.color = new Color(0.18f, 0.12f, 0.06f, 1f);
         text.raycastTarget = false;
