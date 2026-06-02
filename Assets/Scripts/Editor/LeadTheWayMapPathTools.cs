@@ -15,6 +15,7 @@ public static class LeadTheWayMapPathTools
     private const string WorldMapPlayerPrefabPath = "Assets/Prefabs/Player/Player.prefab";
     private const float MiniatureMapFieldOfView = 36f;
     private const float WorldMapPlayerVisualScale = 1f;
+    private const float CameraLookAtHeightOffset = 2f;
 
     [MenuItem("Tools/Lead The Way/Map Path/Create Camera And Player Path Setup")]
     public static void CreateCameraAndPlayerPathSetup()
@@ -71,7 +72,7 @@ public static class LeadTheWayMapPathTools
         var cameraPath = FindMapPath("Camera Path");
         var playerPath = FindMapPath("Player Path");
         var playerFollower = EnsureWorldMapPlayerFollower(playerPath);
-        var cameraFollower = EnsureWorldMapCameraFollower(cameraPath, playerFollower != null ? playerFollower.transform : null);
+        var cameraFollower = EnsureWorldMapCameraFollower(cameraPath, playerFollower != null ? EnsureCameraLookTarget(playerFollower.transform) : null);
         navigator.Configure(
             cameraPath,
             playerPath,
@@ -115,6 +116,49 @@ public static class LeadTheWayMapPathTools
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
         Selection.activeGameObject = camera.gameObject;
         Debug.Log($"Lead The Way Map Path: Applied miniature camera view to {camera.gameObject.name}. Field Of View: {MiniatureMapFieldOfView}");
+    }
+
+    [MenuItem("Tools/Lead The Way/Map Path/Snap Camera To First Checkpoint")]
+    public static void SnapCameraToFirstCheckpoint()
+    {
+        var cameraPath = FindMapPath("Camera Path");
+        if (cameraPath == null || !cameraPath.TryGetCheckpointProgress(0, out var cameraProgress))
+        {
+            Debug.LogWarning("Lead The Way Map Path: Camera Path checkpoint 0 was not found.");
+            return;
+        }
+
+        var camera = FindWorldMapCamera();
+        if (camera == null)
+        {
+            Debug.LogWarning("Lead The Way Map Path: No scene camera was found.");
+            return;
+        }
+
+        var player = GameObject.Find("World Map Player");
+        if (player == null)
+        {
+            Debug.LogWarning("Lead The Way Map Path: World Map Player was not found.");
+            return;
+        }
+
+        Undo.RecordObject(camera.transform, "Snap World Map Camera To First Checkpoint");
+        camera.transform.position = cameraPath.GetPoint(cameraProgress);
+        LookAt(camera.transform, player.transform.position + Vector3.up * CameraLookAtHeightOffset);
+
+        camera.gameObject.name = "World Map Camera";
+        camera.gameObject.tag = "MainCamera";
+        camera.enabled = true;
+        ApplyMiniatureMapCameraSettings(camera);
+        DisableOtherSceneCameras(camera);
+        EnsureSingleAudioListener(camera);
+
+        EditorUtility.SetDirty(camera.transform);
+        EditorUtility.SetDirty(camera);
+        EditorUtility.SetDirty(camera.gameObject);
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        Selection.activeGameObject = camera.gameObject;
+        Debug.Log("Lead The Way Map Path: Snapped World Map Camera to camera checkpoint 0 and aimed it at World Map Player.");
     }
 
     [MenuItem("Tools/Lead The Way/Map Path/Setup World Map Player Visual")]
@@ -422,6 +466,7 @@ public static class LeadTheWayMapPathTools
         follower.Configure(playerPath);
         follower.ConfigureLookTarget(null);
         follower.ConfigureMovementAnimation(movementAnimation);
+        follower.ConfigureMovementStyle(true, Vector3.back);
         follower.JumpToCheckpoint(0);
         EditorUtility.SetDirty(follower);
         EditorUtility.SetDirty(playerObject);
@@ -456,7 +501,7 @@ public static class LeadTheWayMapPathTools
 
         Undo.RecordObject(visualObject.transform, "Configure World Map Player Visual");
         visualObject.transform.localPosition = Vector3.zero;
-        visualObject.transform.localRotation = Quaternion.identity;
+        visualObject.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
         visualObject.transform.localScale = Vector3.one * WorldMapPlayerVisualScale;
         visualObject.SetActive(true);
 
@@ -472,6 +517,30 @@ public static class LeadTheWayMapPathTools
 
         EditorUtility.SetDirty(visualObject);
         return movementAnimation;
+    }
+
+    private static Transform EnsureCameraLookTarget(Transform player)
+    {
+        var target = player.Find("Camera Look Target");
+        GameObject targetObject;
+        if (target == null)
+        {
+            targetObject = new GameObject("Camera Look Target");
+            Undo.RegisterCreatedObjectUndo(targetObject, "Create Camera Look Target");
+            targetObject.transform.SetParent(player, false);
+        }
+        else
+        {
+            targetObject = target.gameObject;
+        }
+
+        Undo.RecordObject(targetObject.transform, "Configure Camera Look Target");
+        targetObject.transform.localPosition = Vector3.up * CameraLookAtHeightOffset;
+        targetObject.transform.localRotation = Quaternion.identity;
+        targetObject.transform.localScale = Vector3.one;
+        targetObject.hideFlags = HideFlags.None;
+        EditorUtility.SetDirty(targetObject.transform);
+        return targetObject.transform;
     }
 
     private static void DisableVisualPhysics(GameObject root)
@@ -541,6 +610,15 @@ public static class LeadTheWayMapPathTools
         camera.cullingMask = ~0;
         camera.clearFlags = CameraClearFlags.SolidColor;
         camera.backgroundColor = new Color(0.46f, 0.68f, 0.84f);
+    }
+
+    private static void LookAt(Transform source, Vector3 targetPosition)
+    {
+        var direction = targetPosition - source.position;
+        if (direction.sqrMagnitude <= 0.0001f)
+            return;
+
+        source.rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
     }
 
     private static Camera FindWorldMapCamera()
