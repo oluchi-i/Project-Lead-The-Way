@@ -1,10 +1,18 @@
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
+using UnityEngine.UI;
 
 public static class LeadTheWayMapPathTools
 {
     private const string RootName = "World Map Path System";
+    private const string ButtonRoundSpritePath = "Assets/Art/UI/ButtonSet/Textures/buttons/button_round_130.png";
+    private const string ArrowLeftIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_left.png";
+    private const string ArrowRightIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_right.png";
+    private const string PanelSoftPath = "Assets/Art/UI/Sprites/PanelSoft.asset";
+    private const float MiniatureMapFieldOfView = 36f;
 
     [MenuItem("Tools/Lead The Way/Map Path/Create Camera And Player Path Setup")]
     public static void CreateCameraAndPlayerPathSetup()
@@ -26,6 +34,80 @@ public static class LeadTheWayMapPathTools
             "Created Camera Path and Player Path with 2 invisible checkpoints and 1 invisible control point each.",
             "OK");
     }
+
+    [MenuItem("Tools/Lead The Way/Map Path/Setup Checkpoint Navigator UI")]
+    [MenuItem("Tools/Lead The Way/Map Path/Create Navigator Canvas UI")]
+    public static void SetupCheckpointNavigatorUI()
+    {
+        var canvas = EnsureWorldMapCanvas();
+        var navigatorObject = FindOrCreateChild(canvas.transform, "Map Checkpoint Navigator");
+        Undo.RegisterCompleteObjectUndo(navigatorObject, "Setup Checkpoint Navigator UI");
+        navigatorObject.SetActive(true);
+
+        var rect = EnsureRectTransform(navigatorObject);
+        rect.anchorMin = new Vector2(0.5f, 0f);
+        rect.anchorMax = new Vector2(0.5f, 0f);
+        rect.pivot = new Vector2(0.5f, 0f);
+        rect.anchoredPosition = new Vector2(0f, 28f);
+        rect.sizeDelta = new Vector2(430f, 76f);
+
+        var panelImage = EnsureComponent<Image>(navigatorObject);
+        panelImage.sprite = LoadSprite(PanelSoftPath);
+        panelImage.type = panelImage.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        panelImage.color = new Color(0.20f, 0.16f, 0.12f, 0.88f);
+
+        var previousButton = EnsureIconButton(navigatorObject.transform, "Previous Checkpoint", ArrowLeftIconPath, new Vector2(-164f, 0f));
+        var nextButton = EnsureIconButton(navigatorObject.transform, "Next Checkpoint", ArrowRightIconPath, new Vector2(164f, 0f));
+        var label = EnsureLabel(navigatorObject.transform, "Checkpoint Label");
+
+        var navigator = EnsureComponent<MapCheckpointNavigatorUI>(navigatorObject);
+        var cameraPath = FindMapPath("Camera Path");
+        var playerPath = FindMapPath("Player Path");
+        var playerFollower = EnsureWorldMapPlayerFollower(playerPath);
+        var cameraFollower = EnsureWorldMapCameraFollower(cameraPath, playerFollower != null ? playerFollower.transform : null);
+        navigator.Configure(
+            cameraPath,
+            playerPath,
+            cameraFollower,
+            playerFollower,
+            previousButton,
+            nextButton,
+            label);
+
+        EnsureEventSystem();
+        EditorUtility.SetDirty(navigatorObject);
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        Selection.activeGameObject = navigatorObject;
+        EditorUtility.DisplayDialog(
+            "Checkpoint Navigator UI",
+            BuildNavigatorSetupMessage(canvas, navigatorObject, cameraPath, playerPath, cameraFollower, playerFollower),
+            "OK");
+    }
+
+    [MenuItem("Tools/Lead The Way/Map Path/Apply Miniature Camera Zoom")]
+    public static void ApplyMiniatureCameraZoom()
+    {
+        var camera = FindWorldMapCamera();
+        if (camera == null)
+        {
+            Debug.LogWarning("Lead The Way Map Path: No scene camera was found for miniature zoom.");
+            return;
+        }
+
+        camera.gameObject.name = "World Map Camera";
+        camera.gameObject.tag = "MainCamera";
+        camera.enabled = true;
+        ApplyMiniatureMapCameraSettings(camera);
+        DisableOtherSceneCameras(camera);
+        EnsureSingleAudioListener(camera);
+
+        EditorUtility.SetDirty(camera);
+        EditorUtility.SetDirty(camera.gameObject);
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        Selection.activeGameObject = camera.gameObject;
+        Debug.Log($"Lead The Way Map Path: Applied miniature camera view to {camera.gameObject.name}. Field Of View: {MiniatureMapFieldOfView}");
+    }
+
 
     [MenuItem("Tools/Lead The Way/Map Path/Add Checkpoint To Selected Path")]
     public static void AddCheckpointToSelectedPath()
@@ -66,7 +148,6 @@ public static class LeadTheWayMapPathTools
         var controlPoint = CreateControlPoint(parentPath.transform, "Control Point", position);
         controlPoint.transform.SetSiblingIndex(insertIndex);
 
-        RenameControlPoints(parentPath.transform);
         Selection.activeGameObject = controlPoint.gameObject;
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
     }
@@ -115,10 +196,25 @@ public static class LeadTheWayMapPathTools
         if (path == null)
             path = Undo.AddComponent<MapPath>(pathObject);
 
+        if (HasAnyMapPathPoint(pathObject.transform))
+            return path;
+
         EnsurePoint(pathObject.transform, "Checkpoint 01", checkpointA, true, "checkpoint-01");
         EnsurePoint(pathObject.transform, "Control Point 01A", controlPoint, false, "control-point-01a");
         EnsurePoint(pathObject.transform, "Checkpoint 02", checkpointB, true, "checkpoint-02");
         return path;
+    }
+
+    private static bool HasAnyMapPathPoint(Transform parent)
+    {
+        for (var i = 0; i < parent.childCount; i++)
+        {
+            var child = parent.GetChild(i);
+            if (child.GetComponent<MapCheckpoint>() != null || child.GetComponent<MapPathControlPoint>() != null)
+                return true;
+        }
+
+        return false;
     }
 
     private static void EnsurePoint(Transform parent, string name, Vector3 position, bool checkpoint, string id)
@@ -136,16 +232,20 @@ public static class LeadTheWayMapPathTools
             pointObject = child.gameObject;
         }
 
-        pointObject.transform.position = position;
+        if (child == null)
+            pointObject.transform.position = position;
+
         RemoveVisualComponents(pointObject);
 
         if (checkpoint)
         {
             var component = pointObject.GetComponent<MapCheckpoint>();
             if (component == null)
+            {
                 component = Undo.AddComponent<MapCheckpoint>(pointObject);
+                component.Configure(id, LabelFromCheckpointId(id));
+            }
 
-            component.Configure(id);
             var control = pointObject.GetComponent<MapPathControlPoint>();
             if (control != null)
                 Undo.DestroyObjectImmediate(control);
@@ -154,9 +254,11 @@ public static class LeadTheWayMapPathTools
         {
             var component = pointObject.GetComponent<MapPathControlPoint>();
             if (component == null)
+            {
                 component = Undo.AddComponent<MapPathControlPoint>(pointObject);
+                component.Configure(id);
+            }
 
-            component.Configure(id);
             var mapCheckpoint = pointObject.GetComponent<MapCheckpoint>();
             if (mapCheckpoint != null)
                 Undo.DestroyObjectImmediate(mapCheckpoint);
@@ -172,7 +274,7 @@ public static class LeadTheWayMapPathTools
         pointObject.transform.SetParent(parent);
         pointObject.transform.position = position;
         var checkpoint = Undo.AddComponent<MapCheckpoint>(pointObject);
-        checkpoint.Configure("checkpoint-" + number.ToString("00"));
+        checkpoint.Configure("checkpoint-" + number.ToString("00"), number == 1 ? "Start" : "Level " + (number - 1));
         return checkpoint;
     }
 
@@ -213,5 +315,323 @@ public static class LeadTheWayMapPathTools
             Undo.DestroyObjectImmediate(filter);
         foreach (var collider in pointObject.GetComponents<Collider>())
             Undo.DestroyObjectImmediate(collider);
+    }
+
+    private static string LabelFromCheckpointId(string id)
+    {
+        return id == "checkpoint-01" ? "Start" : "Level 1";
+    }
+
+    private static Canvas EnsureWorldMapCanvas()
+    {
+        var canvasObject = GameObject.Find("World Map Canvas");
+        Canvas canvas;
+        if (canvasObject == null)
+        {
+            canvasObject = new GameObject("World Map Canvas");
+            Undo.RegisterCreatedObjectUndo(canvasObject, "Create World Map Canvas");
+            canvas = canvasObject.AddComponent<Canvas>();
+            canvasObject.AddComponent<GraphicRaycaster>();
+        }
+        else
+        {
+            canvas = canvasObject.GetComponent<Canvas>();
+            if (canvas == null)
+                canvas = Undo.AddComponent<Canvas>(canvasObject);
+
+            if (canvasObject.GetComponent<GraphicRaycaster>() == null)
+                Undo.AddComponent<GraphicRaycaster>(canvasObject);
+        }
+
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.enabled = true;
+        canvas.sortingOrder = 110;
+
+        var scaler = canvas.GetComponent<CanvasScaler>();
+        if (scaler == null)
+            scaler = Undo.AddComponent<CanvasScaler>(canvas.gameObject);
+
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1280f, 720f);
+        scaler.matchWidthOrHeight = 0.5f;
+        return canvas;
+    }
+
+    private static string BuildNavigatorSetupMessage(
+        Canvas canvas,
+        GameObject navigatorObject,
+        MapPath cameraPath,
+        MapPath playerPath,
+        MapPathFollower cameraFollower,
+        MapPathFollower playerFollower)
+    {
+        return "Created/repaired real scene UI objects:\n\n" +
+            $"- {canvas.name}\n" +
+            $"- {navigatorObject.name}\n\n" +
+            "Checkpoint/control point objects were not modified.\n\n" +
+            "Wiring:\n" +
+            $"- Camera Path: {(cameraPath != null ? cameraPath.name : "missing")}\n" +
+            $"- Player Path: {(playerPath != null ? playerPath.name : "missing")}\n" +
+            $"- Camera Follower: {(cameraFollower != null ? cameraFollower.name : "missing; assign manually")}\n" +
+            $"- Player Follower: {(playerFollower != null ? playerFollower.name : "missing; assign manually")}";
+    }
+
+    private static MapPathFollower EnsureWorldMapPlayerFollower(MapPath playerPath)
+    {
+        if (playerPath == null)
+            return null;
+
+        var playerObject = GameObject.Find("World Map Player");
+        if (playerObject == null)
+        {
+            playerObject = new GameObject("World Map Player");
+            Undo.RegisterCreatedObjectUndo(playerObject, "Create World Map Player");
+        }
+
+        var follower = playerObject.GetComponent<MapPathFollower>();
+        if (follower == null)
+            follower = Undo.AddComponent<MapPathFollower>(playerObject);
+
+        Undo.RecordObject(follower, "Wire World Map Player Follower");
+        follower.Configure(playerPath);
+        follower.ConfigureLookTarget(null);
+        follower.JumpToCheckpoint(0);
+        EditorUtility.SetDirty(follower);
+        EditorUtility.SetDirty(playerObject);
+        return follower;
+    }
+
+    private static MapPathFollower EnsureWorldMapCameraFollower(MapPath cameraPath, Transform lookTarget)
+    {
+        if (cameraPath == null)
+            return null;
+
+        var camera = FindWorldMapCamera();
+        if (camera == null)
+        {
+            var cameraObject = new GameObject("World Map Camera");
+            Undo.RegisterCreatedObjectUndo(cameraObject, "Create World Map Camera");
+            camera = cameraObject.AddComponent<Camera>();
+        }
+
+        camera.gameObject.name = "World Map Camera";
+        camera.gameObject.tag = "MainCamera";
+        camera.enabled = true;
+        ApplyMiniatureMapCameraSettings(camera);
+
+        var follower = camera.GetComponent<MapPathFollower>();
+        if (follower == null)
+            follower = Undo.AddComponent<MapPathFollower>(camera.gameObject);
+
+        Undo.RecordObject(follower, "Wire World Map Camera Follower");
+        follower.Configure(cameraPath);
+        follower.ConfigureLookTarget(lookTarget);
+        follower.JumpToCheckpoint(0);
+        EditorUtility.SetDirty(follower);
+
+        DisableOtherSceneCameras(camera);
+        EnsureSingleAudioListener(camera);
+        EditorUtility.SetDirty(camera);
+        EditorUtility.SetDirty(camera.gameObject);
+        return follower;
+    }
+
+    private static void ApplyMiniatureMapCameraSettings(Camera camera)
+    {
+        Undo.RecordObject(camera, "Apply Miniature Map Camera Settings");
+        camera.orthographic = false;
+        camera.fieldOfView = MiniatureMapFieldOfView;
+        camera.nearClipPlane = 0.02f;
+        camera.farClipPlane = 120f;
+        camera.depth = 100f;
+        camera.rect = new Rect(0f, 0f, 1f, 1f);
+        camera.targetTexture = null;
+        camera.targetDisplay = 0;
+        camera.cullingMask = ~0;
+        camera.clearFlags = CameraClearFlags.SolidColor;
+        camera.backgroundColor = new Color(0.46f, 0.68f, 0.84f);
+    }
+
+    private static Camera FindWorldMapCamera()
+    {
+        var named = GameObject.Find("World Map Camera");
+        if (named != null && named.TryGetComponent<Camera>(out var namedCamera))
+            return namedCamera;
+
+        if (Camera.main != null)
+            return Camera.main;
+
+        var cameras = Object.FindObjectsByType<Camera>(FindObjectsInactive.Include);
+        return cameras.Length > 0 ? cameras[0] : null;
+    }
+
+    private static void DisableOtherSceneCameras(Camera activeCamera)
+    {
+        foreach (var camera in Object.FindObjectsByType<Camera>(FindObjectsInactive.Include))
+        {
+            if (camera == activeCamera)
+                continue;
+
+            Undo.RecordObject(camera, "Disable Non-Map Camera");
+            camera.enabled = false;
+            if (camera.CompareTag("MainCamera"))
+                camera.gameObject.tag = "Untagged";
+            EditorUtility.SetDirty(camera);
+        }
+    }
+
+    private static void EnsureSingleAudioListener(Camera activeCamera)
+    {
+        var activeListener = activeCamera.GetComponent<AudioListener>();
+        if (activeListener == null)
+            activeListener = Undo.AddComponent<AudioListener>(activeCamera.gameObject);
+
+        activeListener.enabled = true;
+        foreach (var listener in Object.FindObjectsByType<AudioListener>(FindObjectsInactive.Include))
+        {
+            if (listener == activeListener)
+                continue;
+
+            Undo.RecordObject(listener, "Disable Extra Audio Listener");
+            listener.enabled = false;
+            EditorUtility.SetDirty(listener);
+        }
+    }
+
+    private static void EnsureEventSystem()
+    {
+        var eventSystem = Object.FindAnyObjectByType<EventSystem>(FindObjectsInactive.Include);
+        if (eventSystem == null)
+        {
+            var eventSystemObject = new GameObject("EventSystem");
+            Undo.RegisterCreatedObjectUndo(eventSystemObject, "Create EventSystem");
+            eventSystem = eventSystemObject.AddComponent<EventSystem>();
+        }
+
+        eventSystem.gameObject.SetActive(true);
+
+        foreach (var legacyModule in eventSystem.GetComponents<StandaloneInputModule>())
+            Undo.DestroyObjectImmediate(legacyModule);
+
+        if (eventSystem.GetComponent<InputSystemUIInputModule>() == null)
+            Undo.AddComponent<InputSystemUIInputModule>(eventSystem.gameObject);
+
+        EditorUtility.SetDirty(eventSystem.gameObject);
+    }
+
+    private static GameObject FindOrCreateChild(Transform parent, string name)
+    {
+        var child = parent.Find(name);
+        if (child != null)
+            return child.gameObject;
+
+        var childObject = new GameObject(name);
+        Undo.RegisterCreatedObjectUndo(childObject, "Create " + name);
+        childObject.transform.SetParent(parent, false);
+        return childObject;
+    }
+
+    private static RectTransform EnsureRectTransform(GameObject target)
+    {
+        var rect = target.GetComponent<RectTransform>();
+        return rect != null ? rect : Undo.AddComponent<RectTransform>(target);
+    }
+
+    private static T EnsureComponent<T>(GameObject target) where T : Component
+    {
+        var component = target.GetComponent<T>();
+        return component != null ? component : Undo.AddComponent<T>(target);
+    }
+
+    private static Button EnsureIconButton(Transform parent, string name, string iconPath, Vector2 anchoredPosition)
+    {
+        var buttonObject = FindOrCreateChild(parent, name);
+        var rect = EnsureRectTransform(buttonObject);
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = new Vector2(56f, 56f);
+
+        var image = EnsureComponent<Image>(buttonObject);
+        image.sprite = LoadSprite(ButtonRoundSpritePath);
+        image.type = image.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        image.color = Color.white;
+
+        var button = EnsureComponent<Button>(buttonObject);
+        button.targetGraphic = image;
+
+        var textTransform = buttonObject.transform.Find("Text");
+        if (textTransform != null)
+            textTransform.gameObject.SetActive(false);
+
+        var iconObject = FindOrCreateChild(buttonObject.transform, "Icon");
+        var iconRect = EnsureRectTransform(iconObject);
+        iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+        iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+        iconRect.pivot = new Vector2(0.5f, 0.5f);
+        iconRect.anchoredPosition = Vector2.zero;
+        iconRect.sizeDelta = new Vector2(25f, 25f);
+
+        var icon = EnsureComponent<Image>(iconObject);
+        icon.sprite = LoadSprite(iconPath);
+        icon.type = Image.Type.Simple;
+        icon.preserveAspect = true;
+        icon.color = new Color(0.13f, 0.11f, 0.09f, 1f);
+        icon.raycastTarget = false;
+        return button;
+    }
+
+    private static Text EnsureLabel(Transform parent, string name)
+    {
+        var labelObject = FindOrCreateChild(parent, name);
+        var rect = EnsureRectTransform(labelObject);
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = new Vector2(270f, 50f);
+
+        var label = EnsureComponent<Text>(labelObject);
+        label.text = "Start (Checkpoint 0)";
+        label.font = GetDefaultFont();
+        label.fontStyle = FontStyle.Bold;
+        label.fontSize = 20;
+        label.alignment = TextAnchor.MiddleCenter;
+        label.color = new Color(1f, 0.91f, 0.68f, 1f);
+        return label;
+    }
+
+    private static Sprite LoadSprite(string path)
+    {
+        return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+    }
+
+    private static Font GetDefaultFont()
+    {
+        return Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
+            ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+    }
+
+    private static MapPath FindMapPath(string pathName)
+    {
+        foreach (var path in Object.FindObjectsByType<MapPath>(FindObjectsInactive.Include))
+        {
+            if (path.name == pathName)
+                return path;
+        }
+
+        return null;
+    }
+
+    private static MapPathFollower FindFollower(string namePart)
+    {
+        foreach (var follower in Object.FindObjectsByType<MapPathFollower>(FindObjectsInactive.Include))
+        {
+            if (follower.name.ToLowerInvariant().Contains(namePart))
+                return follower;
+        }
+
+        return null;
     }
 }

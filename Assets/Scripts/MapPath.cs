@@ -25,6 +25,30 @@ public sealed class MapPath : MonoBehaviour
         }
     }
 
+    public bool TryGetCheckpointLabel(int checkpointIndex, out string label)
+    {
+        var seenCheckpoints = 0;
+        for (var i = 0; i < transform.childCount; i++)
+        {
+            var checkpoint = transform.GetChild(i).GetComponent<MapCheckpoint>();
+            if (checkpoint == null)
+                continue;
+
+            if (seenCheckpoints == checkpointIndex)
+            {
+                label = string.IsNullOrWhiteSpace(checkpoint.DisplayName)
+                    ? checkpoint.name
+                    : checkpoint.DisplayName;
+                return true;
+            }
+
+            seenCheckpoints++;
+        }
+
+        label = string.Empty;
+        return false;
+    }
+
     public Vector3 GetPoint(float t)
     {
         var points = GetOrderedPointPositions();

@@ -16,6 +16,12 @@ public sealed class MapPathFollower : MonoBehaviour
 
     public bool IsMoving => activeMove != null;
 
+    private void Start()
+    {
+        if (path != null)
+            ApplyProgress(currentProgress, true);
+    }
+
     public void Configure(MapPath newPath)
     {
         path = newPath;
@@ -45,6 +51,21 @@ public sealed class MapPathFollower : MonoBehaviour
         activeMove = StartCoroutine(MoveRoutine(Mathf.Clamp01(targetProgress)));
     }
 
+    public void JumpToCheckpoint(int checkpointIndex)
+    {
+        if (path == null || !path.TryGetCheckpointProgress(checkpointIndex, out var targetProgress))
+            return;
+
+        if (activeMove != null)
+        {
+            StopCoroutine(activeMove);
+            activeMove = null;
+        }
+
+        currentProgress = Mathf.Clamp01(targetProgress);
+        ApplyProgress(currentProgress, true);
+    }
+
     private IEnumerator MoveRoutine(float targetProgress)
     {
         var startProgress = currentProgress;
@@ -55,37 +76,39 @@ public sealed class MapPathFollower : MonoBehaviour
             elapsed += Time.deltaTime;
             var t = Mathf.SmoothStep(0f, 1f, elapsed / moveDuration);
             currentProgress = Mathf.Lerp(startProgress, targetProgress, t);
-            ApplyProgress(currentProgress);
+            ApplyProgress(currentProgress, false);
             yield return null;
         }
 
         currentProgress = targetProgress;
-        ApplyProgress(currentProgress);
+        ApplyProgress(currentProgress, false);
         activeMove = null;
         checkpointReached?.Invoke();
     }
 
-    private void ApplyProgress(float progress)
+    private void ApplyProgress(float progress, bool snapRotation)
     {
         transform.position = path.GetPoint(progress);
         if (lookAtTarget != null)
         {
-            RotateToward(lookAtTarget.position - transform.position);
+            RotateToward(lookAtTarget.position - transform.position, snapRotation);
             return;
         }
 
         if (!rotateAlongPath)
             return;
 
-        RotateToward(path.GetDirection(progress));
+        RotateToward(path.GetDirection(progress), snapRotation);
     }
 
-    private void RotateToward(Vector3 direction)
+    private void RotateToward(Vector3 direction, bool snapRotation)
     {
         if (direction.sqrMagnitude <= 0.0001f)
             return;
 
         var targetRotation = Quaternion.LookRotation(direction, Vector3.up);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
+        transform.rotation = snapRotation
+            ? targetRotation
+            : Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
     }
 }
