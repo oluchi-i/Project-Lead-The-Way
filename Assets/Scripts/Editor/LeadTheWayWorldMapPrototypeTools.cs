@@ -75,6 +75,16 @@ public static class LeadTheWayWorldMapPrototypeTools
     [MenuItem("Tools/Lead The Way/Map/Normalize Current World Map To Unit Scale")]
     public static void NormalizeCurrentWorldMapToUnitScale()
     {
+        var activeScene = EditorSceneManager.GetActiveScene();
+        if (activeScene.path != ScenePath)
+        {
+            EditorUtility.DisplayDialog(
+                "Normalize World Map",
+                $"Open {ScenePath} before running this one-time normalization tool.\n\nActive scene:\n{activeScene.path}",
+                "OK");
+            return;
+        }
+
         var root = GameObject.Find(WorldMapRootName);
         if (root == null)
         {
