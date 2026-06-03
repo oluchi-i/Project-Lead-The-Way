@@ -31,6 +31,13 @@ public class InteractionFlowManager : MonoBehaviour
     [SerializeField] private PlayerMovement playerDeathAnimation;
     [SerializeField] private IntroCameraTransition introCameraTransition;
     [SerializeField] private DeathCinematicCamera deathCinematicCamera;
+    [SerializeField] private GameObject teleportEffectPrefab;
+    [SerializeField] private float teleportEffectDuration = 1f;
+    [SerializeField] private float teleportAppearanceDelay = 0.22f;
+    [SerializeField] private float teleportAppearanceDuration = 0.78f;
+    [SerializeField] private float teleportEffectHeightOffset = 0.05f;
+    [SerializeField] private float teleportEffectTileCoverage = 0.1f;
+    [SerializeField] private float introSpawnYawOffsetDegrees = 180f;
     [SerializeField] private int maxInteractionCount = 6;
     [SerializeField] private int interactionCount;
 
@@ -45,6 +52,8 @@ public class InteractionFlowManager : MonoBehaviour
     private Coroutine successRoutine;
     private int activeObjectActionCount;
     private bool loggedMissingReferences;
+    private Vector3 originalPlayerScale = Vector3.one;
+    private bool cachedOriginalPlayerScale;
 
     private static readonly Vector2Int[] Directions =
     {
@@ -114,6 +123,11 @@ public class InteractionFlowManager : MonoBehaviour
     public void ConfigureDeathCinematicCamera(DeathCinematicCamera newDeathCinematicCamera)
     {
         deathCinematicCamera = newDeathCinematicCamera;
+    }
+
+    public void ConfigureTeleportEffect(GameObject newTeleportEffectPrefab)
+    {
+        teleportEffectPrefab = newTeleportEffectPrefab;
     }
 
     private void Awake()
@@ -202,7 +216,12 @@ public class InteractionFlowManager : MonoBehaviour
                 return;
             }
 
-            playerMover.TryStep(direction);
+            var reachesGoal = IsGoalTileForPlayer(nextTile);
+            if (playerMover.TryStep(direction) && reachesGoal)
+            {
+                CompleteLevel(true);
+                return;
+            }
         }
 
         BeginInteractionResolution();
@@ -234,6 +253,9 @@ public class InteractionFlowManager : MonoBehaviour
         flowState = LevelFlowState.Intro;
         boardManager.RebuildRegistry();
         playerMover.PlaceAtTile(startTile.TilePosition);
+        ApplyIntroSpawnRotation();
+        SetPlayerVisible(false);
+        SetPlayerScale(0f);
         introCameraTransition?.PlaceAtStart();
         yield return null;
 
@@ -248,6 +270,8 @@ public class InteractionFlowManager : MonoBehaviour
 
         entryDoor.Open();
         yield return WaitForDoor(entryDoor);
+
+        yield return PlayPlayerAppearance();
 
         var path = CreateIntroPath(playerObject.TilePosition, gameplayStartTile);
         var cameraTransitionRoutine = introCameraTransition != null
@@ -264,6 +288,8 @@ public class InteractionFlowManager : MonoBehaviour
         yield return WaitForDoor(entryDoor);
 
         boardManager.RebuildRegistry();
+        SetPlayerScale(1f);
+        SetPlayerVisible(true);
         flowState = LevelFlowState.Playing;
         introRoutine = null;
     }
@@ -508,6 +534,18 @@ public class InteractionFlowManager : MonoBehaviour
 
     private IEnumerator RunSuccessSequence()
     {
+        var cameraTransitionRoutine = introCameraTransition != null && introCameraTransition.HasEndingPose
+            ? StartCoroutine(introCameraTransition.TransitionToEnding())
+            : null;
+
+        while (playerMover != null && playerMover.IsMoving)
+            yield return null;
+
+        if (cameraTransitionRoutine != null)
+            yield return cameraTransitionRoutine;
+
+        yield return PlayPlayerDisappearance();
+
         var exitDoor = GetDoorScript(destinationDoor, ref destinationDoorScript);
         if (exitDoor != null)
         {
@@ -515,13 +553,122 @@ public class InteractionFlowManager : MonoBehaviour
             yield return WaitForDoor(exitDoor);
         }
 
-        if (introCameraTransition != null && introCameraTransition.HasEndingPose)
-            yield return introCameraTransition.TransitionToEnding();
-
         if (resultFlashUI != null)
             resultFlashUI.Flash(true);
 
         successRoutine = null;
+    }
+
+    private IEnumerator PlayPlayerAppearance()
+    {
+        yield return PlayTeleportTransition(playerObject != null ? playerObject.TilePosition : startTile.TilePosition, true);
+    }
+
+    private IEnumerator PlayPlayerDisappearance()
+    {
+        yield return PlayTeleportTransition(playerObject != null ? playerObject.TilePosition : Vector2Int.zero, false);
+    }
+
+    private IEnumerator PlayTeleportTransition(Vector2Int tile, bool appearing)
+    {
+        var effect = SpawnTeleportEffect(tile);
+        var elapsed = 0f;
+        var duration = Mathf.Max(0.01f, teleportEffectDuration);
+        var appearanceDelay = Mathf.Clamp(teleportAppearanceDelay, 0f, duration);
+        var appearanceDuration = Mathf.Max(0.01f, teleportAppearanceDuration);
+        var appearanceCompleteTime = Mathf.Min(duration, appearanceDelay + appearanceDuration);
+
+        if (appearing)
+        {
+            SetPlayerVisible(false);
+            SetPlayerScale(0f);
+        }
+        else
+        {
+            SetPlayerVisible(true);
+            SetPlayerScale(1f);
+        }
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+
+            if (elapsed >= appearanceDelay && elapsed <= appearanceCompleteTime)
+            {
+                var t = Mathf.Clamp01((elapsed - appearanceDelay) / Mathf.Max(0.01f, appearanceCompleteTime - appearanceDelay));
+                t = Mathf.SmoothStep(0f, 1f, t);
+
+                if (appearing)
+                {
+                    SetPlayerVisible(true);
+                    SetPlayerScale(t);
+                }
+                else
+                {
+                    SetPlayerScale(1f - t);
+                }
+            }
+
+            yield return null;
+        }
+
+        SetPlayerVisible(appearing);
+        SetPlayerScale(appearing ? 1f : 0f);
+
+        if (effect != null)
+            Destroy(effect);
+    }
+
+    private GameObject SpawnTeleportEffect(Vector2Int tile)
+    {
+        if (teleportEffectPrefab == null || boardManager == null)
+            return null;
+
+        var height = playerMover != null ? playerMover.transform.position.y : 0f;
+        var position = boardManager.TileToWorld(tile, height + teleportEffectHeightOffset);
+        var effect = Instantiate(teleportEffectPrefab, position, Quaternion.identity);
+        effect.name = $"{teleportEffectPrefab.name} Runtime";
+        effect.transform.localScale = Vector3.one * Mathf.Max(0.01f, boardManager.TileSize * teleportEffectTileCoverage);
+        return effect;
+    }
+
+    private void ApplyIntroSpawnRotation()
+    {
+        if (playerMover == null)
+            return;
+
+        var euler = playerMover.transform.eulerAngles;
+        euler.x = 0f;
+        euler.y += introSpawnYawOffsetDegrees;
+        euler.z = 0f;
+        playerMover.transform.eulerAngles = euler;
+    }
+
+    private void CacheOriginalPlayerScale()
+    {
+        if (cachedOriginalPlayerScale || playerMover == null)
+            return;
+
+        originalPlayerScale = playerMover.transform.localScale;
+        cachedOriginalPlayerScale = true;
+    }
+
+    private void SetPlayerScale(float progress)
+    {
+        if (playerMover == null)
+            return;
+
+        CacheOriginalPlayerScale();
+        playerMover.transform.localScale = Vector3.Lerp(Vector3.zero, originalPlayerScale, Mathf.Clamp01(progress));
+    }
+
+    private void SetPlayerVisible(bool visible)
+    {
+        if (playerMover == null)
+            return;
+
+        foreach (var renderer in playerMover.GetComponentsInChildren<Renderer>(true))
+            renderer.enabled = visible;
     }
 
     private void PlayPlayerDeathAnimation()
@@ -544,10 +691,24 @@ public class InteractionFlowManager : MonoBehaviour
             return false;
 
         boardManager.RebuildRegistry();
+        return IsGoalTileForPlayer(playerObject.TilePosition);
+    }
+
+    private bool IsGoalTileForPlayer(Vector2Int anchorTile)
+    {
+        if (boardManager == null || playerObject == null)
+            return false;
+
         foreach (var goalObject in boardManager.GetGoalObjects())
         {
-            if (goalObject != null && goalObject.GetOccupiedTiles().Contains(playerObject.TilePosition))
-                return true;
+            if (goalObject == null)
+                continue;
+
+            foreach (var playerTile in playerObject.GetOccupiedTiles(anchorTile))
+            {
+                if (goalObject.GetOccupiedTiles().Contains(playerTile))
+                    return true;
+            }
         }
 
         return false;

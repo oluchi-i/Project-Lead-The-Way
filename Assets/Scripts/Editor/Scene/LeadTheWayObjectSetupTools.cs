@@ -29,6 +29,7 @@ public static class LeadTheWayObjectSetupTools
     private const string PoppinsBoldPath = "Assets/Art/UI/Fonts/Poppins-Bold.ttf";
     private const string LevelSuccessSoundPath = "Assets/Sound/SoundEffects/level_success.mp3";
     private const string PlayerDeathSoundPath = "Assets/Sound/SoundEffects/death.mp3";
+    private const string TeleportEffectPath = "Assets/Lana Studio/Hyper Casual FX/Prefabs/Area/Area_fire_red.prefab";
 
     [MenuItem("Tools/Lead The Way/Scene/Wire Current Scene References")]
     public static void WireCurrentSceneReferences()
@@ -92,6 +93,7 @@ public static class LeadTheWayObjectSetupTools
             flowManager.ConfigurePlayerDeathAnimation(playerDeathAnimation);
             flowManager.ConfigureIntroCameraTransition(introCameraTransition);
             flowManager.ConfigureDeathCinematicCamera(deathCinematicCamera);
+            flowManager.ConfigureTeleportEffect(AssetDatabase.LoadAssetAtPath<GameObject>(TeleportEffectPath));
             EditorUtility.SetDirty(flowManager);
             changedCount++;
         }
@@ -178,7 +180,9 @@ public static class LeadTheWayObjectSetupTools
 
         var posesRoot = FindOrCreateChild(GetOrCreateGameSystems().transform, "Intro Camera Poses");
         var endingPose = FindOrCreateChild(posesRoot, "Ending Camera Pose");
-        CopyCameraPose(camera, endingPose);
+        var capturedPose = IsDefaultTransform(endingPose);
+        if (capturedPose)
+            CopyCameraPose(camera, endingPose);
 
         var introCameraTransition = Object.FindAnyObjectByType<IntroCameraTransition>(FindObjectsInactive.Include);
         if (introCameraTransition == null)
@@ -213,7 +217,9 @@ public static class LeadTheWayObjectSetupTools
 
         EditorUtility.DisplayDialog(
             "Setup Ending Camera Pose",
-            "Captured the current scene Camera as Ending Camera Pose.\n\nStart Camera Pose and Gameplay Camera Pose were not moved.",
+            capturedPose
+                ? "Captured the current scene Camera as Ending Camera Pose.\n\nStart Camera Pose and Gameplay Camera Pose were not moved."
+                : "Wired the existing Ending Camera Pose without moving it.\n\nStart Camera Pose and Gameplay Camera Pose were not moved.",
             "OK");
     }
 

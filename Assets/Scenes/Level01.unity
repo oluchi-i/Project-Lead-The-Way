@@ -4741,6 +4741,7 @@ GameObject:
   - component: {fileID: 471753448}
   - component: {fileID: 471753447}
   - component: {fileID: 471753446}
+  - component: {fileID: 471753449}
   m_Layer: 0
   m_Name: Level Result Flash
   m_TagString: Untagged
@@ -4783,7 +4784,7 @@ MonoBehaviour:
   successColor: {r: 0.15, g: 1, b: 0.28, a: 0.39607844}
   failureColor: {r: 1, g: 0.08, b: 0.08, a: 0.39607844}
   flashDuration: 0.18
-  audioSource: {fileID: 1288162808}
+  audioSource: {fileID: 471753449}
   successSound: {fileID: 8300000, guid: dabd513a755b35f44979b0fedfd2b621, type: 3}
   failureSound: {fileID: 8300000, guid: 1b4b7bb756e2c0f48b3929743837470b, type: 3}
   soundVolume: 0.8
@@ -4825,6 +4826,103 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 471753444}
   m_CullTransparentMesh: 1
+--- !u!82 &471753449
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 471753444}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!43 &473003063
 Mesh:
   m_ObjectHideFlags: 0
@@ -17219,6 +17317,13 @@ MonoBehaviour:
   playerDeathAnimation: {fileID: 748089725}
   introCameraTransition: {fileID: 1083750172}
   deathCinematicCamera: {fileID: 1083750171}
+  teleportEffectPrefab: {fileID: 7823327091382468809, guid: af0d06ad2f476cc43be23ac0f464a510, type: 3}
+  teleportEffectDuration: 1
+  teleportAppearanceDelay: 0.8
+  teleportAppearanceDuration: 1.4
+  teleportEffectHeightOffset: 0.05
+  teleportEffectTileCoverage: 0.12
+  introSpawnYawOffsetDegrees: 180
   maxInteractionCount: 6
   interactionCount: 0
 --- !u!1 &1542530050
