@@ -160,6 +160,43 @@ public static class LeadTheWayObjectSetupTools
         EditorUtility.DisplayDialog("Setup Movable Objects", $"Configured {targets.Count} movable object(s).", "OK");
     }
 
+    [MenuItem("Tools/Lead The Way/Board/Setup Selected Blocking Objects")]
+    public static void SetupSelectedBlockingObjects()
+    {
+        var targets = GetSelectedSceneObjects();
+        if (targets.Count == 0)
+        {
+            EditorUtility.DisplayDialog("Setup Blocking Objects", "Select one or more scene objects in the Hierarchy first.", "OK");
+            return;
+        }
+
+        var boardManager = Object.FindAnyObjectByType<BoardManager>();
+        if (boardManager == null)
+        {
+            EditorUtility.DisplayDialog("Setup Blocking Objects", "Add a BoardManager to the scene first.", "OK");
+            return;
+        }
+
+        foreach (var target in targets)
+        {
+            var boardObject = GetOrAddComponent<BoardObject>(target);
+
+            Undo.RecordObject(boardObject, "Setup Blocking Object");
+            RemoveComponentIfPresent<GridTileMover>(target, "Remove Movable Object Mover");
+            RemoveComponentIfPresent<SelectableControlObject>(target, "Remove Selectable Control Object");
+
+            boardObject.Configure(BoardObjectType.Obstacle, true, true, false);
+            boardObject.SyncTileFromTransform(boardManager.WorldOrigin, boardManager.TileSize);
+
+            EditorUtility.SetDirty(boardObject);
+        }
+
+        boardManager.RebuildRegistry();
+        EditorUtility.SetDirty(boardManager);
+        EditorSceneManager.MarkSceneDirty(targets[0].scene);
+        EditorUtility.DisplayDialog("Setup Blocking Objects", $"Configured {targets.Count} blocking object(s).", "OK");
+    }
+
     private static List<GameObject> GetSelectedSceneObjects()
     {
         var targets = new List<GameObject>();
@@ -181,6 +218,14 @@ public static class LeadTheWayObjectSetupTools
             return existing;
 
         return Undo.AddComponent<T>(target);
+    }
+
+    private static void RemoveComponentIfPresent<T>(GameObject target, string undoName) where T : Component
+    {
+        if (!target.TryGetComponent<T>(out var component))
+            return;
+
+        Undo.DestroyObjectImmediate(component);
     }
 
     private static InteractionFlowManager GetOrCreateInteractionFlowManager()

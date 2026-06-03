@@ -1716,6 +1716,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 144142424}
   m_CullTransparentMesh: 1
+--- !u!1 &159585377 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3869633881674399100, guid: bfea4d366532a7743a5e9bd373db8435, type: 3}
+  m_PrefabInstance: {fileID: 730075199}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &165723503
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6295,7 +6300,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2403496373118178391, guid: 968a55c757fae9e488517a19bbb9dda6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 834901600}
   m_SourcePrefab: {fileID: 100100000, guid: 968a55c757fae9e488517a19bbb9dda6, type: 3}
 --- !u!1001 &564580028
 PrefabInstance:
@@ -8052,7 +8060,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3869633881674399100, guid: bfea4d366532a7743a5e9bd373db8435, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 859086700}
   m_SourcePrefab: {fileID: 100100000, guid: bfea4d366532a7743a5e9bd373db8435, type: 3}
 --- !u!1 &739394538
 GameObject:
@@ -9360,6 +9371,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2904963707211163469, guid: 8a0832c43c986754c865b147ca9df5a2, type: 3}
   m_PrefabInstance: {fileID: 832956570}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &834246459 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7814557091581230971, guid: cde01ebd19656df4fae4a4c48528a32d, type: 3}
+  m_PrefabInstance: {fileID: 1410025202}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &834351523
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9430,6 +9446,31 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8624914531962622098, guid: fe0630cbb2892a045aa2b71d677fdb14, type: 3}
   m_PrefabInstance: {fileID: 834351523}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &834901597 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2403496373118178391, guid: 968a55c757fae9e488517a19bbb9dda6, type: 3}
+  m_PrefabInstance: {fileID: 557287146}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &834901600
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 834901597}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80f2ee657fc3648458b9fcdb13ebf8d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoardObject
+  objectId: plant-367fc301
+  objectType: 8
+  tilePosition: {x: 6, y: 3}
+  occupiedTileOffsets:
+  - {x: 0, y: 0}
+  occupiesTile: 1
+  blocksMovement: 1
+  movable: 0
 --- !u!1001 &836461887
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9531,6 +9572,31 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4537485682296547270, guid: bfea4d366532a7743a5e9bd373db8435, type: 3}
   m_PrefabInstance: {fileID: 730075199}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &859086700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 159585377}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80f2ee657fc3648458b9fcdb13ebf8d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoardObject
+  objectId: bed-56797334
+  objectType: 8
+  tilePosition: {x: 5, y: 1}
+  occupiedTileOffsets:
+  - {x: 0, y: 0}
+  - {x: 1, y: 0}
+  - {x: -1, y: 0}
+  - {x: 0, y: -1}
+  - {x: 1, y: -1}
+  - {x: -1, y: -1}
+  occupiesTile: 1
+  blocksMovement: 1
+  movable: 0
 --- !u!43 &865802144
 Mesh:
   m_ObjectHideFlags: 0
@@ -11553,6 +11619,26 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7438032236324398529, guid: cde01ebd19656df4fae4a4c48528a32d, type: 3}
   m_PrefabInstance: {fileID: 1410025202}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1040082670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 834246459}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80f2ee657fc3648458b9fcdb13ebf8d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoardObject
+  objectId: closet-860d84e2
+  objectType: 8
+  tilePosition: {x: 6, y: 4}
+  occupiedTileOffsets:
+  - {x: 0, y: 0}
+  occupiesTile: 1
+  blocksMovement: 1
+  movable: 0
 --- !u!1 &1041779192
 GameObject:
   m_ObjectHideFlags: 0
@@ -12005,7 +12091,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DeathCinematicCamera
   targetCamera: {fileID: 1083750169}
   approachDuration: 0.42
-  holdBeforeDeathDuration: 0.7
+  holdBeforeDeathDuration: 0.4
   closeShotDistance: 5.5
   closeShotHeight: 2
   sideOffset: 0.8
@@ -14961,7 +15047,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7814557091581230971, guid: cde01ebd19656df4fae4a4c48528a32d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1040082670}
   m_SourcePrefab: {fileID: 100100000, guid: cde01ebd19656df4fae4a4c48528a32d, type: 3}
 --- !u!43 &1419274367
 Mesh:
