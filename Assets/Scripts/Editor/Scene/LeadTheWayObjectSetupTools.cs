@@ -3,7 +3,9 @@ using UnityEditor;
 using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Events;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 public static class LeadTheWayObjectSetupTools
@@ -18,6 +20,13 @@ public static class LeadTheWayObjectSetupTools
     private const string ArrowUpIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_up.png";
     private const string ArrowDownIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_down.png";
     private const string BadgeSoftPath = "Assets/Art/UI/Sprites/BadgeSoft.asset";
+    private const string PanelSoftPath = "Assets/Art/UI/Sprites/PanelSoft.asset";
+    private const string TileSoftPath = "Assets/Art/UI/Sprites/TileSoft.asset";
+    private const string PauseIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/pause.png";
+    private const string PlayIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/play.png";
+    private const string RepeatIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/repeat.png";
+    private const string CloseIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/x.png";
+    private const string PoppinsBoldPath = "Assets/Art/UI/Fonts/Poppins-Bold.ttf";
     private const string LevelSuccessSoundPath = "Assets/Sound/SoundEffects/level_success.mp3";
     private const string PlayerDeathSoundPath = "Assets/Sound/SoundEffects/death.mp3";
 
@@ -63,7 +72,7 @@ public static class LeadTheWayObjectSetupTools
         if (destinationDoor == null)
             destinationDoor = FindBoardObject(boardObjects, item => item.ObjectType == BoardObjectType.Door && item != startDoor);
 
-        var introCameraTransition = GetOrCreateIntroCameraTransition(boardManager, startTile, startDoor, false);
+        var introCameraTransition = Object.FindAnyObjectByType<IntroCameraTransition>(FindObjectsInactive.Include);
         var deathCinematicCamera = GetOrCreateDeathCinematicCamera();
 
         if (playerMover != null)
@@ -152,6 +161,51 @@ public static class LeadTheWayObjectSetupTools
                 ? "Created or updated intro camera poses.\n\nGameplay Camera Pose captured the current camera transform.\nMove Start Camera Pose in the Scene view to tune the opening shot."
                 : "Could not setup intro camera poses because the scene has no Camera.",
             "OK");
+    }
+
+    [MenuItem("Tools/Lead The Way/UI/Setup Pause Menu")]
+    public static void SetupPauseMenu()
+    {
+        var canvas = EnsureGameplayCanvas();
+        EnsureEventSystem();
+        var pauseUI = FindOrCreateRectChild(canvas.transform, "Pause UI");
+        StretchToParent(pauseUI);
+
+        var pauseButton = EnsurePauseButton(pauseUI);
+        var overlay = EnsurePauseOverlay(pauseUI);
+        var panel = EnsurePausePanel(overlay);
+        var closeButton = EnsurePanelIconButton(panel, "Close Button", CloseIconPath, new Vector2(-24f, -24f), TextAnchor.UpperRight);
+        var title = EnsureText(panel, "Title", "PAUSED", 32, new Color(1f, 0.86f, 0.28f, 1f), TextAnchor.MiddleCenter);
+        ConfigureRect(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -54f), new Vector2(260f, 44f));
+
+        var subtitle = EnsureText(panel, "Subtitle", "TAKE A BREATH", 13, new Color(1f, 0.94f, 0.78f, 0.82f), TextAnchor.MiddleCenter);
+        ConfigureRect(subtitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -92f), new Vector2(260f, 26f));
+
+        var resumeButton = EnsurePanelTextButton(panel, "Resume Button", "RESUME", PlayIconPath, new Vector2(0f, -145f));
+        var restartButton = EnsurePanelTextButton(panel, "Restart Button", "RESTART", RepeatIconPath, new Vector2(0f, -210f));
+
+        var canvasGroup = overlay.GetComponent<CanvasGroup>();
+        if (canvasGroup == null)
+            canvasGroup = Undo.AddComponent<CanvasGroup>(overlay.gameObject);
+
+        var pauseMenu = pauseUI.GetComponent<PauseMenuUI>();
+        if (pauseMenu == null)
+            pauseMenu = Undo.AddComponent<PauseMenuUI>(pauseUI.gameObject);
+
+        Undo.RecordObject(pauseMenu, "Wire Pause Menu");
+        pauseMenu.Configure(pauseButton, resumeButton, restartButton, closeButton, overlay.gameObject, canvasGroup);
+
+        overlay.gameObject.SetActive(false);
+        canvasGroup.alpha = 0f;
+        canvasGroup.interactable = false;
+        canvasGroup.blocksRaycasts = false;
+
+        EditorUtility.SetDirty(pauseMenu);
+        EditorUtility.SetDirty(canvasGroup);
+        EditorUtility.SetDirty(canvas);
+        EditorSceneManager.MarkSceneDirty(canvas.gameObject.scene);
+
+        EditorUtility.DisplayDialog("Setup Pause Menu", "Created/repaired the top-right pause button and pause panel under the scene Canvas.", "OK");
     }
 
     [MenuItem("Tools/Lead The Way/Board/Setup Selected Movable Objects")]
@@ -400,6 +454,305 @@ public static class LeadTheWayObjectSetupTools
         systems = new GameObject("Game Systems");
         Undo.RegisterCreatedObjectUndo(systems, "Create Game Systems");
         return systems;
+    }
+
+    private static Canvas EnsureGameplayCanvas()
+    {
+        var canvasObject = GameObject.Find("Canvas");
+        Canvas canvas;
+        if (canvasObject == null)
+        {
+            canvasObject = new GameObject("Canvas");
+            Undo.RegisterCreatedObjectUndo(canvasObject, "Create Canvas");
+            canvas = canvasObject.AddComponent<Canvas>();
+            canvasObject.AddComponent<GraphicRaycaster>();
+        }
+        else
+        {
+            canvas = canvasObject.GetComponent<Canvas>();
+            if (canvas == null)
+                canvas = Undo.AddComponent<Canvas>(canvasObject);
+
+            if (canvasObject.GetComponent<GraphicRaycaster>() == null)
+                Undo.AddComponent<GraphicRaycaster>(canvasObject);
+        }
+
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.enabled = true;
+        canvas.sortingOrder = 100;
+
+        var scaler = canvas.GetComponent<CanvasScaler>();
+        if (scaler == null)
+            scaler = Undo.AddComponent<CanvasScaler>(canvas.gameObject);
+
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1280f, 720f);
+        scaler.matchWidthOrHeight = 0.5f;
+        return canvas;
+    }
+
+    private static void EnsureEventSystem()
+    {
+        var eventSystem = Object.FindAnyObjectByType<EventSystem>(FindObjectsInactive.Include);
+        if (eventSystem == null)
+        {
+            var eventSystemObject = new GameObject("EventSystem");
+            Undo.RegisterCreatedObjectUndo(eventSystemObject, "Create EventSystem");
+            eventSystem = eventSystemObject.AddComponent<EventSystem>();
+        }
+
+        eventSystem.gameObject.SetActive(true);
+
+        foreach (var legacyModule in eventSystem.GetComponents<StandaloneInputModule>())
+            Undo.DestroyObjectImmediate(legacyModule);
+
+        if (eventSystem.GetComponent<InputSystemUIInputModule>() == null)
+            Undo.AddComponent<InputSystemUIInputModule>(eventSystem.gameObject);
+
+        EditorUtility.SetDirty(eventSystem.gameObject);
+    }
+
+    private static RectTransform FindOrCreateRectChild(Transform parent, string childName)
+    {
+        var existing = parent != null ? parent.Find(childName) : null;
+        if (existing != null)
+        {
+            if (existing.TryGetComponent<RectTransform>(out var existingRect))
+                return existingRect;
+
+            return Undo.AddComponent<RectTransform>(existing.gameObject);
+        }
+
+        var childObject = new GameObject(childName, typeof(RectTransform));
+        Undo.RegisterCreatedObjectUndo(childObject, $"Create {childName}");
+        childObject.transform.SetParent(parent, false);
+        return childObject.GetComponent<RectTransform>();
+    }
+
+    private static void StretchToParent(RectTransform rectTransform)
+    {
+        ConfigureRect(rectTransform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        rectTransform.offsetMin = Vector2.zero;
+        rectTransform.offsetMax = Vector2.zero;
+    }
+
+    private static Button EnsurePauseButton(RectTransform parent)
+    {
+        var buttonRect = FindOrCreateRectChild(parent, "Pause Button");
+        ConfigureRect(buttonRect, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-24f, -24f), new Vector2(52f, 52f));
+
+        var image = EnsureImage(buttonRect.gameObject);
+        image.sprite = LoadSprite(TileSoftPath);
+        image.type = Image.Type.Sliced;
+        image.color = new Color(1f, 0.72f, 0.04f, 1f);
+
+        var button = EnsureButton(buttonRect.gameObject, image);
+        EnsureBorder(buttonRect.gameObject, new Color(0.18f, 0.12f, 0.04f, 0.72f), new Vector2(1.2f, -1.2f));
+        EnsureShadow(buttonRect.gameObject, new Color(0f, 0f, 0f, 0.38f), new Vector2(0f, -3f));
+        EnsureFeedback(buttonRect.gameObject);
+
+        var icon = FindOrCreateRectChild(buttonRect, "Icon");
+        ConfigureRect(icon, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(24f, 24f));
+        var iconImage = EnsureImage(icon.gameObject);
+        iconImage.sprite = LoadSprite(PauseIconPath);
+        iconImage.color = new Color(0.13f, 0.09f, 0.04f, 1f);
+        iconImage.raycastTarget = false;
+
+        return button;
+    }
+
+    private static RectTransform EnsurePauseOverlay(RectTransform parent)
+    {
+        var overlay = FindOrCreateRectChild(parent, "Pause Overlay");
+        StretchToParent(overlay);
+        var image = EnsureImage(overlay.gameObject);
+        image.sprite = null;
+        image.color = new Color(0.04f, 0.035f, 0.025f, 0.68f);
+
+        var canvasGroup = overlay.GetComponent<CanvasGroup>();
+        if (canvasGroup == null)
+            canvasGroup = Undo.AddComponent<CanvasGroup>(overlay.gameObject);
+
+        canvasGroup.alpha = 0f;
+        canvasGroup.interactable = false;
+        canvasGroup.blocksRaycasts = false;
+        return overlay;
+    }
+
+    private static RectTransform EnsurePausePanel(RectTransform overlay)
+    {
+        var panel = FindOrCreateRectChild(overlay, "Pause Panel");
+        ConfigureRect(panel, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(390f, 310f));
+        var image = EnsureImage(panel.gameObject);
+        image.sprite = LoadSprite(PanelSoftPath);
+        image.type = Image.Type.Sliced;
+        image.color = new Color(0.18f, 0.23f, 0.17f, 0.96f);
+
+        var accent = panel.Find("Accent");
+        if (accent != null)
+            accent.gameObject.SetActive(false);
+
+        return panel;
+    }
+
+    private static Button EnsurePanelIconButton(RectTransform parent, string name, string iconPath, Vector2 anchoredPosition, TextAnchor anchor)
+    {
+        var rect = FindOrCreateRectChild(parent, name);
+        var anchorVector = anchor == TextAnchor.UpperRight ? new Vector2(1f, 1f) : new Vector2(0.5f, 0.5f);
+        ConfigureRect(rect, anchorVector, anchorVector, anchorVector, anchoredPosition, new Vector2(34f, 34f));
+
+        var image = EnsureImage(rect.gameObject);
+        image.sprite = LoadSprite(TileSoftPath);
+        image.type = Image.Type.Sliced;
+        image.color = new Color(1f, 0.72f, 0.04f, 1f);
+
+        var button = EnsureButton(rect.gameObject, image);
+        EnsureBorder(rect.gameObject, new Color(0.18f, 0.12f, 0.04f, 0.72f), new Vector2(1f, -1f));
+        EnsureShadow(rect.gameObject, new Color(0f, 0f, 0f, 0.34f), new Vector2(0f, -2.5f));
+        EnsureFeedback(rect.gameObject);
+
+        var icon = FindOrCreateRectChild(rect, "Icon");
+        ConfigureRect(icon, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(17f, 17f));
+        var iconImage = EnsureImage(icon.gameObject);
+        iconImage.sprite = LoadSprite(iconPath);
+        iconImage.color = new Color(0.13f, 0.09f, 0.04f, 1f);
+        iconImage.raycastTarget = false;
+        return button;
+    }
+
+    private static Button EnsurePanelTextButton(RectTransform parent, string name, string text, string iconPath, Vector2 anchoredPosition)
+    {
+        var rect = FindOrCreateRectChild(parent, name);
+        ConfigureRect(rect, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), anchoredPosition, new Vector2(230f, 48f));
+
+        var image = EnsureImage(rect.gameObject);
+        image.sprite = LoadSprite(TileSoftPath);
+        image.type = Image.Type.Sliced;
+        image.color = new Color(1f, 0.72f, 0.04f, 1f);
+
+        var button = EnsureButton(rect.gameObject, image);
+        EnsureBorder(rect.gameObject, new Color(0.18f, 0.12f, 0.04f, 0.6f), new Vector2(1f, -1f));
+        EnsureShadow(rect.gameObject, new Color(0f, 0f, 0f, 0.3f), new Vector2(0f, -3f));
+        EnsureFeedback(rect.gameObject);
+
+        var icon = FindOrCreateRectChild(rect, "Icon");
+        ConfigureRect(icon, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(42f, 0f), new Vector2(20f, 20f));
+        var iconImage = EnsureImage(icon.gameObject);
+        iconImage.sprite = LoadSprite(iconPath);
+        iconImage.color = new Color(0.13f, 0.09f, 0.04f, 1f);
+        iconImage.raycastTarget = false;
+
+        var label = EnsureText(rect, "Label", text, 18, new Color(0.13f, 0.09f, 0.04f, 1f), TextAnchor.MiddleCenter);
+        ConfigureRect(label.rectTransform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), new Vector2(14f, 0f), Vector2.zero);
+        return button;
+    }
+
+    private static Text EnsureText(RectTransform parent, string name, string value, int fontSize, Color color, TextAnchor alignment)
+    {
+        var rect = FindOrCreateRectChild(parent, name);
+        var text = rect.GetComponent<Text>();
+        if (text == null)
+            text = Undo.AddComponent<Text>(rect.gameObject);
+
+        text.text = value;
+        text.font = LoadFont();
+        text.fontSize = fontSize;
+        text.fontStyle = FontStyle.Bold;
+        text.color = color;
+        text.alignment = alignment;
+        text.raycastTarget = false;
+        return text;
+    }
+
+    private static void ConfigureRect(RectTransform rect, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 anchoredPosition, Vector2 sizeDelta)
+    {
+        Undo.RecordObject(rect, "Configure UI Rect");
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.pivot = pivot;
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = sizeDelta;
+        rect.localScale = Vector3.one;
+        rect.localRotation = Quaternion.identity;
+    }
+
+    private static Image EnsureImage(GameObject target)
+    {
+        var image = target.GetComponent<Image>();
+        if (image == null)
+            image = Undo.AddComponent<Image>(target);
+
+        return image;
+    }
+
+    private static Button EnsureButton(GameObject target, Graphic targetGraphic)
+    {
+        var button = target.GetComponent<Button>();
+        if (button == null)
+            button = Undo.AddComponent<Button>(target);
+
+        button.targetGraphic = targetGraphic;
+        button.transition = Selectable.Transition.ColorTint;
+        button.colors = new ColorBlock
+        {
+            normalColor = Color.white,
+            highlightedColor = new Color(1f, 0.96f, 0.72f, 1f),
+            pressedColor = new Color(0.95f, 0.53f, 0.02f, 1f),
+            selectedColor = Color.white,
+            disabledColor = new Color(1f, 1f, 1f, 0.36f),
+            colorMultiplier = 1f,
+            fadeDuration = 0.08f
+        };
+        return button;
+    }
+
+    private static void EnsureFeedback(GameObject target)
+    {
+        if (target.GetComponent<UIButtonFeedback>() == null)
+            Undo.AddComponent<UIButtonFeedback>(target);
+    }
+
+    private static void EnsureBorder(GameObject target, Color color, Vector2 distance)
+    {
+        var outline = target.GetComponent<Outline>();
+        if (outline == null)
+            outline = Undo.AddComponent<Outline>(target);
+
+        outline.effectColor = color;
+        outline.effectDistance = distance;
+        outline.useGraphicAlpha = true;
+    }
+
+    private static void EnsureShadow(GameObject target, Color color, Vector2 distance)
+    {
+        var shadows = target.GetComponents<Shadow>();
+        Shadow shadow = null;
+        foreach (var item in shadows)
+        {
+            if (item is not Outline)
+            {
+                shadow = item;
+                break;
+            }
+        }
+
+        if (shadow == null)
+            shadow = Undo.AddComponent<Shadow>(target);
+
+        shadow.effectColor = color;
+        shadow.effectDistance = distance;
+        shadow.useGraphicAlpha = true;
+    }
+
+    private static Sprite LoadSprite(string path)
+    {
+        return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+    }
+
+    private static Font LoadFont()
+    {
+        var font = AssetDatabase.LoadAssetAtPath<Font>(PoppinsBoldPath);
+        return font != null ? font : Resources.GetBuiltinResource<Font>("Arial.ttf");
     }
 
     private static List<ControlAction> CreateMovableObjectActions(GridTileMover mover)
