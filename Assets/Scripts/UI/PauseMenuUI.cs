@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using EasyTransition;
 
 #pragma warning disable 0649 // Unity assigns serialized fields from scenes.
 
@@ -11,6 +12,7 @@ public class PauseMenuUI : MonoBehaviour
     [SerializeField] private Button pauseButton;
     [SerializeField] private Button resumeButton;
     [SerializeField] private Button restartButton;
+    [SerializeField] private Button mapButton;
     [SerializeField] private Button closeButton;
     [SerializeField] private Button musicToggleButton;
     [SerializeField] private Image musicToggleIcon;
@@ -18,6 +20,9 @@ public class PauseMenuUI : MonoBehaviour
     [SerializeField] private GameObject pauseOverlay;
     [SerializeField] private CanvasGroup overlayCanvasGroup;
     [SerializeField] private float fadeDuration = 0.14f;
+    [SerializeField] private string mapSceneName = "WorldMap";
+    [SerializeField] private TransitionManager transitionManager;
+    [SerializeField] private TransitionSettings sceneTransition;
 
     private Coroutine fadeRoutine;
     private bool isPaused;
@@ -38,6 +43,9 @@ public class PauseMenuUI : MonoBehaviour
 
         if (restartButton != null)
             restartButton.onClick.AddListener(RestartLevel);
+
+        if (mapButton != null)
+            mapButton.onClick.AddListener(ReturnToMap);
 
         if (musicToggleButton != null)
             musicToggleButton.onClick.AddListener(ToggleMusic);
@@ -77,22 +85,28 @@ public class PauseMenuUI : MonoBehaviour
         Button newPauseButton,
         Button newResumeButton,
         Button newRestartButton,
+        Button newMapButton,
         Button newCloseButton,
         Button newMusicToggleButton,
         Image newMusicToggleIcon,
         GameplayMusicController newMusicController,
         GameObject newPauseOverlay,
-        CanvasGroup newOverlayCanvasGroup)
+        CanvasGroup newOverlayCanvasGroup,
+        TransitionManager newTransitionManager,
+        TransitionSettings newSceneTransition)
     {
         pauseButton = newPauseButton;
         resumeButton = newResumeButton;
         restartButton = newRestartButton;
+        mapButton = newMapButton;
         closeButton = newCloseButton;
         musicToggleButton = newMusicToggleButton;
         musicToggleIcon = newMusicToggleIcon;
         musicController = newMusicController;
         pauseOverlay = newPauseOverlay;
         overlayCanvasGroup = newOverlayCanvasGroup;
+        transitionManager = newTransitionManager;
+        sceneTransition = newSceneTransition;
     }
 
     public void Pause()
@@ -126,6 +140,20 @@ public class PauseMenuUI : MonoBehaviour
             SceneManager.LoadScene(activeScene.buildIndex);
         else
             SceneManager.LoadScene(activeScene.name);
+    }
+
+    public void ReturnToMap()
+    {
+        Time.timeScale = 1f;
+        isPaused = false;
+
+        if (string.IsNullOrWhiteSpace(mapSceneName))
+        {
+            Debug.LogWarning("PauseMenuUI cannot return to map because no map scene name is configured.", this);
+            return;
+        }
+
+        SceneTransitionLoader.LoadScene(mapSceneName, transitionManager, sceneTransition);
     }
 
     private void ToggleMusic()

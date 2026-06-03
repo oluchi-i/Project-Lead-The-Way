@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
+using EasyTransition;
 
 #pragma warning disable 0649 // Unity assigns serialized fields from scenes.
 
@@ -34,6 +35,11 @@ public class InteractionFlowManager : MonoBehaviour
     [SerializeField] private GameObject teleportEffectPrefab;
     [SerializeField] private AudioSource teleportAudioSource;
     [SerializeField] private AudioClip teleportSound;
+    [SerializeField] private TransitionManager transitionManager;
+    [SerializeField] private TransitionSettings sceneTransition;
+    [SerializeField] private string mapSceneName = "WorldMap";
+    [SerializeField] private bool returnToMapOnSuccess = true;
+    [SerializeField, Min(0f)] private float returnToMapDelay = 0.45f;
     [SerializeField] private float introTeleportDelayAfterDoorOpen = 0.5f;
     [SerializeField] private float teleportEffectDuration = 1f;
     [SerializeField] private float teleportAppearanceDelay = 0.22f;
@@ -147,6 +153,12 @@ public class InteractionFlowManager : MonoBehaviour
     {
         teleportAudioSource = newTeleportAudioSource;
         teleportSound = newTeleportSound;
+    }
+
+    public void ConfigureSceneTransition(TransitionManager newTransitionManager, TransitionSettings newSceneTransition)
+    {
+        transitionManager = newTransitionManager;
+        sceneTransition = newSceneTransition;
     }
 
     private void Awake()
@@ -577,6 +589,14 @@ public class InteractionFlowManager : MonoBehaviour
 
         if (resultFlashUI != null)
             resultFlashUI.Flash(true);
+
+        if (returnToMapOnSuccess && !string.IsNullOrWhiteSpace(mapSceneName))
+        {
+            if (returnToMapDelay > 0f)
+                yield return new WaitForSeconds(returnToMapDelay);
+
+            SceneTransitionLoader.LoadScene(mapSceneName, transitionManager, sceneTransition);
+        }
 
         successRoutine = null;
     }

@@ -1,7 +1,7 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using EasyTransition;
 
@@ -18,6 +18,7 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
     [SerializeField] private Text checkpointLabel;
     [SerializeField] private Image panelBackground;
     [SerializeField] private Image titleBackground;
+    [SerializeField] private WorldMapTeleportEffect teleportEffect;
     [SerializeField] private string levelSceneName = "Level01";
     [SerializeField] private TransitionManager transitionManager;
     [SerializeField] private TransitionSettings sceneTransition;
@@ -34,6 +35,7 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
     private bool mapStarted;
     private bool introMoveInProgress;
     private bool loadingScene;
+    private bool returnedFromLevel;
 
     private void Awake()
     {
@@ -49,6 +51,8 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
 
     private void Start()
     {
+        ApplyReturnCheckpointState();
+
         if (enforceCameraFollowerAsMainCamera)
             EnforceCameraFollowerAsMainCamera();
 
@@ -59,12 +63,19 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         }
 
         Refresh();
+        if (returnedFromLevel && teleportEffect != null)
+            StartCoroutine(teleportEffect.PlayAppearanceAndWait());
     }
 
     public void ConfigureSceneTransition(TransitionManager manager, TransitionSettings transition)
     {
         transitionManager = manager;
         sceneTransition = transition;
+    }
+
+    public void ConfigureTeleportEffect(WorldMapTeleportEffect newTeleportEffect)
+    {
+        teleportEffect = newTeleportEffect;
     }
 
     private void Update()
@@ -123,7 +134,8 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         Button newPlayButton,
         Text newCheckpointLabel,
         Image newPanelBackground,
-        Image newTitleBackground)
+        Image newTitleBackground,
+        WorldMapTeleportEffect newTeleportEffect)
     {
         cameraPath = newCameraPath;
         playerPath = newPlayerPath;
@@ -136,6 +148,7 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         checkpointLabel = newCheckpointLabel;
         panelBackground = newPanelBackground;
         titleBackground = newTitleBackground;
+        teleportEffect = newTeleportEffect;
         Refresh();
     }
 
@@ -166,31 +179,39 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
             return;
 
         levelPlayRequested?.Invoke();
-        LoadCurrentLevel();
+        StartCoroutine(LoadCurrentLevelRoutine());
     }
 
-    private void LoadCurrentLevel()
+    private IEnumerator LoadCurrentLevelRoutine()
     {
         if (string.IsNullOrWhiteSpace(levelSceneName))
         {
             Debug.LogWarning("Lead The Way Map: No level scene name is configured on MapCheckpointNavigatorUI.", this);
-            return;
+            yield break;
         }
 
         Debug.Log("Lead The Way Map: Loading " + levelSceneName + " for " + GetCheckpointText() + ".");
         loadingScene = true;
         Refresh();
 
-        if (transitionManager == null)
-            transitionManager = FindAnyObjectByType<TransitionManager>();
+        if (teleportEffect != null)
+            yield return teleportEffect.PlayDisappearanceAndWait();
 
-        if (transitionManager != null && sceneTransition != null)
-        {
-            transitionManager.Transition(levelSceneName, sceneTransition, sceneTransitionDelay);
+        WorldMapProgressState.SetReturnCheckpoint(currentCheckpointIndex);
+        SceneTransitionLoader.LoadScene(levelSceneName, transitionManager, sceneTransition, sceneTransitionDelay);
+    }
+
+    private void ApplyReturnCheckpointState()
+    {
+        if (!WorldMapProgressState.HasReturnCheckpoint)
             return;
-        }
 
-        SceneManager.LoadScene(levelSceneName);
+        currentCheckpointIndex = Mathf.Max(0, WorldMapProgressState.ReturnCheckpointIndex);
+        mapStarted = currentCheckpointIndex > 0;
+        introMoveInProgress = false;
+        waitingForMove = false;
+        returnedFromLevel = mapStarted;
+        WorldMapProgressState.ClearReturnCheckpoint();
     }
 
     private void MoveTo(int checkpointIndex)

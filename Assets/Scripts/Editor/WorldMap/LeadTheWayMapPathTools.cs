@@ -15,6 +15,9 @@ public static class LeadTheWayMapPathTools
     private const string PanelSoftPath = "Assets/Art/UI/Sprites/PanelSoft.asset";
     private const string WorldMapPlayerPrefabPath = "Assets/Prefabs/Player/Player.prefab";
     private const string WorldMapMusicPath = "Assets/Sound/worldmap_background_music.mp3";
+    private const string MapButtonClickSoundPath = "Assets/Sound/SoundEffects/action_click.wav";
+    private const string TeleportSoundPath = "Assets/Sound/SoundEffects/teleport_sound.mp3";
+    private const string TeleportEffectPath = "Assets/Lana Studio/Hyper Casual FX/Prefabs/Area/Area_fire_red.prefab";
     private const string TransitionTemplatePath = "Assets/EasyTransitions/Prefabs/TransitionTemplate.prefab";
     private const string FadeTransitionPath = "Assets/EasyTransitions/Transitions/Fade/Fade.asset";
     private const float MiniatureMapFieldOfView = 36f;
@@ -85,6 +88,12 @@ public static class LeadTheWayMapPathTools
         var cameraFollower = EnsureWorldMapCameraFollower(cameraPath, playerFollower != null ? EnsureCameraLookTarget(playerFollower.transform) : null);
         var transitionManager = EnsureWorldMapTransitionManager();
         var fadeTransition = AssetDatabase.LoadAssetAtPath<TransitionSettings>(FadeTransitionPath);
+        var teleportEffect = EnsureWorldMapTeleportEffect(playerFollower);
+        var clickAudioSource = EnsureWorldMapUIClickAudioSource(navigatorObject.transform);
+        WireMapButtonClickSound(previousButton, clickAudioSource);
+        WireMapButtonClickSound(nextButton, clickAudioSource);
+        WireMapButtonClickSound(startButton, clickAudioSource);
+        WireMapButtonClickSound(playButton, clickAudioSource);
         navigator.Configure(
             cameraPath,
             playerPath,
@@ -96,7 +105,8 @@ public static class LeadTheWayMapPathTools
             playButton,
             label,
             panelImage,
-            titleBackground);
+            titleBackground,
+            teleportEffect);
         navigator.ConfigureSceneTransition(transitionManager, fadeTransition);
 
         EnsureWorldMapMusic();
@@ -116,12 +126,20 @@ public static class LeadTheWayMapPathTools
         EnsureWorldMapMusic();
         var manager = EnsureWorldMapTransitionManager();
         var fadeTransition = AssetDatabase.LoadAssetAtPath<TransitionSettings>(FadeTransitionPath);
+        var playerFollower = EnsureWorldMapPlayerFollower(FindMapPath("Player Path"));
+        var teleportEffect = EnsureWorldMapTeleportEffect(playerFollower);
 
         var navigator = Object.FindAnyObjectByType<MapCheckpointNavigatorUI>(FindObjectsInactive.Include);
         if (navigator != null)
         {
             Undo.RecordObject(navigator, "Wire World Map Scene Transition");
             navigator.ConfigureSceneTransition(manager, fadeTransition);
+            navigator.ConfigureTeleportEffect(teleportEffect);
+            var clickAudioSource = EnsureWorldMapUIClickAudioSource(navigator.transform);
+            WireMapButtonClickSound(FindChildComponent<Button>(navigator.transform, "Previous Checkpoint"), clickAudioSource);
+            WireMapButtonClickSound(FindChildComponent<Button>(navigator.transform, "Next Checkpoint"), clickAudioSource);
+            WireMapButtonClickSound(FindChildComponent<Button>(navigator.transform, "Start Button"), clickAudioSource);
+            WireMapButtonClickSound(FindChildComponent<Button>(navigator.transform, "Play Level"), clickAudioSource);
             EditorUtility.SetDirty(navigator);
         }
 
@@ -567,6 +585,68 @@ public static class LeadTheWayMapPathTools
         return controller;
     }
 
+    private static WorldMapTeleportEffect EnsureWorldMapTeleportEffect(MapPathFollower playerFollower)
+    {
+        var effectObject = GameObject.Find("World Map Teleport Effect");
+        if (effectObject == null)
+        {
+            effectObject = new GameObject("World Map Teleport Effect");
+            Undo.RegisterCreatedObjectUndo(effectObject, "Create World Map Teleport Effect");
+        }
+
+        var audioSource = effectObject.GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = Undo.AddComponent<AudioSource>(effectObject);
+
+        var effect = effectObject.GetComponent<WorldMapTeleportEffect>();
+        if (effect == null)
+            effect = Undo.AddComponent<WorldMapTeleportEffect>(effectObject);
+
+        var effectPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(TeleportEffectPath);
+        var teleportSound = AssetDatabase.LoadAssetAtPath<AudioClip>(TeleportSoundPath);
+        Undo.RecordObject(audioSource, "Configure World Map Teleport Audio");
+        Undo.RecordObject(effect, "Configure World Map Teleport Effect");
+
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+        audioSource.spatialBlend = 0f;
+        effect.Configure(playerFollower != null ? playerFollower.transform : null, effectPrefab, audioSource, teleportSound);
+
+        EditorUtility.SetDirty(audioSource);
+        EditorUtility.SetDirty(effect);
+        EditorUtility.SetDirty(effectObject);
+        return effect;
+    }
+
+    private static AudioSource EnsureWorldMapUIClickAudioSource(Transform parent)
+    {
+        var audioObject = FindOrCreateChild(parent, "Map UI Audio Source");
+        var audioSource = audioObject.GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = Undo.AddComponent<AudioSource>(audioObject.gameObject);
+
+        Undo.RecordObject(audioSource, "Configure Map UI Audio Source");
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+        audioSource.spatialBlend = 0f;
+        EditorUtility.SetDirty(audioSource);
+        return audioSource;
+    }
+
+    private static void WireMapButtonClickSound(Button button, AudioSource audioSource)
+    {
+        if (button == null || audioSource == null)
+            return;
+
+        var clickSound = button.GetComponent<UIButtonClickSound>();
+        if (clickSound == null)
+            clickSound = Undo.AddComponent<UIButtonClickSound>(button.gameObject);
+
+        Undo.RecordObject(clickSound, "Wire Map Button Click Sound");
+        clickSound.Configure(AssetDatabase.LoadAssetAtPath<AudioClip>(MapButtonClickSoundPath), audioSource);
+        EditorUtility.SetDirty(clickSound);
+    }
+
     private static TransitionManager EnsureWorldMapTransitionManager()
     {
         var manager = Object.FindAnyObjectByType<TransitionManager>(FindObjectsInactive.Include);
@@ -772,6 +852,20 @@ public static class LeadTheWayMapPathTools
         Undo.RegisterCreatedObjectUndo(childObject, "Create " + name);
         childObject.transform.SetParent(parent, false);
         return childObject;
+    }
+
+    private static T FindChildComponent<T>(Transform parent, string childName) where T : Component
+    {
+        if (parent == null)
+            return null;
+
+        foreach (var component in parent.GetComponentsInChildren<T>(true))
+        {
+            if (component.name == childName)
+                return component;
+        }
+
+        return null;
     }
 
     private static RectTransform EnsureRectTransform(GameObject target)

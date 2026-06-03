@@ -7,6 +7,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.Events;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
+using EasyTransition;
 
 public static class LeadTheWayObjectSetupTools
 {
@@ -27,12 +28,15 @@ public static class LeadTheWayObjectSetupTools
     private const string RepeatIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/repeat.png";
     private const string CloseIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/x.png";
     private const string SpeakerIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/speaker.png";
+    private const string MapIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/menu.png";
     private const string PoppinsBoldPath = "Assets/Art/UI/Fonts/Poppins-Bold.ttf";
     private const string GameplayMusicPath = "Assets/Sound/gameplay_background_music.mp3";
     private const string TeleportSoundPath = "Assets/Sound/SoundEffects/teleport_sound.mp3";
     private const string LevelSuccessSoundPath = "Assets/Sound/SoundEffects/level_success.mp3";
     private const string PlayerDeathSoundPath = "Assets/Sound/SoundEffects/death.mp3";
     private const string TeleportEffectPath = "Assets/Lana Studio/Hyper Casual FX/Prefabs/Area/Area_fire_red.prefab";
+    private const string TransitionTemplatePath = "Assets/EasyTransitions/Prefabs/TransitionTemplate.prefab";
+    private const string FadeTransitionPath = "Assets/EasyTransitions/Transitions/Fade/Fade.asset";
 
     [MenuItem("Tools/Lead The Way/Scene/Wire Current Scene References")]
     public static void WireCurrentSceneReferences()
@@ -43,6 +47,8 @@ public static class LeadTheWayObjectSetupTools
         var resultFlash = Object.FindAnyObjectByType<LevelResultFlashUI>(FindObjectsInactive.Include);
         var musicController = GetOrCreateGameplayMusicController();
         var teleportAudioSource = GetOrCreateNamedAudioSource(GetOrCreateGameSystems().transform, "Teleport Audio Source", 0f);
+        var transitionManager = GetOrCreateSceneTransitionManager();
+        var fadeTransition = AssetDatabase.LoadAssetAtPath<TransitionSettings>(FadeTransitionPath);
         var boardObjects = BoardManager.FindSceneBoardObjects();
         var changedCount = 0;
 
@@ -104,6 +110,7 @@ public static class LeadTheWayObjectSetupTools
             flowManager.ConfigureDeathCinematicCamera(deathCinematicCamera);
             flowManager.ConfigureTeleportEffect(AssetDatabase.LoadAssetAtPath<GameObject>(TeleportEffectPath));
             flowManager.ConfigureTeleportAudio(teleportAudioSource, AssetDatabase.LoadAssetAtPath<AudioClip>(TeleportSoundPath));
+            flowManager.ConfigureSceneTransition(transitionManager, fadeTransition);
             EditorUtility.SetDirty(flowManager);
             changedCount++;
         }
@@ -121,7 +128,7 @@ public static class LeadTheWayObjectSetupTools
         changedCount += WireInteractionCounters(flowManager);
         changedCount += WireResultFlashAudio(resultFlash);
         changedCount += WireButtonPressAudioSources();
-        changedCount += WirePauseMenus(musicController);
+        changedCount += WirePauseMenus(musicController, transitionManager, fadeTransition);
         if (musicController != null)
             changedCount++;
         if (introCameraTransition != null)
@@ -264,6 +271,8 @@ public static class LeadTheWayObjectSetupTools
         var canvas = EnsureGameplayCanvas();
         EnsureEventSystem();
         var musicController = GetOrCreateGameplayMusicController();
+        var transitionManager = GetOrCreateSceneTransitionManager();
+        var fadeTransition = AssetDatabase.LoadAssetAtPath<TransitionSettings>(FadeTransitionPath);
         var pauseUI = FindOrCreateRectChild(canvas.transform, "Pause UI");
         StretchToParent(pauseUI);
 
@@ -281,6 +290,7 @@ public static class LeadTheWayObjectSetupTools
 
         var resumeButton = EnsurePanelTextButton(panel, "Resume Button", "RESUME", PlayIconPath, new Vector2(0f, -145f));
         var restartButton = EnsurePanelTextButton(panel, "Restart Button", "RESTART", RepeatIconPath, new Vector2(0f, -210f));
+        var mapButton = EnsurePanelTextButton(panel, "Map Button", "MAP", MapIconPath, new Vector2(0f, -275f));
 
         var canvasGroup = overlay.GetComponent<CanvasGroup>();
         if (canvasGroup == null)
@@ -291,7 +301,19 @@ public static class LeadTheWayObjectSetupTools
             pauseMenu = Undo.AddComponent<PauseMenuUI>(pauseUI.gameObject);
 
         Undo.RecordObject(pauseMenu, "Wire Pause Menu");
-        pauseMenu.Configure(pauseButton, resumeButton, restartButton, closeButton, musicToggleButton, musicToggleIcon, musicController, overlay.gameObject, canvasGroup);
+        pauseMenu.Configure(
+            pauseButton,
+            resumeButton,
+            restartButton,
+            mapButton,
+            closeButton,
+            musicToggleButton,
+            musicToggleIcon,
+            musicController,
+            overlay.gameObject,
+            canvasGroup,
+            transitionManager,
+            fadeTransition);
 
         overlay.gameObject.SetActive(false);
         canvasGroup.alpha = 0f;
@@ -721,6 +743,32 @@ public static class LeadTheWayObjectSetupTools
         return controller;
     }
 
+    private static TransitionManager GetOrCreateSceneTransitionManager()
+    {
+        var manager = Object.FindAnyObjectByType<TransitionManager>(FindObjectsInactive.Include);
+        GameObject managerObject;
+        if (manager != null)
+        {
+            managerObject = manager.gameObject;
+        }
+        else
+        {
+            managerObject = new GameObject("Scene Transition Manager");
+            Undo.RegisterCreatedObjectUndo(managerObject, "Create Scene Transition Manager");
+            manager = Undo.AddComponent<TransitionManager>(managerObject);
+        }
+
+        managerObject.name = "Scene Transition Manager";
+        var transitionTemplate = AssetDatabase.LoadAssetAtPath<GameObject>(TransitionTemplatePath);
+        var serializedManager = new SerializedObject(manager);
+        serializedManager.FindProperty("transitionTemplate").objectReferenceValue = transitionTemplate;
+        serializedManager.ApplyModifiedPropertiesWithoutUndo();
+
+        EditorUtility.SetDirty(manager);
+        EditorUtility.SetDirty(managerObject);
+        return manager;
+    }
+
     private static AudioSource GetOrCreateNamedAudioSource(Transform parent, string name, float spatialBlend)
     {
         var child = FindOrCreateChild(parent, name);
@@ -991,7 +1039,7 @@ public static class LeadTheWayObjectSetupTools
     private static RectTransform EnsurePausePanel(RectTransform overlay)
     {
         var panel = FindOrCreateRectChild(overlay, "Pause Panel");
-        ConfigureRect(panel, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(390f, 310f));
+        ConfigureRect(panel, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(390f, 375f));
         var image = EnsureImage(panel.gameObject);
         image.sprite = LoadSprite(PanelSoftPath);
         image.type = Image.Type.Sliced;
@@ -1341,7 +1389,7 @@ public static class LeadTheWayObjectSetupTools
         return changedCount;
     }
 
-    private static int WirePauseMenus(GameplayMusicController musicController)
+    private static int WirePauseMenus(GameplayMusicController musicController, TransitionManager transitionManager, TransitionSettings sceneTransition)
     {
         var changedCount = 0;
         foreach (var pauseMenu in Object.FindObjectsByType<PauseMenuUI>(FindObjectsInactive.Include))
@@ -1350,6 +1398,7 @@ public static class LeadTheWayObjectSetupTools
             var pauseButton = FindChildComponent<Button>(root, "Pause Button");
             var resumeButton = FindChildComponent<Button>(root, "Resume Button");
             var restartButton = FindChildComponent<Button>(root, "Restart Button");
+            var mapButton = FindChildComponent<Button>(root, "Map Button");
             var closeButton = FindChildComponent<Button>(root, "Close Button");
             var musicButton = FindChildComponent<Button>(root, "Music Toggle Button");
             var musicIcon = musicButton != null ? FindChildComponent<Image>(musicButton.transform, "Icon") : null;
@@ -1364,12 +1413,15 @@ public static class LeadTheWayObjectSetupTools
                 pauseButton,
                 resumeButton,
                 restartButton,
+                mapButton,
                 closeButton,
                 musicButton,
                 musicIcon,
                 musicController,
                 overlay != null ? overlay.gameObject : null,
-                canvasGroup);
+                canvasGroup,
+                transitionManager,
+                sceneTransition);
 
             EditorUtility.SetDirty(pauseMenu);
             if (canvasGroup != null)
