@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
+using EasyTransition;
 
 public static class LeadTheWayMapPathTools
 {
@@ -13,6 +14,9 @@ public static class LeadTheWayMapPathTools
     private const string ArrowRightIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_right.png";
     private const string PanelSoftPath = "Assets/Art/UI/Sprites/PanelSoft.asset";
     private const string WorldMapPlayerPrefabPath = "Assets/Prefabs/Player/Player.prefab";
+    private const string WorldMapMusicPath = "Assets/Sound/worldmap_background_music.mp3";
+    private const string TransitionTemplatePath = "Assets/EasyTransitions/Prefabs/TransitionTemplate.prefab";
+    private const string FadeTransitionPath = "Assets/EasyTransitions/Transitions/Fade/Fade.asset";
     private const float MiniatureMapFieldOfView = 36f;
     private const float WorldMapPlayerVisualScale = 1f;
     private const float CameraLookAtHeightOffset = 2f;
@@ -79,6 +83,8 @@ public static class LeadTheWayMapPathTools
         var playerPath = FindMapPath("Player Path");
         var playerFollower = EnsureWorldMapPlayerFollower(playerPath);
         var cameraFollower = EnsureWorldMapCameraFollower(cameraPath, playerFollower != null ? EnsureCameraLookTarget(playerFollower.transform) : null);
+        var transitionManager = EnsureWorldMapTransitionManager();
+        var fadeTransition = AssetDatabase.LoadAssetAtPath<TransitionSettings>(FadeTransitionPath);
         navigator.Configure(
             cameraPath,
             playerPath,
@@ -91,7 +97,9 @@ public static class LeadTheWayMapPathTools
             label,
             panelImage,
             titleBackground);
+        navigator.ConfigureSceneTransition(transitionManager, fadeTransition);
 
+        EnsureWorldMapMusic();
         EnsureEventSystem();
         EditorUtility.SetDirty(navigatorObject);
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
@@ -99,6 +107,28 @@ public static class LeadTheWayMapPathTools
         EditorUtility.DisplayDialog(
             "Checkpoint Navigator UI",
             BuildNavigatorSetupMessage(canvas, navigatorObject, cameraPath, playerPath, cameraFollower, playerFollower),
+            "OK");
+    }
+
+    [MenuItem("Tools/Lead The Way/Map Path/Setup World Map Audio And Transition")]
+    public static void SetupWorldMapAudioAndTransition()
+    {
+        EnsureWorldMapMusic();
+        var manager = EnsureWorldMapTransitionManager();
+        var fadeTransition = AssetDatabase.LoadAssetAtPath<TransitionSettings>(FadeTransitionPath);
+
+        var navigator = Object.FindAnyObjectByType<MapCheckpointNavigatorUI>(FindObjectsInactive.Include);
+        if (navigator != null)
+        {
+            Undo.RecordObject(navigator, "Wire World Map Scene Transition");
+            navigator.ConfigureSceneTransition(manager, fadeTransition);
+            EditorUtility.SetDirty(navigator);
+        }
+
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        EditorUtility.DisplayDialog(
+            "World Map Audio And Transition",
+            "Created/repaired World Map Music and the EasyTransitions fade scene loader.",
             "OK");
     }
 
@@ -507,6 +537,60 @@ public static class LeadTheWayMapPathTools
 
         EditorUtility.SetDirty(visualObject);
         return movementAnimation;
+    }
+
+    private static GameplayMusicController EnsureWorldMapMusic()
+    {
+        var musicObject = GameObject.Find("World Map Music");
+        if (musicObject == null)
+        {
+            musicObject = new GameObject("World Map Music");
+            Undo.RegisterCreatedObjectUndo(musicObject, "Create World Map Music");
+        }
+
+        var audioSource = musicObject.GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = Undo.AddComponent<AudioSource>(musicObject);
+
+        var controller = musicObject.GetComponent<GameplayMusicController>();
+        if (controller == null)
+            controller = Undo.AddComponent<GameplayMusicController>(musicObject);
+
+        var musicClip = AssetDatabase.LoadAssetAtPath<AudioClip>(WorldMapMusicPath);
+        Undo.RecordObject(audioSource, "Configure World Map Music Source");
+        Undo.RecordObject(controller, "Configure World Map Music");
+        controller.Configure(musicClip, audioSource);
+
+        EditorUtility.SetDirty(audioSource);
+        EditorUtility.SetDirty(controller);
+        EditorUtility.SetDirty(musicObject);
+        return controller;
+    }
+
+    private static TransitionManager EnsureWorldMapTransitionManager()
+    {
+        var manager = Object.FindAnyObjectByType<TransitionManager>(FindObjectsInactive.Include);
+        GameObject managerObject;
+        if (manager != null)
+        {
+            managerObject = manager.gameObject;
+        }
+        else
+        {
+            managerObject = new GameObject("Scene Transition Manager");
+            Undo.RegisterCreatedObjectUndo(managerObject, "Create Scene Transition Manager");
+            manager = Undo.AddComponent<TransitionManager>(managerObject);
+        }
+
+        managerObject.name = "Scene Transition Manager";
+        var transitionTemplate = AssetDatabase.LoadAssetAtPath<GameObject>(TransitionTemplatePath);
+        var serializedManager = new SerializedObject(manager);
+        serializedManager.FindProperty("transitionTemplate").objectReferenceValue = transitionTemplate;
+        serializedManager.ApplyModifiedPropertiesWithoutUndo();
+
+        EditorUtility.SetDirty(manager);
+        EditorUtility.SetDirty(managerObject);
+        return manager;
     }
 
     private static Transform EnsureCameraLookTarget(Transform player)

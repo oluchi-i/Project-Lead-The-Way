@@ -188,6 +188,51 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4702470358741737361, guid: 0624f64a3b74ab24994fab43bd255501, type: 3}
   m_PrefabInstance: {fileID: 13971185}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &17101202
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 17101204}
+  - component: {fileID: 17101203}
+  m_Layer: 0
+  m_Name: Scene Transition Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &17101203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 17101202}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61430b0086307cc4da3ccc8d39ae88da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EasyTransition.TransitionManager
+  transitionTemplate: {fileID: 5276914992623515724, guid: 616d511151a6c554caddf1c754e4f91d, type: 3}
+--- !u!4 &17101204
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 17101202}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &29975916
 GameObject:
   m_ObjectHideFlags: 0
@@ -4203,6 +4248,18 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3519806281460526404, guid: f926e10a95617a34d9cef6bce5b0dd7c, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3519806281460526404, guid: f926e10a95617a34d9cef6bce5b0dd7c, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3519806281460526404, guid: f926e10a95617a34d9cef6bce5b0dd7c, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4727917936963264745, guid: f926e10a95617a34d9cef6bce5b0dd7c, type: 3}
       propertyPath: m_UseGravity
       value: 0
@@ -4232,22 +4289,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f926e10a95617a34d9cef6bce5b0dd7c, type: 3}
---- !u!114 &1323661367 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2752850266591196718, guid: f926e10a95617a34d9cef6bce5b0dd7c, type: 3}
-  m_PrefabInstance: {fileID: 1323661366}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1719d98849596954b97437c51d54e809, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
---- !u!4 &1323661368 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 2843815167469714159, guid: f926e10a95617a34d9cef6bce5b0dd7c, type: 3}
-  m_PrefabInstance: {fileID: 1323661366}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1359262024
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5382,6 +5423,153 @@ Transform:
   - {fileID: 1685586043}
   m_Father: {fileID: 1595543725}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1727616287
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1727616290}
+  - component: {fileID: 1727616289}
+  - component: {fileID: 1727616288}
+  m_Layer: 0
+  m_Name: World Map Music
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1727616288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1727616287}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05f2213c479d4c1495e9bbba1b6e9931, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameplayMusicController
+  musicClip: {fileID: 8300000, guid: 7270b21882b90ec4a92a40fd189d89d3, type: 3}
+  audioSource: {fileID: 1727616289}
+  volume: 0.42
+  playOnStart: 1
+  startMuted: 0
+--- !u!82 &1727616289
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1727616287}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: 7270b21882b90ec4a92a40fd189d89d3, type: 3}
+  m_PlayOnAwake: 0
+  m_Volume: 0.42
+  m_Pitch: 1
+  Loop: 1
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!4 &1727616290
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1727616287}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1751681550 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4702470358741737361, guid: 0624f64a3b74ab24994fab43bd255501, type: 3}
@@ -5525,6 +5713,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MapCheckpoint
   checkpointId: checkpoint-06
   displayName: Level 5
+--- !u!4 &1819811029 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3519806281460526404, guid: f926e10a95617a34d9cef6bce5b0dd7c, type: 3}
+  m_PrefabInstance: {fileID: 1323661366}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1827904211
 GameObject:
   m_ObjectHideFlags: 0
@@ -5637,6 +5830,10 @@ MonoBehaviour:
   checkpointLabel: {fileID: 1169042497}
   panelBackground: {fileID: 1830321696}
   titleBackground: {fileID: 1159454774}
+  levelSceneName: Level01
+  transitionManager: {fileID: 17101203}
+  sceneTransition: {fileID: 11400000, guid: 013263c83b6a84c4d95beaa8bd163ac8, type: 2}
+  sceneTransitionDelay: 0
   currentCheckpointIndex: 0
   transitionDuration: 4
   snapFollowersToCurrentCheckpointOnStart: 1
@@ -6010,7 +6207,7 @@ MonoBehaviour:
   turnBeforeMove: 1
   turnDuration: 0.28
   initialFacingDirection: {x: 0, y: 0, z: -1}
-  movementAnimation: {fileID: 1323661367}
+  movementAnimation: {fileID: 0}
   checkpointReached:
     m_PersistentCalls:
       m_Calls: []
@@ -6027,8 +6224,8 @@ Transform:
   m_LocalScale: {x: 0.5786394, y: 0.5786394, z: 0.5786394}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1323661368}
   - {fileID: 547888148}
+  - {fileID: 1819811029}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1913222938
@@ -6751,3 +6948,5 @@ SceneRoots:
   - {fileID: 788674414}
   - {fileID: 424982339}
   - {fileID: 1888312495}
+  - {fileID: 1727616290}
+  - {fileID: 17101204}

@@ -1,7 +1,9 @@
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using EasyTransition;
 
 public sealed class MapCheckpointNavigatorUI : MonoBehaviour
 {
@@ -16,6 +18,10 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
     [SerializeField] private Text checkpointLabel;
     [SerializeField] private Image panelBackground;
     [SerializeField] private Image titleBackground;
+    [SerializeField] private string levelSceneName = "Level01";
+    [SerializeField] private TransitionManager transitionManager;
+    [SerializeField] private TransitionSettings sceneTransition;
+    [SerializeField, Min(0f)] private float sceneTransitionDelay = 0f;
     [SerializeField] private int currentCheckpointIndex;
     [Header("Timing")]
     [Tooltip("Central duration used when the camera and player move between map checkpoints.")]
@@ -27,6 +33,7 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
     private bool waitingForMove;
     private bool mapStarted;
     private bool introMoveInProgress;
+    private bool loadingScene;
 
     private void Awake()
     {
@@ -52,6 +59,12 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         }
 
         Refresh();
+    }
+
+    public void ConfigureSceneTransition(TransitionManager manager, TransitionSettings transition)
+    {
+        transitionManager = manager;
+        sceneTransition = transition;
     }
 
     private void Update()
@@ -149,11 +162,35 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
 
     public void PlayCurrentLevel()
     {
-        if (!mapStarted || waitingForMove || IsMoving())
+        if (!mapStarted || waitingForMove || IsMoving() || loadingScene)
             return;
 
         levelPlayRequested?.Invoke();
-        Debug.Log("Lead The Way Map: Play requested for " + GetCheckpointText() + ".");
+        LoadCurrentLevel();
+    }
+
+    private void LoadCurrentLevel()
+    {
+        if (string.IsNullOrWhiteSpace(levelSceneName))
+        {
+            Debug.LogWarning("Lead The Way Map: No level scene name is configured on MapCheckpointNavigatorUI.", this);
+            return;
+        }
+
+        Debug.Log("Lead The Way Map: Loading " + levelSceneName + " for " + GetCheckpointText() + ".");
+        loadingScene = true;
+        Refresh();
+
+        if (transitionManager == null)
+            transitionManager = FindAnyObjectByType<TransitionManager>();
+
+        if (transitionManager != null && sceneTransition != null)
+        {
+            transitionManager.Transition(levelSceneName, sceneTransition, sceneTransitionDelay);
+            return;
+        }
+
+        SceneManager.LoadScene(levelSceneName);
     }
 
     private void MoveTo(int checkpointIndex)
@@ -221,7 +258,7 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         if (playButton != null)
         {
             playButton.gameObject.SetActive(showLevelNavigation);
-            playButton.interactable = showLevelNavigation;
+            playButton.interactable = showLevelNavigation && !loadingScene;
         }
     }
 

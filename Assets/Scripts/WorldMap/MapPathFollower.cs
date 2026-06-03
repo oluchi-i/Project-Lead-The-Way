@@ -22,6 +22,11 @@ public sealed class MapPathFollower : MonoBehaviour
 
     public bool IsMoving => activeMove != null;
 
+    private void Awake()
+    {
+        EnsureMovementAnimation();
+    }
+
     private void Start()
     {
         if (path != null)
@@ -41,6 +46,8 @@ public sealed class MapPathFollower : MonoBehaviour
     public void ConfigureMovementAnimation(PlayerMovement animation)
     {
         movementAnimation = animation;
+        if (movementAnimation != null)
+            movementAnimation.ConfigureForBoardMovement();
     }
 
     public void ConfigureMovementStyle(bool shouldTurnBeforeMove, Vector3 startFacingDirection)
@@ -78,7 +85,7 @@ public sealed class MapPathFollower : MonoBehaviour
         if (activeMove != null)
         {
             StopCoroutine(activeMove);
-            movementAnimation?.SetWalking(false);
+            SetMovementWalking(false);
         }
 
         activeMove = StartCoroutine(MoveRoutine(Mathf.Clamp01(targetProgress), Mathf.Max(0.01f, duration)));
@@ -95,7 +102,7 @@ public sealed class MapPathFollower : MonoBehaviour
             activeMove = null;
         }
 
-        movementAnimation?.SetWalking(false);
+        SetMovementWalking(false);
         currentProgress = Mathf.Clamp01(targetProgress);
         ApplyProgress(currentProgress, true);
     }
@@ -114,7 +121,7 @@ public sealed class MapPathFollower : MonoBehaviour
             yield return TurnTowardRoutine(travelDirection, boundedTurnDuration);
         }
 
-        movementAnimation?.SetWalking(true);
+        SetMovementWalking(true);
 
         while (elapsed < movementDuration)
         {
@@ -134,7 +141,7 @@ public sealed class MapPathFollower : MonoBehaviour
             RotateToward(finalFacingDirection, true);
 
         activeMove = null;
-        movementAnimation?.SetWalking(false);
+        SetMovementWalking(false);
         checkpointReached?.Invoke();
     }
 
@@ -160,7 +167,25 @@ public sealed class MapPathFollower : MonoBehaviour
 
     private void OnDisable()
     {
-        movementAnimation?.SetWalking(false);
+        SetMovementWalking(false);
+    }
+
+    private void EnsureMovementAnimation()
+    {
+        if (movementAnimation == null)
+            movementAnimation = GetComponentInChildren<PlayerMovement>(true);
+
+        if (movementAnimation != null)
+            movementAnimation.ConfigureForBoardMovement();
+    }
+
+    private void SetMovementWalking(bool isWalking)
+    {
+        EnsureMovementAnimation();
+        if (movementAnimation == null)
+            return;
+
+        movementAnimation.SetWalking(isWalking);
     }
 
     private void LateUpdate()

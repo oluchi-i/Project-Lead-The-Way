@@ -85,6 +85,9 @@ public class PlayerMovement : MonoBehaviour
         if (!isActiveAndEnabled)
             return;
 
+        if (!Application.isPlaying)
+            return;
+
         if (state == State.Death)
         {
             DeathAnimation();
