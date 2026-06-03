@@ -2391,14 +2391,18 @@ MonoBehaviour:
   legSwingAngleLim: 30
   speed: 1
   blendSpeed: 5
-  explosionForce: 30
-  upwardForce: 5
+  explosionForce: 1.15
+  upwardForce: 0.08
   bodyParts:
   - {fileID: 5487314507521741110}
   - {fileID: 1222833035706457630}
   - {fileID: 2461211242946498436}
   - {fileID: 5452248492264287807}
   - {fileID: 4991207648941641720}
+  usePhysicsDeath: 1
+  deathVisualDuration: 0.45
+  deathTiltAngle: 72
+  deathSquash: 0.18
 --- !u!1 &4689583347878357338
 GameObject:
   m_ObjectHideFlags: 0

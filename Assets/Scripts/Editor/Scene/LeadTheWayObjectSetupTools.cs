@@ -74,7 +74,7 @@ public static class LeadTheWayObjectSetupTools
             destinationDoor = FindBoardObject(boardObjects, item => item.ObjectType == BoardObjectType.Door && item != startDoor);
 
         var introCameraTransition = Object.FindAnyObjectByType<IntroCameraTransition>(FindObjectsInactive.Include);
-        var deathCinematicCamera = GetOrCreateDeathCinematicCamera();
+        var deathCinematicCamera = GetOrCreateDeathCinematicCamera(boardManager);
 
         if (playerMover != null)
         {
@@ -427,7 +427,15 @@ public static class LeadTheWayObjectSetupTools
             var serializedMovement = new SerializedObject(movement);
             var usePhysicsDeath = serializedMovement.FindProperty("usePhysicsDeath");
             if (usePhysicsDeath != null)
-                usePhysicsDeath.boolValue = false;
+                usePhysicsDeath.boolValue = true;
+
+            var explosionForce = serializedMovement.FindProperty("explosionForce");
+            if (explosionForce != null && (explosionForce.floatValue <= 0f || explosionForce.floatValue > 2.2f))
+                explosionForce.floatValue = 1.15f;
+
+            var upwardForce = serializedMovement.FindProperty("upwardForce");
+            if (upwardForce != null && (upwardForce.floatValue < 0f || upwardForce.floatValue > 0.35f))
+                upwardForce.floatValue = 0.08f;
 
             serializedMovement.ApplyModifiedProperties();
             EditorUtility.SetDirty(movement);
@@ -440,6 +448,15 @@ public static class LeadTheWayObjectSetupTools
             body.isKinematic = true;
             body.useGravity = false;
             EditorUtility.SetDirty(body);
+            changedCount++;
+        }
+
+        foreach (var meshCollider in playerMover.GetComponentsInChildren<MeshCollider>(true))
+        {
+            Undo.RecordObject(meshCollider, "Repair Player Mesh Colliders");
+            meshCollider.convex = true;
+            meshCollider.enabled = false;
+            EditorUtility.SetDirty(meshCollider);
             changedCount++;
         }
 
@@ -463,11 +480,16 @@ public static class LeadTheWayObjectSetupTools
         return Undo.AddComponent<InteractionFlowManager>(GetOrCreateGameSystems());
     }
 
-    private static DeathCinematicCamera GetOrCreateDeathCinematicCamera()
+    private static DeathCinematicCamera GetOrCreateDeathCinematicCamera(BoardManager boardManager)
     {
         var existing = Object.FindAnyObjectByType<DeathCinematicCamera>(FindObjectsInactive.Include);
         if (existing != null)
+        {
+            Undo.RecordObject(existing, "Wire Death Cinematic Camera");
+            existing.Configure(existing.GetComponent<Camera>() != null ? existing.GetComponent<Camera>() : Camera.main, boardManager);
+            EditorUtility.SetDirty(existing);
             return existing;
+        }
 
         var camera = Camera.main;
         if (camera == null)
@@ -477,7 +499,7 @@ public static class LeadTheWayObjectSetupTools
             return null;
 
         var cinematicCamera = Undo.AddComponent<DeathCinematicCamera>(camera.gameObject);
-        cinematicCamera.Configure(camera);
+        cinematicCamera.Configure(camera, boardManager);
         EditorUtility.SetDirty(camera.gameObject);
         EditorUtility.SetDirty(cinematicCamera);
         return cinematicCamera;

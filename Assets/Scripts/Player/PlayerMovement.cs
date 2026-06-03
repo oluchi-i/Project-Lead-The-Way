@@ -39,7 +39,7 @@ public class PlayerMovement : MonoBehaviour
     public float explosionForce;
     public float upwardForce;
     public Transform[] bodyParts;
-    [SerializeField] private bool usePhysicsDeath = false;
+    [SerializeField] private bool usePhysicsDeath = true;
     [SerializeField] private float deathVisualDuration = 0.45f;
     [SerializeField] private float deathTiltAngle = 72f;
     [SerializeField] private float deathSquash = 0.18f;
@@ -115,11 +115,11 @@ public class PlayerMovement : MonoBehaviour
         if (transform.childCount > 0)
             ReleaseBodyPart(transform.GetChild(0));
 
-        if (bodyParts == null)
-            return;
-
-        foreach (var part in bodyParts)
-            ReleaseBodyPart(part);
+        if (bodyParts != null)
+        {
+            foreach (var part in bodyParts)
+                ReleaseBodyPart(part);
+        }
     }
 
     private void ReleaseBodyPart(Transform part)
@@ -129,9 +129,13 @@ public class PlayerMovement : MonoBehaviour
 
         part.SetParent(null);
 
-        var collider = part.GetComponentInChildren<Collider>();
-        if (collider != null)
+        foreach (var collider in part.GetComponentsInChildren<Collider>())
+        {
+            if (collider is MeshCollider meshCollider)
+                meshCollider.convex = true;
+
             collider.enabled = true;
+        }
 
         var partRigidbody = part.GetComponent<Rigidbody>();
         if (partRigidbody == null)
@@ -140,12 +144,16 @@ public class PlayerMovement : MonoBehaviour
         partRigidbody.isKinematic = false;
         partRigidbody.useGravity = true;
 
-        var force = explosionForce > 0f ? explosionForce : 3.5f;
-        var lift = upwardForce > 0f ? upwardForce : 1.2f;
-        var blastDirection = new Vector3(Random.Range(-1f, 1f), Random.Range(0.2f, 1f) * lift, Random.Range(-1f, 1f)).normalized;
-        partRigidbody.AddForce(blastDirection * force * Random.Range(0.5f, 1.5f), ForceMode.Impulse);
+        var force = Mathf.Clamp(explosionForce > 0f ? explosionForce : 1.15f, 0.05f, 2.2f);
+        var lift = Mathf.Clamp(upwardForce > 0f ? upwardForce : 0.08f, 0f, 0.35f);
+        var horizontalDirection = new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f));
+        if (horizontalDirection.sqrMagnitude < 0.001f)
+            horizontalDirection = Vector3.right;
 
-        var randomSpin = new Vector3(Random.Range(-100, 100), Random.Range(-100, 100), Random.Range(-100, 100));
+        var blastDirection = (horizontalDirection.normalized + Vector3.up * lift).normalized;
+        partRigidbody.AddForce(blastDirection * force * Random.Range(0.55f, 0.85f), ForceMode.Impulse);
+
+        var randomSpin = new Vector3(Random.Range(-14f, 14f), Random.Range(-18f, 18f), Random.Range(-14f, 14f));
         partRigidbody.AddTorque(randomSpin, ForceMode.Impulse);
     }
 

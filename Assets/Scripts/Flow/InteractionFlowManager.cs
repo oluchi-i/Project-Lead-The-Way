@@ -804,6 +804,9 @@ public class InteractionFlowManager : MonoBehaviour
         }
 
         CompleteLevel(false);
+        if (deathCinematicCamera != null)
+            deathCinematicCamera.ClearShotLock();
+
         deathCinematicRoutine = null;
     }
 
