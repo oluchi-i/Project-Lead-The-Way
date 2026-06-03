@@ -39,7 +39,6 @@ public static class LeadTheWayMapPathTools
     }
 
     [MenuItem("Tools/Lead The Way/Map Path/Setup Checkpoint Navigator UI")]
-    [MenuItem("Tools/Lead The Way/Map Path/Create Navigator Canvas UI")]
     public static void SetupCheckpointNavigatorUI()
     {
         var canvas = EnsureWorldMapCanvas();
@@ -365,24 +364,6 @@ public static class LeadTheWayMapPathTools
         var controlPoint = Undo.AddComponent<MapPathControlPoint>(pointObject);
         controlPoint.Configure("control-point");
         return controlPoint;
-    }
-
-    private static void RenameControlPoints(Transform path)
-    {
-        var controlIndex = 1;
-        for (var i = 0; i < path.childCount; i++)
-        {
-            var child = path.GetChild(i);
-            var controlPoint = child.GetComponent<MapPathControlPoint>();
-            if (controlPoint == null)
-                continue;
-
-            var name = "Control Point " + controlIndex.ToString("00");
-            child.name = name;
-            controlPoint.Configure("control-point-" + controlIndex.ToString("00"));
-            EditorUtility.SetDirty(controlPoint);
-            controlIndex++;
-        }
     }
 
     private static void RemoveVisualComponents(GameObject pointObject)
@@ -943,14 +924,4 @@ public static class LeadTheWayMapPathTools
         return null;
     }
 
-    private static MapPathFollower FindFollower(string namePart)
-    {
-        foreach (var follower in Object.FindObjectsByType<MapPathFollower>(FindObjectsInactive.Include))
-        {
-            if (follower.name.ToLowerInvariant().Contains(namePart))
-                return follower;
-        }
-
-        return null;
-    }
 }

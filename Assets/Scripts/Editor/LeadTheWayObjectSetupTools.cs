@@ -15,7 +15,7 @@ public static class LeadTheWayObjectSetupTools
     private const string ArrowDownIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_down.png";
     private const string BadgeSoftPath = "Assets/Art/UI/Sprites/BadgeSoft.asset";
 
-    [MenuItem("Tools/Lead The Way/Optimize/Wire Current Scene References")]
+    [MenuItem("Tools/Lead The Way/Scene/Wire Current Scene References")]
     public static void WireCurrentSceneReferences()
     {
         var boardManager = Object.FindAnyObjectByType<BoardManager>();
@@ -97,32 +97,6 @@ public static class LeadTheWayObjectSetupTools
             "Wire Current Scene References",
             $"Finished wiring scene references.\n\nUpdated {changedCount} component(s)/asset reference(s).\n\nIf Console shows missing-reference warnings after this, that object likely needs a deliberate scene/prefab setup decision.",
             "OK");
-    }
-
-    public static void WireControlUIAudioSource()
-    {
-        var controlUI = Object.FindAnyObjectByType<SelectionPanelsUI>(FindObjectsInactive.Include);
-        if (controlUI == null)
-        {
-            EditorUtility.DisplayDialog("Wire Control UI Audio Source", "No SelectionPanelsUI was found in the open scene.", "OK");
-            return;
-        }
-
-        var audioSource = controlUI.GetComponent<AudioSource>();
-        if (audioSource == null)
-            audioSource = Undo.AddComponent<AudioSource>(controlUI.gameObject);
-
-        var serializedUI = new SerializedObject(controlUI);
-        serializedUI.FindProperty("audioSource").objectReferenceValue = audioSource;
-        serializedUI.ApplyModifiedProperties();
-
-        EditorUtility.SetDirty(controlUI);
-        EditorUtility.SetDirty(audioSource);
-        EditorSceneManager.MarkSceneDirty(controlUI.gameObject.scene);
-
-        Selection.activeGameObject = controlUI.gameObject;
-        EditorGUIUtility.PingObject(controlUI.gameObject);
-        EditorUtility.DisplayDialog("Wire Control UI Audio Source", $"Wired {audioSource.name}'s AudioSource to SelectionPanelsUI.", "OK");
     }
 
     [MenuItem("Tools/Lead The Way/Board/Setup Selected Movable Objects")]
