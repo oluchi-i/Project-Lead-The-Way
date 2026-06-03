@@ -78,10 +78,14 @@ public static class LeadTheWayObjectSetupTools
 
         if (playerMover != null)
         {
+            if (playerObject == null)
+                playerObject = GetOrAddComponent<BoardObject>(playerMover.gameObject);
+
             Undo.RecordObject(playerMover, "Wire Player Mover");
             playerMover.Configure(boardManager, playerObject);
             EditorUtility.SetDirty(playerMover);
             changedCount++;
+            changedCount += RepairPlayerForBoardGameplay(playerMover, boardManager, false);
         }
 
         if (flowManager != null)
@@ -129,6 +133,28 @@ public static class LeadTheWayObjectSetupTools
         EditorUtility.DisplayDialog(
             "Wire Current Scene References",
             $"Finished wiring scene references.\n\nUpdated {changedCount} component(s)/asset reference(s).\n\nIf Console shows missing-reference warnings after this, that object likely needs a deliberate scene/prefab setup decision.",
+            "OK");
+    }
+
+    [MenuItem("Tools/Lead The Way/Scene/Repair Player For Board Gameplay")]
+    public static void RepairPlayerForBoardGameplay()
+    {
+        var boardManager = Object.FindAnyObjectByType<BoardManager>();
+        var playerMover = Object.FindAnyObjectByType<BoardPlayerMover>(FindObjectsInactive.Include);
+        if (playerMover == null)
+        {
+            EditorUtility.DisplayDialog("Repair Player For Board Gameplay", "Could not find a BoardPlayerMover in the current scene.", "OK");
+            return;
+        }
+
+        var changedCount = RepairPlayerForBoardGameplay(playerMover, boardManager, true);
+        var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        if (activeScene.IsValid())
+            EditorSceneManager.MarkSceneDirty(activeScene);
+
+        EditorUtility.DisplayDialog(
+            "Repair Player For Board Gameplay",
+            $"Repaired player board wiring and visual physics safety.\n\nUpdated {changedCount} component(s).",
             "OK");
     }
 
@@ -373,6 +399,51 @@ public static class LeadTheWayObjectSetupTools
             return existing;
 
         return Undo.AddComponent<T>(target);
+    }
+
+    private static int RepairPlayerForBoardGameplay(BoardPlayerMover playerMover, BoardManager boardManager, bool configureMover)
+    {
+        if (playerMover == null)
+            return 0;
+
+        var changedCount = 0;
+        var boardObject = GetOrAddComponent<BoardObject>(playerMover.gameObject);
+        Undo.RecordObject(boardObject, "Repair Player Board Object");
+        boardObject.Configure(BoardObjectType.Player, true, true, true);
+        EditorUtility.SetDirty(boardObject);
+        changedCount++;
+
+        if (configureMover)
+        {
+            Undo.RecordObject(playerMover, "Repair Player Mover");
+            playerMover.Configure(boardManager, boardObject);
+            EditorUtility.SetDirty(playerMover);
+            changedCount++;
+        }
+
+        var movement = playerMover.GetComponentInChildren<PlayerMovement>(true);
+        if (movement != null)
+        {
+            var serializedMovement = new SerializedObject(movement);
+            var usePhysicsDeath = serializedMovement.FindProperty("usePhysicsDeath");
+            if (usePhysicsDeath != null)
+                usePhysicsDeath.boolValue = false;
+
+            serializedMovement.ApplyModifiedProperties();
+            EditorUtility.SetDirty(movement);
+            changedCount++;
+        }
+
+        foreach (var body in playerMover.GetComponentsInChildren<Rigidbody>(true))
+        {
+            Undo.RecordObject(body, "Repair Player Physics");
+            body.isKinematic = true;
+            body.useGravity = false;
+            EditorUtility.SetDirty(body);
+            changedCount++;
+        }
+
+        return changedCount;
     }
 
     private static void RemoveComponentIfPresent<T>(GameObject target, string undoName) where T : Component

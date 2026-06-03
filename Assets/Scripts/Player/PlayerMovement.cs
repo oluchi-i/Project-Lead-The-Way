@@ -39,16 +39,27 @@ public class PlayerMovement : MonoBehaviour
     public float explosionForce;
     public float upwardForce;
     public Transform[] bodyParts;
+    [SerializeField] private bool usePhysicsDeath = false;
+    [SerializeField] private float deathVisualDuration = 0.45f;
+    [SerializeField] private float deathTiltAngle = 72f;
+    [SerializeField] private float deathSquash = 0.18f;
+
     private bool isDead;
+    private Vector3 originalScale;
+    private Quaternion originalRotation;
+    private bool cachedOriginalPose;
 
     private void Awake()
     {
         CacheLimbReferences();
+        CacheOriginalPose();
+        ConfigureForBoardMovement();
         state = State.Idle;
     }
 
     public void ConfigureForBoardMovement()
     {
+        DisableVisualPhysics();
         SetWalking(false);
     }
 
@@ -89,6 +100,18 @@ public class PlayerMovement : MonoBehaviour
         isDead = true;
         SetWalking(false);
 
+        if (animationRoutine != null)
+        {
+            StopCoroutine(animationRoutine);
+            animationRoutine = null;
+        }
+
+        if (!usePhysicsDeath)
+        {
+            animationRoutine = StartCoroutine(BoardDeathAnimation());
+            return;
+        }
+
         if (transform.childCount > 0)
             ReleaseBodyPart(transform.GetChild(0));
 
@@ -124,6 +147,47 @@ public class PlayerMovement : MonoBehaviour
 
         var randomSpin = new Vector3(Random.Range(-100, 100), Random.Range(-100, 100), Random.Range(-100, 100));
         partRigidbody.AddTorque(randomSpin, ForceMode.Impulse);
+    }
+
+    private IEnumerator BoardDeathAnimation()
+    {
+        CacheOriginalPose();
+        DisableVisualPhysics();
+
+        var startScale = transform.localScale;
+        var startRotation = transform.localRotation;
+        var targetScale = new Vector3(
+            originalScale.x,
+            Mathf.Max(0.01f, originalScale.y * Mathf.Clamp01(deathSquash)),
+            originalScale.z);
+        var targetRotation = startRotation * Quaternion.Euler(0f, 0f, -deathTiltAngle);
+        var elapsed = 0f;
+        var duration = Mathf.Max(0.01f, deathVisualDuration);
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            var t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+            transform.localScale = Vector3.Lerp(startScale, targetScale, t);
+            transform.localRotation = Quaternion.Slerp(startRotation, targetRotation, t);
+            yield return null;
+        }
+
+        transform.localScale = targetScale;
+        transform.localRotation = targetRotation;
+        animationRoutine = null;
+    }
+
+    private void DisableVisualPhysics()
+    {
+        foreach (var body in GetComponentsInChildren<Rigidbody>(true))
+        {
+            body.isKinematic = true;
+            body.useGravity = false;
+        }
+
+        foreach (var collider in GetComponentsInChildren<Collider>(true))
+            collider.enabled = false;
     }
 
     private IEnumerator WalkAnimation()
@@ -201,6 +265,16 @@ public class PlayerMovement : MonoBehaviour
 
         if (rightLegTransform != null)
             rightLegRestRotation = rightLegTransform.localRotation;
+    }
+
+    private void CacheOriginalPose()
+    {
+        if (cachedOriginalPose)
+            return;
+
+        originalScale = transform.localScale;
+        originalRotation = transform.localRotation;
+        cachedOriginalPose = true;
     }
 
     private bool HasLimbReferences()

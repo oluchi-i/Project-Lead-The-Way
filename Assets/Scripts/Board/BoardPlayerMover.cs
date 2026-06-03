@@ -16,6 +16,8 @@ public class BoardPlayerMover : MonoBehaviour
     private bool loggedMissingReferences;
 
     public bool IsMoving => isMoving;
+    public PlayerMovement WalkAnimation => walkAnimation;
+    public Transform VisualRoot => walkAnimation != null ? walkAnimation.transform : transform;
 
     private void Awake()
     {
@@ -27,13 +29,19 @@ public class BoardPlayerMover : MonoBehaviour
             body.isKinematic = true;
             body.useGravity = false;
         }
+
+        if (walkAnimation != null)
+            walkAnimation.ConfigureForBoardMovement();
     }
 
     public void Configure(BoardManager newBoardManager, BoardObject newBoardObject)
     {
         boardManager = newBoardManager;
         boardObject = newBoardObject;
-        walkAnimation = GetComponent<PlayerMovement>();
+        walkAnimation = FindWalkAnimation();
+
+        if (walkAnimation != null)
+            walkAnimation.ConfigureForBoardMovement();
     }
 
     public bool TryStep(Vector2Int boardDirection)
@@ -217,12 +225,18 @@ public class BoardPlayerMover : MonoBehaviour
             boardObject = GetComponent<BoardObject>();
 
         if (walkAnimation == null)
-            walkAnimation = GetComponent<PlayerMovement>();
+            walkAnimation = FindWalkAnimation();
 
         if (!loggedMissingReferences && (boardManager == null || boardObject == null))
         {
             loggedMissingReferences = true;
             Debug.LogWarning("BoardPlayerMover is missing required scene references. Run Tools > Lead The Way > Scene > Wire Current Scene References.", this);
         }
+    }
+
+    private PlayerMovement FindWalkAnimation()
+    {
+        var animation = GetComponent<PlayerMovement>();
+        return animation != null ? animation : GetComponentInChildren<PlayerMovement>(true);
     }
 }

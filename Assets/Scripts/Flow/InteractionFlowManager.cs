@@ -54,6 +54,7 @@ public class InteractionFlowManager : MonoBehaviour
     private bool loggedMissingReferences;
     private Vector3 originalPlayerScale = Vector3.one;
     private bool cachedOriginalPlayerScale;
+    private Transform cachedPlayerVisualRoot;
 
     private static readonly Vector2Int[] Directions =
     {
@@ -94,6 +95,8 @@ public class InteractionFlowManager : MonoBehaviour
         playerObject = newPlayerObject;
         destinationDoor = newDestinationDoor;
         destinationDoorScript = null;
+        cachedPlayerVisualRoot = null;
+        cachedOriginalPlayerScale = false;
     }
 
     public void ConfigureLevelFlow(BoardObject newStartTile, BoardObject newStartDoor, BoardObject newDestinationDoor)
@@ -113,6 +116,8 @@ public class InteractionFlowManager : MonoBehaviour
     public void ConfigurePlayerDeathAnimation(PlayerMovement newPlayerDeathAnimation)
     {
         playerDeathAnimation = newPlayerDeathAnimation;
+        cachedPlayerVisualRoot = null;
+        cachedOriginalPlayerScale = false;
     }
 
     public void ConfigureIntroCameraTransition(IntroCameraTransition newIntroCameraTransition)
@@ -646,29 +651,55 @@ public class InteractionFlowManager : MonoBehaviour
 
     private void CacheOriginalPlayerScale()
     {
-        if (cachedOriginalPlayerScale || playerMover == null)
+        if (cachedOriginalPlayerScale)
             return;
 
-        originalPlayerScale = playerMover.transform.localScale;
+        var visualRoot = GetPlayerVisualRoot();
+        if (visualRoot == null)
+            return;
+
+        originalPlayerScale = visualRoot.localScale;
         cachedOriginalPlayerScale = true;
     }
 
     private void SetPlayerScale(float progress)
     {
-        if (playerMover == null)
+        var visualRoot = GetPlayerVisualRoot();
+        if (visualRoot == null)
             return;
 
         CacheOriginalPlayerScale();
-        playerMover.transform.localScale = Vector3.Lerp(Vector3.zero, originalPlayerScale, Mathf.Clamp01(progress));
+        visualRoot.localScale = Vector3.Lerp(Vector3.zero, originalPlayerScale, Mathf.Clamp01(progress));
     }
 
     private void SetPlayerVisible(bool visible)
     {
-        if (playerMover == null)
+        var visualRoot = GetPlayerVisualRoot();
+        if (visualRoot == null)
             return;
 
-        foreach (var renderer in playerMover.GetComponentsInChildren<Renderer>(true))
+        foreach (var renderer in visualRoot.GetComponentsInChildren<Renderer>(true))
             renderer.enabled = visible;
+    }
+
+    private Transform GetPlayerVisualRoot()
+    {
+        if (cachedPlayerVisualRoot != null)
+            return cachedPlayerVisualRoot;
+
+        if (playerDeathAnimation != null)
+        {
+            cachedPlayerVisualRoot = playerDeathAnimation.transform;
+            return cachedPlayerVisualRoot;
+        }
+
+        if (playerMover != null)
+        {
+            cachedPlayerVisualRoot = playerMover.VisualRoot;
+            return cachedPlayerVisualRoot;
+        }
+
+        return null;
     }
 
     private void PlayPlayerDeathAnimation()
