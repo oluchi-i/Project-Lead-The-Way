@@ -26,6 +26,7 @@ public static class LeadTheWayObjectSetupTools
         var flowManager = Object.FindAnyObjectByType<InteractionFlowManager>();
         var playerMover = Object.FindAnyObjectByType<BoardPlayerMover>();
         var resultFlash = Object.FindAnyObjectByType<LevelResultFlashUI>(FindObjectsInactive.Include);
+        var deathCinematicCamera = GetOrCreateDeathCinematicCamera();
         var boardObjects = BoardManager.FindSceneBoardObjects();
         var changedCount = 0;
 
@@ -76,6 +77,7 @@ public static class LeadTheWayObjectSetupTools
             flowManager.ConfigureLevelFlow(startTile, startDoor, destinationDoor);
             flowManager.ConfigureResultFlash(resultFlash);
             flowManager.ConfigurePlayerDeathAnimation(playerDeathAnimation);
+            flowManager.ConfigureDeathCinematicCamera(deathCinematicCamera);
             EditorUtility.SetDirty(flowManager);
             changedCount++;
         }
@@ -92,6 +94,8 @@ public static class LeadTheWayObjectSetupTools
         changedCount += WireControlUIs(flowManager);
         changedCount += WireInteractionCounters(flowManager);
         changedCount += WireButtonPressAudioSources();
+        if (deathCinematicCamera != null)
+            changedCount++;
 
         if (boardManager != null)
         {
@@ -188,6 +192,26 @@ public static class LeadTheWayObjectSetupTools
         return Undo.AddComponent<InteractionFlowManager>(GetOrCreateGameSystems());
     }
 
+    private static DeathCinematicCamera GetOrCreateDeathCinematicCamera()
+    {
+        var existing = Object.FindAnyObjectByType<DeathCinematicCamera>(FindObjectsInactive.Include);
+        if (existing != null)
+            return existing;
+
+        var camera = Camera.main;
+        if (camera == null)
+            camera = Object.FindAnyObjectByType<Camera>(FindObjectsInactive.Include);
+
+        if (camera == null)
+            return null;
+
+        var cinematicCamera = Undo.AddComponent<DeathCinematicCamera>(camera.gameObject);
+        cinematicCamera.Configure(camera);
+        EditorUtility.SetDirty(camera.gameObject);
+        EditorUtility.SetDirty(cinematicCamera);
+        return cinematicCamera;
+    }
+
     private static GameObject GetOrCreateGameSystems()
     {
         var systems = GameObject.Find("Game Systems");
@@ -270,6 +294,10 @@ public static class LeadTheWayObjectSetupTools
         var navigationSprite = AssetDatabase.LoadAssetAtPath<Sprite>(BadgeSoftPath);
         foreach (var controlUI in Object.FindObjectsByType<SelectionPanelsUI>(FindObjectsInactive.Include))
         {
+            var canvasGroup = controlUI.GetComponent<CanvasGroup>();
+            if (canvasGroup == null)
+                canvasGroup = Undo.AddComponent<CanvasGroup>(controlUI.gameObject);
+
             var audioSource = controlUI.GetComponent<AudioSource>();
             if (audioSource == null)
                 audioSource = Undo.AddComponent<AudioSource>(controlUI.gameObject);
@@ -278,6 +306,7 @@ public static class LeadTheWayObjectSetupTools
             audioSource.spatialBlend = 0f;
 
             var serializedUI = new SerializedObject(controlUI);
+            SetObject(serializedUI, "canvasGroup", canvasGroup);
             SetObject(serializedUI, "audioSource", audioSource);
             SetObject(serializedUI, "interactionFlowManager", flowManager);
             SetObjectIfPresent(serializedUI, "objectPreviousPageButton", FindChildComponent<Button>(controlUI.transform, "Previous Object Page"));
@@ -286,6 +315,7 @@ public static class LeadTheWayObjectSetupTools
             SetObjectIfPresent(serializedUI, "navigationButtonSprite", navigationSprite);
             serializedUI.ApplyModifiedProperties();
 
+            EditorUtility.SetDirty(canvasGroup);
             EditorUtility.SetDirty(audioSource);
             EditorUtility.SetDirty(controlUI);
             changedCount++;
@@ -299,12 +329,18 @@ public static class LeadTheWayObjectSetupTools
         var changedCount = 0;
         foreach (var counter in Object.FindObjectsByType<InteractionCounterUI>(FindObjectsInactive.Include))
         {
+            var canvasGroup = counter.GetComponent<CanvasGroup>();
+            if (canvasGroup == null)
+                canvasGroup = Undo.AddComponent<CanvasGroup>(counter.gameObject);
+
             var serializedCounter = new SerializedObject(counter);
             SetObject(serializedCounter, "interactionFlowManager", flowManager);
+            SetObject(serializedCounter, "canvasGroup", canvasGroup);
             SetObjectIfPresent(serializedCounter, "countText", FindChildComponent<Text>(counter.transform, "Count") ?? counter.GetComponentInChildren<Text>(true));
             SetObjectIfPresent(serializedCounter, "remainingFillImage", FindFilledImage(counter.transform));
             serializedCounter.ApplyModifiedProperties();
 
+            EditorUtility.SetDirty(canvasGroup);
             EditorUtility.SetDirty(counter);
             changedCount++;
         }

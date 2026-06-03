@@ -14,6 +14,7 @@ public class InteractionFlowManager : MonoBehaviour
     {
         Intro,
         Playing,
+        DeathCinematic,
         Success,
         Failure
     }
@@ -28,6 +29,7 @@ public class InteractionFlowManager : MonoBehaviour
     [SerializeField] private Vector2Int gameplayStartTile;
     [SerializeField] private LevelResultFlashUI resultFlashUI;
     [SerializeField] private PlayerMovement playerDeathAnimation;
+    [SerializeField] private DeathCinematicCamera deathCinematicCamera;
     [SerializeField] private int maxInteractionCount = 6;
     [SerializeField] private int interactionCount;
 
@@ -38,6 +40,7 @@ public class InteractionFlowManager : MonoBehaviour
     private DoorScript.Door destinationDoorScript;
     private Coroutine introRoutine;
     private Coroutine interactionResolutionRoutine;
+    private Coroutine deathCinematicRoutine;
     private int activeObjectActionCount;
     private bool loggedMissingReferences;
 
@@ -56,8 +59,10 @@ public class InteractionFlowManager : MonoBehaviour
     public int InteractionCount => interactionCount;
     public int MaxInteractionCount => Mathf.Max(1, maxInteractionCount);
     public event Action<int> InteractionCountChanged;
+    public event Action<bool> DeathCinematicVisibilityChanged;
     public bool HasRegisteredInteractionThisFrame => lastInteractionFrame == Time.frameCount;
     public bool HasHandledActionThisFrame => lastHandledActionFrame == Time.frameCount;
+    public bool IsDeathCinematicActive => flowState == LevelFlowState.DeathCinematic;
     public bool CanAcceptAction
     {
         get
@@ -99,6 +104,11 @@ public class InteractionFlowManager : MonoBehaviour
         playerDeathAnimation = newPlayerDeathAnimation;
     }
 
+    public void ConfigureDeathCinematicCamera(DeathCinematicCamera newDeathCinematicCamera)
+    {
+        deathCinematicCamera = newDeathCinematicCamera;
+    }
+
     private void Awake()
     {
         EnsureReferences();
@@ -133,7 +143,10 @@ public class InteractionFlowManager : MonoBehaviour
 
     public void FailLevel()
     {
-        CompleteLevel(false);
+        if (flowState == LevelFlowState.Playing)
+            BeginDeathCinematic(Vector2Int.zero);
+        else
+            CompleteLevel(false);
     }
 
     public bool RegisterInteraction()
@@ -172,7 +185,19 @@ public class InteractionFlowManager : MonoBehaviour
         lastInteractionFrame = Time.frameCount;
         lastHandledActionFrame = Time.frameCount;
         InteractionCountChanged?.Invoke(interactionCount);
-        StepPlayerTowardDoor();
+
+        if (TryFindNextStep(out var direction))
+        {
+            var nextTile = playerObject.TilePosition + direction;
+            if (IsFatalHazardTileForPlayer(nextTile))
+            {
+                BeginDeathCinematic(direction);
+                return;
+            }
+
+            playerMover.TryStep(direction);
+        }
+
         BeginInteractionResolution();
     }
 
@@ -420,11 +445,25 @@ public class InteractionFlowManager : MonoBehaviour
             yield return null;
 
         if (IsPlayerOnActiveHazard())
-            CompleteLevel(false);
-        else if (IsPlayerOnGoalTile())
+        {
+            interactionResolutionRoutine = null;
+            BeginDeathCinematic(Vector2Int.zero);
+            yield break;
+        }
+
+        if (IsPlayerOnGoalTile())
+        {
+            interactionResolutionRoutine = null;
             CompleteLevel(true);
-        else if (interactionCount >= MaxInteractionCount)
-            CompleteLevel(false);
+            yield break;
+        }
+
+        if (interactionCount >= MaxInteractionCount)
+        {
+            interactionResolutionRoutine = null;
+            BeginDeathCinematic(Vector2Int.zero);
+            yield break;
+        }
 
         interactionResolutionRoutine = null;
     }
@@ -454,8 +493,13 @@ public class InteractionFlowManager : MonoBehaviour
     private void PlayPlayerDeathAnimation()
     {
         EnsureReferences();
-        if (playerDeathAnimation != null)
-            playerDeathAnimation.Kill();
+        if (playerDeathAnimation == null)
+        {
+            Debug.LogWarning("InteractionFlowManager could not play the player death animation because PlayerMovement is not wired. Run Tools > Lead The Way > Scene > Wire Current Scene References.", this);
+            return;
+        }
+
+        playerDeathAnimation.Kill();
     }
 
     private bool IsPlayerOnGoalTile()
@@ -475,6 +519,68 @@ public class InteractionFlowManager : MonoBehaviour
         return false;
     }
 
+    private void BeginDeathCinematic(Vector2Int direction)
+    {
+        if (flowState != LevelFlowState.Playing)
+            return;
+
+        flowState = LevelFlowState.DeathCinematic;
+        DeathCinematicVisibilityChanged?.Invoke(true);
+
+        if (interactionResolutionRoutine != null)
+        {
+            StopCoroutine(interactionResolutionRoutine);
+            interactionResolutionRoutine = null;
+        }
+
+        if (deathCinematicRoutine != null)
+            StopCoroutine(deathCinematicRoutine);
+
+        deathCinematicRoutine = StartCoroutine(RunDeathCinematic(direction));
+    }
+
+    private IEnumerator RunDeathCinematic(Vector2Int direction)
+    {
+        EnsureReferences();
+
+        if (deathCinematicCamera != null && playerMover != null)
+        {
+            yield return deathCinematicCamera.MoveIntoShot(playerMover.transform);
+
+            if (direction == Vector2Int.zero)
+            {
+                deathCinematicCamera.ApplyShot(playerMover.transform);
+            }
+            else
+            {
+                var movement = playerMover.PlayCinematicStep(
+                    direction,
+                    deathCinematicCamera.FatalMoveDurationMultiplier,
+                    deathCinematicCamera.FatalAnimationSpeedMultiplier);
+
+                while (movement.MoveNext())
+                {
+                    deathCinematicCamera.ApplyShot(playerMover.transform);
+                    yield return movement.Current;
+                }
+
+                deathCinematicCamera.ApplyShot(playerMover.transform);
+            }
+        }
+        else if (playerMover != null)
+        {
+            if (direction != Vector2Int.zero)
+            {
+                playerMover.TryStep(direction);
+                while (playerMover.IsMoving)
+                    yield return null;
+            }
+        }
+
+        CompleteLevel(false);
+        deathCinematicRoutine = null;
+    }
+
     private bool IsPlayerOnActiveHazard()
     {
         EnsureReferences();
@@ -484,6 +590,38 @@ public class InteractionFlowManager : MonoBehaviour
 
         boardManager.RebuildRegistry();
         foreach (var boardObject in boardManager.GetObjectsAt(playerObject.TilePosition))
+        {
+            if (boardObject == null || boardObject.ObjectType != BoardObjectType.Hazard)
+                continue;
+
+            var spikeToggle = boardObject.GetComponent<SpikeToggle>();
+            if (spikeToggle != null && spikeToggle.IsRaised)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsFatalHazardTileForPlayer(Vector2Int anchorTile)
+    {
+        EnsureReferences();
+
+        if (boardManager == null || playerObject == null)
+            return false;
+
+        boardManager.RebuildRegistry();
+        foreach (var occupiedTile in playerObject.GetOccupiedTiles(anchorTile))
+        {
+            if (IsActiveHazardTile(occupiedTile))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsActiveHazardTile(Vector2Int tile)
+    {
+        foreach (var boardObject in boardManager.GetObjectsAt(tile))
         {
             if (boardObject == null || boardObject.ObjectType != BoardObjectType.Hazard)
                 continue;
@@ -524,6 +662,9 @@ public class InteractionFlowManager : MonoBehaviour
             if (playerDeathAnimation == null && playerObject != null)
                 playerDeathAnimation = playerObject.GetComponentInChildren<PlayerMovement>(true);
         }
+
+        if (deathCinematicCamera == null)
+            deathCinematicCamera = FindAnyObjectByType<DeathCinematicCamera>();
 
         if (loggedMissingReferences || HasRequiredGameplayReferences())
             return;

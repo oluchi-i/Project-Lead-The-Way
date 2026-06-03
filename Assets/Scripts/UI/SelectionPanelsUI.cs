@@ -53,6 +53,7 @@ public class SelectionPanelsUI : MonoBehaviour
 
     [Header("Flow")]
     [SerializeField] private InteractionFlowManager interactionFlowManager;
+    [SerializeField] private CanvasGroup canvasGroup;
 
     [Header("Scene Highlight")]
     [SerializeField] private bool showSceneHighlight = true;
@@ -67,8 +68,10 @@ public class SelectionPanelsUI : MonoBehaviour
     private readonly Dictionary<SelectableControlObject, int> runtimeSlots = new Dictionary<SelectableControlObject, int>();
     private Material highlightMaterial;
     private int objectPage;
+    private bool hiddenForDeathCinematic;
     private bool loggedMissingInteractionFlow;
     private bool loggedMissingPaginationReferences;
+    private InteractionFlowManager subscribedFlowManager;
     private static readonly Color NavigationButtonColor = new Color(0.16f, 0.11f, 0.05f, 0.88f);
     private static readonly Color NavigationTextColor = new Color(1f, 0.93f, 0.72f, 1f);
 
@@ -91,10 +94,23 @@ public class SelectionPanelsUI : MonoBehaviour
         if (audioSource == null)
             audioSource = GetComponent<AudioSource>();
 
+        EnsureCanvasGroup();
+
         WarnIfInteractionFlowMissing();
 
         HideTemplate(objectButtonTemplate);
         HideTemplate(actionButtonTemplate);
+    }
+
+    private void OnEnable()
+    {
+        SubscribeToFlow();
+        ApplyDeathCinematicVisibility();
+    }
+
+    private void OnDisable()
+    {
+        UnsubscribeFromFlow();
     }
 
     private void Start()
@@ -106,7 +122,7 @@ public class SelectionPanelsUI : MonoBehaviour
     private void Update()
     {
         var keyboard = Keyboard.current;
-        if (keyboard == null)
+        if (keyboard == null || hiddenForDeathCinematic)
             return;
 
         if (actionPanel != null && actionPanel.activeSelf && keyboard.bKey.wasPressedThisFrame)
@@ -161,6 +177,9 @@ public class SelectionPanelsUI : MonoBehaviour
         if (!IsConfigured())
             return;
 
+        if (hiddenForDeathCinematic)
+            return;
+
         currentObject = null;
         currentMover = null;
         HideSceneHighlight();
@@ -172,6 +191,9 @@ public class SelectionPanelsUI : MonoBehaviour
 
     private void ShowActions(SelectableControlObject selectedObject)
     {
+        if (hiddenForDeathCinematic)
+            return;
+
         currentObject = selectedObject;
         currentMover = selectedObject != null ? selectedObject.GetComponent<GridTileMover>() : null;
         ShowSceneHighlight(selectedObject);
@@ -470,11 +492,73 @@ public class SelectionPanelsUI : MonoBehaviour
 
     private void WarnIfInteractionFlowMissing()
     {
+        if (interactionFlowManager == null)
+            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+
         if (interactionFlowManager != null || loggedMissingInteractionFlow)
             return;
 
         loggedMissingInteractionFlow = true;
             Debug.LogWarning("SelectionPanelsUI is missing its InteractionFlowManager reference. Run Tools > Lead The Way > Scene > Wire Current Scene References.", this);
+    }
+
+    private void SubscribeToFlow()
+    {
+        WarnIfInteractionFlowMissing();
+
+        if (interactionFlowManager == null || subscribedFlowManager == interactionFlowManager)
+            return;
+
+        UnsubscribeFromFlow();
+        subscribedFlowManager = interactionFlowManager;
+        subscribedFlowManager.DeathCinematicVisibilityChanged += HandleDeathCinematicVisibilityChanged;
+    }
+
+    private void UnsubscribeFromFlow()
+    {
+        if (subscribedFlowManager == null)
+            return;
+
+        subscribedFlowManager.DeathCinematicVisibilityChanged -= HandleDeathCinematicVisibilityChanged;
+        subscribedFlowManager = null;
+    }
+
+    private void HandleDeathCinematicVisibilityChanged(bool cinematicActive)
+    {
+        SetControlsVisible(!cinematicActive);
+    }
+
+    private void ApplyDeathCinematicVisibility()
+    {
+        WarnIfInteractionFlowMissing();
+        SetControlsVisible(interactionFlowManager == null || !interactionFlowManager.IsDeathCinematicActive);
+    }
+
+    private void SetControlsVisible(bool visible)
+    {
+        hiddenForDeathCinematic = !visible;
+
+        EnsureCanvasGroup();
+
+        canvasGroup.alpha = visible ? 1f : 0f;
+        canvasGroup.interactable = visible;
+        canvasGroup.blocksRaycasts = visible;
+
+        if (!visible)
+            HideSceneHighlight();
+    }
+
+    private CanvasGroup EnsureCanvasGroup()
+    {
+        if (canvasGroup != null)
+            return canvasGroup;
+
+        canvasGroup = GetComponent<CanvasGroup>();
+        if (canvasGroup != null)
+            return canvasGroup;
+
+        canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        return canvasGroup;
     }
 
     private void GoBackToObjects()

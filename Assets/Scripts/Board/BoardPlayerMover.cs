@@ -52,8 +52,29 @@ public class BoardPlayerMover : MonoBehaviour
         if (moveRoutine != null)
             StopCoroutine(moveRoutine);
 
-        moveRoutine = StartCoroutine(MoveToTile(fromTile, toTile, false));
+        moveRoutine = StartCoroutine(MoveToTile(fromTile, toTile, false, 1f, 1f));
         return true;
+    }
+
+    public IEnumerator PlayCinematicStep(Vector2Int boardDirection, float durationMultiplier, float animationSpeedMultiplier)
+    {
+        if (isMoving)
+            yield break;
+
+        EnsureReferences();
+
+        if (boardManager == null || boardObject == null)
+            yield break;
+
+        if (!boardManager.TryMoveObject(boardObject, boardDirection, out var fromTile, out var toTile))
+            yield break;
+
+        if (moveRoutine != null)
+            StopCoroutine(moveRoutine);
+
+        var move = MoveToTile(fromTile, toTile, false, durationMultiplier, animationSpeedMultiplier);
+        while (move.MoveNext())
+            yield return move.Current;
     }
 
     public void PlaceAtTile(Vector2Int tile)
@@ -98,14 +119,14 @@ public class BoardPlayerMover : MonoBehaviour
             if (fromTile == toTile)
                 continue;
 
-            yield return MoveToTile(fromTile, toTile, true);
+            yield return MoveToTile(fromTile, toTile, true, 1f, 1f);
         }
 
         boardManager.RebuildRegistry();
         moveRoutine = null;
     }
 
-    private IEnumerator MoveToTile(Vector2Int fromTile, Vector2Int toTile, bool updateBoardPosition)
+    private IEnumerator MoveToTile(Vector2Int fromTile, Vector2Int toTile, bool updateBoardPosition, float durationMultiplier, float animationSpeedMultiplier)
     {
         isMoving = true;
 
@@ -114,18 +135,27 @@ public class BoardPlayerMover : MonoBehaviour
         var direction = targetPosition - startPosition;
 
         if (direction.sqrMagnitude > 0.0001f)
-            yield return RotateToward(direction.normalized);
+        {
+            var rotation = RotateToward(direction.normalized);
+            while (rotation.MoveNext())
+                yield return rotation.Current;
+        }
 
+        var originalWalkSpeed = 1f;
+        var changedWalkSpeed = false;
         if (walkAnimation != null)
         {
             if (!walkAnimation.enabled)
                 walkAnimation.enabled = true;
 
+            originalWalkSpeed = walkAnimation.speed;
+            walkAnimation.speed = originalWalkSpeed * Mathf.Clamp(animationSpeedMultiplier, 0.05f, 1f);
+            changedWalkSpeed = true;
             walkAnimation.SetWalking(true);
         }
 
         var elapsed = 0f;
-        var duration = Mathf.Max(0.01f, moveDuration);
+        var duration = Mathf.Max(0.01f, moveDuration * Mathf.Max(1f, durationMultiplier));
 
         while (elapsed < duration)
         {
@@ -145,7 +175,12 @@ public class BoardPlayerMover : MonoBehaviour
         }
 
         if (walkAnimation != null)
+        {
             walkAnimation.SetWalking(false);
+
+            if (changedWalkSpeed)
+                walkAnimation.speed = originalWalkSpeed;
+        }
         
         isMoving = false;
         moveRoutine = null;

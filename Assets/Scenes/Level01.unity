@@ -10744,6 +10744,7 @@ GameObject:
   - component: {fileID: 937505229}
   - component: {fileID: 937505228}
   - component: {fileID: 937505227}
+  - component: {fileID: 937505230}
   m_Layer: 0
   m_Name: Interaction Counter
   m_TagString: Untagged
@@ -10788,6 +10789,7 @@ MonoBehaviour:
   interactionFlowManager: {fileID: 1528410954}
   countText: {fileID: 1461794445}
   remainingFillImage: {fileID: 297244237}
+  canvasGroup: {fileID: 937505230}
   numberFormat: '{0}'
 --- !u!114 &937505228
 MonoBehaviour:
@@ -10827,6 +10829,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 937505225}
   m_CullTransparentMesh: 1
+--- !u!225 &937505230
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 937505225}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!43 &944765750
 Mesh:
   m_ObjectHideFlags: 0
@@ -11851,6 +11865,7 @@ GameObject:
   - component: {fileID: 1083750169}
   - component: {fileID: 1083750168}
   - component: {fileID: 1083750167}
+  - component: {fileID: 1083750171}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -11976,6 +11991,52 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1101660354}
   m_LocalEulerAnglesHint: {x: 40, y: 180, z: 0}
+--- !u!114 &1083750171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1083750166}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71d2526da206457c98721904ee16aee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeathCinematicCamera
+  targetCamera: {fileID: 1083750169}
+  approachDuration: 0.42
+  holdBeforeDeathDuration: 0.7
+  closeShotDistance: 5.5
+  closeShotHeight: 2
+  sideOffset: 0.8
+  lookAtHeight: 1
+  cinematicFieldOfView: 34
+  fatalMoveDurationMultiplier: 2.7
+  fatalAnimationSpeedMultiplier: 0.42
+  approachCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &1101660353
 GameObject:
   m_ObjectHideFlags: 0
@@ -13866,6 +13927,7 @@ GameObject:
   - component: {fileID: 1288162810}
   - component: {fileID: 1288162809}
   - component: {fileID: 1288162808}
+  - component: {fileID: 1288162811}
   m_Layer: 0
   m_Name: Control UI
   m_TagString: Untagged
@@ -14007,6 +14069,7 @@ MonoBehaviour:
   numberBadgeOffsetY: -3
   navigationButtonSprite: {fileID: 6564747003552216073, guid: ae4388e5cbfbb704ba5cf5fef248dd58, type: 2}
   interactionFlowManager: {fileID: 1528410954}
+  canvasGroup: {fileID: 1288162811}
   showSceneHighlight: 1
   highlightColor: {r: 0.9056604, g: 0.3478221, b: 0.21787111, a: 1}
   highlightScale: 1.05
@@ -14032,6 +14095,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 18}
   m_SizeDelta: {x: 520, y: 82}
   m_Pivot: {x: 0.5, y: 0}
+--- !u!225 &1288162811
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1288162807}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!4 &1292515634 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8417513855434141113, guid: 28d406d37e6d8064cb60f71cab309157, type: 3}
@@ -15917,7 +15992,8 @@ MonoBehaviour:
   destinationDoor: {fileID: 4073698331188497}
   gameplayStartTile: {x: 5, y: 2}
   resultFlashUI: {fileID: 471753446}
-  playerDeathAnimation: {fileID: 0}
+  playerDeathAnimation: {fileID: 748089725}
+  deathCinematicCamera: {fileID: 1083750171}
   maxInteractionCount: 6
   interactionCount: 0
 --- !u!43 &1543117042

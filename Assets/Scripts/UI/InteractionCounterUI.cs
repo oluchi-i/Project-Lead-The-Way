@@ -6,6 +6,7 @@ public class InteractionCounterUI : MonoBehaviour
     [SerializeField] private InteractionFlowManager interactionFlowManager;
     [SerializeField] private Text countText;
     [SerializeField] private Image remainingFillImage;
+    [SerializeField] private CanvasGroup canvasGroup;
     [SerializeField] private string numberFormat = "{0}";
 
     private InteractionFlowManager subscribedFlowManager;
@@ -23,6 +24,7 @@ public class InteractionCounterUI : MonoBehaviour
         Subscribe();
 
         Refresh();
+        ApplyCinematicVisibility();
     }
 
     private void OnDisable()
@@ -67,6 +69,11 @@ public class InteractionCounterUI : MonoBehaviour
 
     private void EnsureReferences()
     {
+        if (interactionFlowManager == null)
+            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+
+        EnsureCanvasGroup();
+
         if (countText == null)
             countText = GetComponentInChildren<Text>(true);
 
@@ -91,6 +98,7 @@ public class InteractionCounterUI : MonoBehaviour
 
         Unsubscribe();
         interactionFlowManager.InteractionCountChanged += HandleInteractionCountChanged;
+        interactionFlowManager.DeathCinematicVisibilityChanged += HandleDeathCinematicVisibilityChanged;
         subscribedFlowManager = interactionFlowManager;
     }
 
@@ -100,6 +108,42 @@ public class InteractionCounterUI : MonoBehaviour
             return;
 
         subscribedFlowManager.InteractionCountChanged -= HandleInteractionCountChanged;
+        subscribedFlowManager.DeathCinematicVisibilityChanged -= HandleDeathCinematicVisibilityChanged;
         subscribedFlowManager = null;
+    }
+
+    private void HandleDeathCinematicVisibilityChanged(bool cinematicActive)
+    {
+        SetVisible(!cinematicActive);
+    }
+
+    private void ApplyCinematicVisibility()
+    {
+        SetVisible(interactionFlowManager == null || !interactionFlowManager.IsDeathCinematicActive);
+    }
+
+    private void SetVisible(bool visible)
+    {
+        EnsureReferences();
+
+        if (canvasGroup == null)
+            return;
+
+        canvasGroup.alpha = visible ? 1f : 0f;
+        canvasGroup.interactable = visible;
+        canvasGroup.blocksRaycasts = visible;
+    }
+
+    private CanvasGroup EnsureCanvasGroup()
+    {
+        if (canvasGroup != null)
+            return canvasGroup;
+
+        canvasGroup = GetComponent<CanvasGroup>();
+        if (canvasGroup != null)
+            return canvasGroup;
+
+        canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        return canvasGroup;
     }
 }
