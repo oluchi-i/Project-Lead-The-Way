@@ -163,6 +163,60 @@ public static class LeadTheWayObjectSetupTools
             "OK");
     }
 
+    [MenuItem("Tools/Lead The Way/Scene/Setup Ending Camera Pose")]
+    public static void SetupEndingCameraPose()
+    {
+        var camera = Camera.main;
+        if (camera == null)
+            camera = Object.FindAnyObjectByType<Camera>(FindObjectsInactive.Include);
+
+        if (camera == null)
+        {
+            EditorUtility.DisplayDialog("Setup Ending Camera Pose", "Could not find a scene Camera to capture.", "OK");
+            return;
+        }
+
+        var posesRoot = FindOrCreateChild(GetOrCreateGameSystems().transform, "Intro Camera Poses");
+        var endingPose = FindOrCreateChild(posesRoot, "Ending Camera Pose");
+        CopyCameraPose(camera, endingPose);
+
+        var introCameraTransition = Object.FindAnyObjectByType<IntroCameraTransition>(FindObjectsInactive.Include);
+        if (introCameraTransition == null)
+            introCameraTransition = Undo.AddComponent<IntroCameraTransition>(camera.gameObject);
+
+        var startPose = introCameraTransition.StartCameraPose != null
+            ? introCameraTransition.StartCameraPose
+            : posesRoot.Find("Start Camera Pose");
+        var gameplayPose = introCameraTransition.GameplayCameraPose != null
+            ? introCameraTransition.GameplayCameraPose
+            : posesRoot.Find("Gameplay Camera Pose");
+
+        Undo.RecordObject(introCameraTransition, "Wire Ending Camera Pose");
+        introCameraTransition.Configure(camera, startPose, gameplayPose);
+        introCameraTransition.ConfigureEndingPose(endingPose, camera.fieldOfView);
+
+        var flowManager = Object.FindAnyObjectByType<InteractionFlowManager>(FindObjectsInactive.Include);
+        if (flowManager != null)
+        {
+            Undo.RecordObject(flowManager, "Wire Ending Camera Pose");
+            flowManager.ConfigureIntroCameraTransition(introCameraTransition);
+            EditorUtility.SetDirty(flowManager);
+        }
+
+        EditorUtility.SetDirty(endingPose);
+        EditorUtility.SetDirty(introCameraTransition);
+        EditorUtility.SetDirty(camera.gameObject);
+
+        var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        if (activeScene.IsValid())
+            EditorSceneManager.MarkSceneDirty(activeScene);
+
+        EditorUtility.DisplayDialog(
+            "Setup Ending Camera Pose",
+            "Captured the current scene Camera as Ending Camera Pose.\n\nStart Camera Pose and Gameplay Camera Pose were not moved.",
+            "OK");
+    }
+
     [MenuItem("Tools/Lead The Way/UI/Setup Pause Menu")]
     public static void SetupPauseMenu()
     {

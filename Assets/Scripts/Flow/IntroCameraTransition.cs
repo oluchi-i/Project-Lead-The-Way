@@ -8,13 +8,17 @@ public class IntroCameraTransition : MonoBehaviour
     [SerializeField] private Camera targetCamera;
     [SerializeField] private Transform startCameraPose;
     [SerializeField] private Transform gameplayCameraPose;
+    [SerializeField] private Transform endingCameraPose;
     [SerializeField] private float startFieldOfView = 60f;
     [SerializeField] private float gameplayFieldOfView = 60f;
+    [SerializeField] private float endingFieldOfView = 60f;
     [SerializeField] private float transitionDuration = 1.15f;
     [SerializeField] private AnimationCurve transitionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
     public Transform StartCameraPose => startCameraPose;
     public Transform GameplayCameraPose => gameplayCameraPose;
+    public Transform EndingCameraPose => endingCameraPose;
+    public bool HasEndingPose => endingCameraPose != null;
 
     private void Awake()
     {
@@ -34,6 +38,12 @@ public class IntroCameraTransition : MonoBehaviour
         gameplayFieldOfView = Mathf.Clamp(newGameplayFieldOfView, 18f, 90f);
     }
 
+    public void ConfigureEndingPose(Transform newEndingCameraPose, float newEndingFieldOfView)
+    {
+        endingCameraPose = newEndingCameraPose;
+        endingFieldOfView = Mathf.Clamp(newEndingFieldOfView, 18f, 90f);
+    }
+
     public void PlaceAtStart()
     {
         if (!CanUsePose(startCameraPose))
@@ -44,31 +54,12 @@ public class IntroCameraTransition : MonoBehaviour
 
     public IEnumerator TransitionToGameplay()
     {
-        if (!CanUsePose(gameplayCameraPose))
-            yield break;
+        yield return TransitionToPose(gameplayCameraPose, gameplayFieldOfView);
+    }
 
-        var startPosition = targetCamera.transform.position;
-        var startRotation = targetCamera.transform.rotation;
-        var startFov = targetCamera.fieldOfView;
-        var targetPosition = gameplayCameraPose.position;
-        var targetRotation = gameplayCameraPose.rotation;
-        var targetFov = Mathf.Clamp(gameplayFieldOfView, 18f, 90f);
-        var elapsed = 0f;
-        var duration = Mathf.Max(0.01f, transitionDuration);
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            var t = Mathf.Clamp01(elapsed / duration);
-            t = transitionCurve != null ? transitionCurve.Evaluate(t) : Mathf.SmoothStep(0f, 1f, t);
-
-            targetCamera.transform.position = Vector3.Lerp(startPosition, targetPosition, t);
-            targetCamera.transform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
-            targetCamera.fieldOfView = Mathf.Lerp(startFov, targetFov, t);
-            yield return null;
-        }
-
-        ApplyPose(gameplayCameraPose, gameplayFieldOfView);
+    public IEnumerator TransitionToEnding()
+    {
+        yield return TransitionToPose(endingCameraPose, endingFieldOfView);
     }
 
     private bool CanUsePose(Transform pose)
@@ -92,6 +83,35 @@ public class IntroCameraTransition : MonoBehaviour
         targetCamera.transform.position = pose.position;
         targetCamera.transform.rotation = pose.rotation;
         targetCamera.fieldOfView = Mathf.Clamp(fieldOfView, 18f, 90f);
+    }
+
+    private IEnumerator TransitionToPose(Transform pose, float fieldOfView)
+    {
+        if (!CanUsePose(pose))
+            yield break;
+
+        var startPosition = targetCamera.transform.position;
+        var startRotation = targetCamera.transform.rotation;
+        var startFov = targetCamera.fieldOfView;
+        var targetPosition = pose.position;
+        var targetRotation = pose.rotation;
+        var targetFov = Mathf.Clamp(fieldOfView, 18f, 90f);
+        var elapsed = 0f;
+        var duration = Mathf.Max(0.01f, transitionDuration);
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            var t = Mathf.Clamp01(elapsed / duration);
+            t = transitionCurve != null ? transitionCurve.Evaluate(t) : Mathf.SmoothStep(0f, 1f, t);
+
+            targetCamera.transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+            targetCamera.transform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
+            targetCamera.fieldOfView = Mathf.Lerp(startFov, targetFov, t);
+            yield return null;
+        }
+
+        ApplyPose(pose, fieldOfView);
     }
 }
 

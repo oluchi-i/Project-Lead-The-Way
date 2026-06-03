@@ -42,6 +42,7 @@ public class InteractionFlowManager : MonoBehaviour
     private Coroutine introRoutine;
     private Coroutine interactionResolutionRoutine;
     private Coroutine deathCinematicRoutine;
+    private Coroutine successRoutine;
     private int activeObjectActionCount;
     private bool loggedMissingReferences;
 
@@ -491,17 +492,36 @@ public class InteractionFlowManager : MonoBehaviour
 
         if (succeeded)
         {
-            var exitDoor = GetDoorScript(destinationDoor, ref destinationDoorScript);
-            if (exitDoor != null)
-                exitDoor.Close();
+            if (successRoutine != null)
+                StopCoroutine(successRoutine);
+
+            successRoutine = StartCoroutine(RunSuccessSequence());
         }
         else
         {
             PlayPlayerDeathAnimation();
+
+            if (resultFlashUI != null)
+                resultFlashUI.Flash(false);
+        }
+    }
+
+    private IEnumerator RunSuccessSequence()
+    {
+        var exitDoor = GetDoorScript(destinationDoor, ref destinationDoorScript);
+        if (exitDoor != null)
+        {
+            exitDoor.Close();
+            yield return WaitForDoor(exitDoor);
         }
 
+        if (introCameraTransition != null && introCameraTransition.HasEndingPose)
+            yield return introCameraTransition.TransitionToEnding();
+
         if (resultFlashUI != null)
-            resultFlashUI.Flash(succeeded);
+            resultFlashUI.Flash(true);
+
+        successRoutine = null;
     }
 
     private void PlayPlayerDeathAnimation()
