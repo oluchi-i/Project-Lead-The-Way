@@ -27,6 +27,7 @@ public class InteractionFlowManager : MonoBehaviour
     [SerializeField] private BoardObject destinationDoor;
     [SerializeField] private Vector2Int gameplayStartTile;
     [SerializeField] private LevelResultFlashUI resultFlashUI;
+    [SerializeField] private PlayerMovement playerDeathAnimation;
     [SerializeField] private int maxInteractionCount = 6;
     [SerializeField] private int interactionCount;
 
@@ -93,6 +94,11 @@ public class InteractionFlowManager : MonoBehaviour
         resultFlashUI = newResultFlashUI;
     }
 
+    public void ConfigurePlayerDeathAnimation(PlayerMovement newPlayerDeathAnimation)
+    {
+        playerDeathAnimation = newPlayerDeathAnimation;
+    }
+
     private void Awake()
     {
         EnsureReferences();
@@ -123,6 +129,11 @@ public class InteractionFlowManager : MonoBehaviour
     public bool RegisterInteraction(SelectableControlObject selectedObject, ControlAction action)
     {
         return RegisterInteraction();
+    }
+
+    public void FailLevel()
+    {
+        CompleteLevel(false);
     }
 
     public bool RegisterInteraction()
@@ -240,7 +251,7 @@ public class InteractionFlowManager : MonoBehaviour
         if (boardManager == null || playerMover == null || playerObject == null || startTile == null || startDoor == null)
         {
             Debug.LogWarning(
-                "InteractionFlowManager skipped the level intro because one or more intro references are missing. Run Tools > Lead The Way > Optimize > Wire Current Scene References.",
+                "InteractionFlowManager skipped the level intro because one or more intro references are missing. Run Tools > Lead The Way > Scene > Wire Current Scene References.",
                 this);
             return;
         }
@@ -408,7 +419,9 @@ public class InteractionFlowManager : MonoBehaviour
         while (playerMover != null && playerMover.IsMoving)
             yield return null;
 
-        if (IsPlayerOnGoalTile())
+        if (IsPlayerOnActiveHazard())
+            CompleteLevel(false);
+        else if (IsPlayerOnGoalTile())
             CompleteLevel(true);
         else if (interactionCount >= MaxInteractionCount)
             CompleteLevel(false);
@@ -429,9 +442,20 @@ public class InteractionFlowManager : MonoBehaviour
             if (exitDoor != null)
                 exitDoor.Close();
         }
+        else
+        {
+            PlayPlayerDeathAnimation();
+        }
 
         if (resultFlashUI != null)
             resultFlashUI.Flash(succeeded);
+    }
+
+    private void PlayPlayerDeathAnimation()
+    {
+        EnsureReferences();
+        if (playerDeathAnimation != null)
+            playerDeathAnimation.Kill();
     }
 
     private bool IsPlayerOnGoalTile()
@@ -445,6 +469,27 @@ public class InteractionFlowManager : MonoBehaviour
         foreach (var goalObject in boardManager.GetGoalObjects())
         {
             if (goalObject != null && goalObject.GetOccupiedTiles().Contains(playerObject.TilePosition))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsPlayerOnActiveHazard()
+    {
+        EnsureReferences();
+
+        if (boardManager == null || playerObject == null)
+            return false;
+
+        boardManager.RebuildRegistry();
+        foreach (var boardObject in boardManager.GetObjectsAt(playerObject.TilePosition))
+        {
+            if (boardObject == null || boardObject.ObjectType != BoardObjectType.Hazard)
+                continue;
+
+            var spikeToggle = boardObject.GetComponent<SpikeToggle>();
+            if (spikeToggle != null && spikeToggle.IsRaised)
                 return true;
         }
 
@@ -471,11 +516,20 @@ public class InteractionFlowManager : MonoBehaviour
 
     private void EnsureReferences()
     {
+        if (playerDeathAnimation == null)
+        {
+            if (playerMover != null)
+                playerDeathAnimation = playerMover.GetComponentInChildren<PlayerMovement>(true);
+
+            if (playerDeathAnimation == null && playerObject != null)
+                playerDeathAnimation = playerObject.GetComponentInChildren<PlayerMovement>(true);
+        }
+
         if (loggedMissingReferences || HasRequiredGameplayReferences())
             return;
 
         loggedMissingReferences = true;
-        Debug.LogWarning("InteractionFlowManager is missing one or more required scene references. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
+        Debug.LogWarning("InteractionFlowManager is missing one or more required scene references. Run Tools > Lead The Way > Scene > Wire Current Scene References.", this);
     }
 }
 

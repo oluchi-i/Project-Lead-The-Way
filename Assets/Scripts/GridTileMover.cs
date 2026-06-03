@@ -190,7 +190,7 @@ public class GridTileMover : MonoBehaviour
         if (!loggedMissingReferences && useBoardManager && (boardManager == null || boardObject == null || interactionFlowManager == null))
         {
             loggedMissingReferences = true;
-            Debug.LogWarning("GridTileMover is missing required board/action references. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
+            Debug.LogWarning("GridTileMover is missing required board/action references. Run Tools > Lead The Way > Scene > Wire Current Scene References.", this);
         }
     }
 }

@@ -105,16 +105,6 @@ public class BoardPlayerMover : MonoBehaviour
         moveRoutine = null;
     }
 
-    private void CheckCurrentTile()
-    {
-        BoardObject spike = boardManager.GetObjectsAt(boardObject.TilePosition).Find(obj => obj.ObjectType == BoardObjectType.Hazard);
-        if (spike != null && spike.gameObject.GetComponent<SpikeToggle>().IsRaised)
-        {
-            Debug.Log("kill");
-            walkAnimation.Kill();
-        }
-    }
-
     private IEnumerator MoveToTile(Vector2Int fromTile, Vector2Int toTile, bool updateBoardPosition)
     {
         isMoving = true;
@@ -159,8 +149,6 @@ public class BoardPlayerMover : MonoBehaviour
         
         isMoving = false;
         moveRoutine = null;
-
-        CheckCurrentTile();
     }
 
     private IEnumerator RotateToward(Vector3 direction)
@@ -199,7 +187,7 @@ public class BoardPlayerMover : MonoBehaviour
         if (!loggedMissingReferences && (boardManager == null || boardObject == null))
         {
             loggedMissingReferences = true;
-            Debug.LogWarning("BoardPlayerMover is missing required scene references. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
+            Debug.LogWarning("BoardPlayerMover is missing required scene references. Run Tools > Lead The Way > Scene > Wire Current Scene References.", this);
         }
     }
 }

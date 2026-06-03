@@ -289,7 +289,7 @@ public class SelectionPanelsUI : MonoBehaviour
             && (objectPreviousPageButton == null || objectNextPageButton == null || objectPageText == null))
         {
             loggedMissingPaginationReferences = true;
-            Debug.LogWarning("SelectionPanelsUI pagination references are not fully wired. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
+            Debug.LogWarning("SelectionPanelsUI pagination references are not fully wired. Run Tools > Lead The Way > Scene > Wire Current Scene References.", this);
         }
     }
 
@@ -474,7 +474,7 @@ public class SelectionPanelsUI : MonoBehaviour
             return;
 
         loggedMissingInteractionFlow = true;
-        Debug.LogWarning("SelectionPanelsUI is missing its InteractionFlowManager reference. Run Tools > Lead The Way > Optimize > Wire Current Scene References.", this);
+            Debug.LogWarning("SelectionPanelsUI is missing its InteractionFlowManager reference. Run Tools > Lead The Way > Scene > Wire Current Scene References.", this);
     }
 
     private void GoBackToObjects()

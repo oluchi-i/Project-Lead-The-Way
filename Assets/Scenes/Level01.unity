@@ -779,36 +779,6 @@ Transform:
   - {fileID: 1696012277}
   m_Father: {fileID: 1041779193}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &51724954 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 7814557091581230971, guid: cde01ebd19656df4fae4a4c48528a32d, type: 3}
-  m_PrefabInstance: {fileID: 1410025202}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &51724955 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 7438032236324398529, guid: cde01ebd19656df4fae4a4c48528a32d, type: 3}
-  m_PrefabInstance: {fileID: 1410025202}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &51724956
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 51724954}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 80f2ee657fc3648458b9fcdb13ebf8d6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BoardObject
-  objectId: closet-d553bbe0
-  objectType: 100
-  tilePosition: {x: 6, y: 4}
-  occupiedTileOffsets:
-  - {x: 0, y: 0}
-  occupiesTile: 1
-  blocksMovement: 1
-  movable: 0
 --- !u!1001 &52259647
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1804,13 +1774,13 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 6253955288435565766, guid: 8878c202feaa3d549a699e287f054431, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 597102114}
+      addedObject: {fileID: 1794094098}
     - targetCorrespondingSourceObject: {fileID: 6253955288435565766, guid: 8878c202feaa3d549a699e287f054431, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 597102113}
+      addedObject: {fileID: 1794094097}
     - targetCorrespondingSourceObject: {fileID: 6253955288435565766, guid: 8878c202feaa3d549a699e287f054431, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 597102112}
+      addedObject: {fileID: 1794094096}
   m_SourcePrefab: {fileID: 100100000, guid: 8878c202feaa3d549a699e287f054431, type: 3}
 --- !u!1001 &169605563
 PrefabInstance:
@@ -2897,7 +2867,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 10, y: -10}
-  m_SizeDelta: {x: 72, y: 72}
+  m_SizeDelta: {x: 74, y: 74}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &297244237
 MonoBehaviour:
@@ -6325,41 +6295,8 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 2403496373118178391, guid: 968a55c757fae9e488517a19bbb9dda6, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 557287149}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 968a55c757fae9e488517a19bbb9dda6, type: 3}
---- !u!4 &557287147 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 3031273959285214957, guid: 968a55c757fae9e488517a19bbb9dda6, type: 3}
-  m_PrefabInstance: {fileID: 557287146}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &557287148 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2403496373118178391, guid: 968a55c757fae9e488517a19bbb9dda6, type: 3}
-  m_PrefabInstance: {fileID: 557287146}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &557287149
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 557287148}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 80f2ee657fc3648458b9fcdb13ebf8d6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BoardObject
-  objectId: plant-254d4f4a
-  objectType: 100
-  tilePosition: {x: 6, y: 3}
-  occupiedTileOffsets:
-  - {x: 0, y: 0}
-  occupiesTile: 1
-  blocksMovement: 1
-  movable: 0
 --- !u!1001 &564580028
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6863,137 +6800,6 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 8624914531962622098, guid: fe0630cbb2892a045aa2b71d677fdb14, type: 3}
   m_PrefabInstance: {fileID: 587600165}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &597102111 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6253955288435565766, guid: 8878c202feaa3d549a699e287f054431, type: 3}
-  m_PrefabInstance: {fileID: 165723503}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &597102112
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 597102111}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 425719fee03fac54d8f7e4595dce91b0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SelectableControlObject
-  displayName: Armchair_02
-  icon: {fileID: 21300000, guid: 6f7d6240adcad5d48be8d5ede3df5126, type: 3}
-  actions:
-  - label: X +1
-    icon: {fileID: 21300000, guid: 01d7b388e7827ca45a56bd1b632ffde1, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 597102113}
-          m_TargetAssemblyTypeName: GridTileMover, Assembly-CSharp
-          m_MethodName: MovePositiveX
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
-  - label: X -1
-    icon: {fileID: 21300000, guid: d31115fa9cb67004b96bc76f48802b9f, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 597102113}
-          m_TargetAssemblyTypeName: GridTileMover, Assembly-CSharp
-          m_MethodName: MoveNegativeX
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
-  - label: Z -1
-    icon: {fileID: 21300000, guid: 9e197a1515abdbc4b91281eee95e8b33, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 597102113}
-          m_TargetAssemblyTypeName: GridTileMover, Assembly-CSharp
-          m_MethodName: MoveNegativeZ
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
-  - label: Z +1
-    icon: {fileID: 21300000, guid: e968566a79d16394f97ee27c34c6ac78, type: 3}
-    onSelected:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 597102113}
-          m_TargetAssemblyTypeName: GridTileMover, Assembly-CSharp
-          m_MethodName: MovePositiveZ
-          m_Mode: 0
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
---- !u!114 &597102113
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 597102111}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 658c28d5cabf5394091f56443a1073ec, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GridTileMover
-  useBoardManager: 1
-  tileSize: 1
-  moveDuration: 0.18
-  boardManager: {fileID: 1528410952}
-  boardObject: {fileID: 597102114}
-  interactionFlowManager: {fileID: 1528410954}
---- !u!114 &597102114
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 597102111}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 80f2ee657fc3648458b9fcdb13ebf8d6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BoardObject
-  objectId: armchair_02-8a8b1863
-  objectType: 2
-  tilePosition: {x: 2, y: 2}
-  occupiedTileOffsets:
-  - {x: 0, y: 0}
-  occupiesTile: 1
-  blocksMovement: 1
-  movable: 1
---- !u!4 &597102117 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6737758462753701500, guid: 8878c202feaa3d549a699e287f054431, type: 3}
-  m_PrefabInstance: {fileID: 165723503}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &600272948
 PrefabInstance:
@@ -8246,46 +8052,8 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 3869633881674399100, guid: bfea4d366532a7743a5e9bd373db8435, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 730075202}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bfea4d366532a7743a5e9bd373db8435, type: 3}
---- !u!4 &730075200 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 4537485682296547270, guid: bfea4d366532a7743a5e9bd373db8435, type: 3}
-  m_PrefabInstance: {fileID: 730075199}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &730075201 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 3869633881674399100, guid: bfea4d366532a7743a5e9bd373db8435, type: 3}
-  m_PrefabInstance: {fileID: 730075199}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &730075202
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 730075201}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 80f2ee657fc3648458b9fcdb13ebf8d6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BoardObject
-  objectId: bed-b4b5da4d
-  objectType: 100
-  tilePosition: {x: 5, y: 1}
-  occupiedTileOffsets:
-  - {x: 0, y: 0}
-  - {x: 0, y: -1}
-  - {x: 1, y: -1}
-  - {x: -1, y: -1}
-  - {x: 1, y: 0}
-  - {x: -1, y: 0}
-  occupiesTile: 1
-  blocksMovement: 1
-  movable: 0
 --- !u!1 &739394538
 GameObject:
   m_ObjectHideFlags: 0
@@ -8780,6 +8548,11 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 8624914531962622098, guid: fe0630cbb2892a045aa2b71d677fdb14, type: 3}
   m_PrefabInstance: {fileID: 772167781}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &777452912 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3031273959285214957, guid: 968a55c757fae9e488517a19bbb9dda6, type: 3}
+  m_PrefabInstance: {fileID: 557287146}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &777500756
 PrefabInstance:
@@ -9753,6 +9526,11 @@ Transform:
   - {fileID: 470861931}
   m_Father: {fileID: 2091975964}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &859086697 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4537485682296547270, guid: bfea4d366532a7743a5e9bd373db8435, type: 3}
+  m_PrefabInstance: {fileID: 730075199}
+  m_PrefabAsset: {fileID: 0}
 --- !u!43 &865802144
 Mesh:
   m_ObjectHideFlags: 0
@@ -11755,6 +11533,11 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 8624914531962622098, guid: fe0630cbb2892a045aa2b71d677fdb14, type: 3}
   m_PrefabInstance: {fileID: 1025673127}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1040082667 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7438032236324398529, guid: cde01ebd19656df4fae4a4c48528a32d, type: 3}
+  m_PrefabInstance: {fileID: 1410025202}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1041779192
 GameObject:
@@ -14249,6 +14032,11 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 18}
   m_SizeDelta: {x: 520, y: 82}
   m_Pivot: {x: 0.5, y: 0}
+--- !u!4 &1292515634 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8417513855434141113, guid: 28d406d37e6d8064cb60f71cab309157, type: 3}
+  m_PrefabInstance: {fileID: 957969486}
+  m_PrefabAsset: {fileID: 0}
 --- !u!43 &1299450550
 Mesh:
   m_ObjectHideFlags: 0
@@ -14442,11 +14230,6 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
---- !u!4 &1324575522 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 8417513855434141113, guid: 28d406d37e6d8064cb60f71cab309157, type: 3}
-  m_PrefabInstance: {fileID: 957969486}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1327126960
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -15103,10 +14886,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 7814557091581230971, guid: cde01ebd19656df4fae4a4c48528a32d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 51724956}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cde01ebd19656df4fae4a4c48528a32d, type: 3}
 --- !u!43 &1419274367
 Mesh:
@@ -16137,6 +15917,7 @@ MonoBehaviour:
   destinationDoor: {fileID: 4073698331188497}
   gameplayStartTile: {x: 5, y: 2}
   resultFlashUI: {fileID: 471753446}
+  playerDeathAnimation: {fileID: 0}
   maxInteractionCount: 6
   interactionCount: 0
 --- !u!43 &1543117042
@@ -17004,8 +16785,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 10, y: -10}
-  m_SizeDelta: {x: 72, y: 72}
+  m_AnchoredPosition: {x: 7, y: -7}
+  m_SizeDelta: {x: 80, y: 80}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1590290681
 MonoBehaviour:
@@ -19150,6 +18931,137 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2904963707211163469, guid: 8a0832c43c986754c865b147ca9df5a2, type: 3}
   m_PrefabInstance: {fileID: 1769851759}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1794094092 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6253955288435565766, guid: 8878c202feaa3d549a699e287f054431, type: 3}
+  m_PrefabInstance: {fileID: 165723503}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1794094093 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6737758462753701500, guid: 8878c202feaa3d549a699e287f054431, type: 3}
+  m_PrefabInstance: {fileID: 165723503}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1794094096
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1794094092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 425719fee03fac54d8f7e4595dce91b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SelectableControlObject
+  displayName: Armchair_02
+  icon: {fileID: 21300000, guid: 6f7d6240adcad5d48be8d5ede3df5126, type: 3}
+  actions:
+  - label: X +1
+    icon: {fileID: 21300000, guid: 01d7b388e7827ca45a56bd1b632ffde1, type: 3}
+    onSelected:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 1794094097}
+          m_TargetAssemblyTypeName: GridTileMover, Assembly-CSharp
+          m_MethodName: MovePositiveX
+          m_Mode: 0
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: 
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - label: X -1
+    icon: {fileID: 21300000, guid: d31115fa9cb67004b96bc76f48802b9f, type: 3}
+    onSelected:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 1794094097}
+          m_TargetAssemblyTypeName: GridTileMover, Assembly-CSharp
+          m_MethodName: MoveNegativeX
+          m_Mode: 0
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: 
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - label: Z -1
+    icon: {fileID: 21300000, guid: 9e197a1515abdbc4b91281eee95e8b33, type: 3}
+    onSelected:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 1794094097}
+          m_TargetAssemblyTypeName: GridTileMover, Assembly-CSharp
+          m_MethodName: MoveNegativeZ
+          m_Mode: 0
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: 
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - label: Z +1
+    icon: {fileID: 21300000, guid: e968566a79d16394f97ee27c34c6ac78, type: 3}
+    onSelected:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 1794094097}
+          m_TargetAssemblyTypeName: GridTileMover, Assembly-CSharp
+          m_MethodName: MovePositiveZ
+          m_Mode: 0
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: 
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+--- !u!114 &1794094097
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1794094092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 658c28d5cabf5394091f56443a1073ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GridTileMover
+  useBoardManager: 1
+  tileSize: 1
+  moveDuration: 0.18
+  boardManager: {fileID: 1528410952}
+  boardObject: {fileID: 1794094098}
+  interactionFlowManager: {fileID: 1528410954}
+--- !u!114 &1794094098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1794094092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80f2ee657fc3648458b9fcdb13ebf8d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoardObject
+  objectId: armchair_02-4dcad548
+  objectType: 2
+  tilePosition: {x: 2, y: 2}
+  occupiedTileOffsets:
+  - {x: 0, y: 0}
+  occupiesTile: 1
+  blocksMovement: 1
+  movable: 1
 --- !u!1001 &1795135360
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22558,14 +22470,14 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 51724955}
   - {fileID: 4073698331188496}
   - {fileID: 2814802812190554262}
-  - {fileID: 730075200}
-  - {fileID: 557287147}
+  - {fileID: 859086697}
+  - {fileID: 777452912}
   - {fileID: 1724829183}
-  - {fileID: 1324575522}
-  - {fileID: 597102117}
+  - {fileID: 1292515634}
+  - {fileID: 1794094093}
+  - {fileID: 1040082667}
   m_Father: {fileID: 1101660354}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!43 &2138946695

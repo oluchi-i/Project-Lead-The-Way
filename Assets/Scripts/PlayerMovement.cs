@@ -39,6 +39,7 @@ public class PlayerMovement : MonoBehaviour
     public float explosionForce;
     public float upwardForce;
     public Transform[] bodyParts;
+    private bool isDead;
 
     private void Awake()
     {
@@ -58,6 +59,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void ChangeState(State newState)
     {
+        if (isDead && newState != State.Death)
+            return;
+
         state = newState;
         if (!isActiveAndEnabled)
             return;
@@ -74,42 +78,52 @@ public class PlayerMovement : MonoBehaviour
 
     public void Kill()
     {
+        if (isDead)
+            return;
+
         ChangeState(State.Death);
     }
     
-private void DeathAnimation()
-    { 
-        Vector3 blastDirection, randomSpin;
+    private void DeathAnimation()
+    {
+        isDead = true;
+        SetWalking(false);
 
-        Transform body = transform.GetChild(0);
-        body.SetParent(null);
-        Collider bodyCollider = body.GetComponent<Collider>();
-        bodyCollider.enabled = true;
+        if (transform.childCount > 0)
+            ReleaseBodyPart(transform.GetChild(0));
 
-        Rigidbody bodyRB = body.GetComponent<Rigidbody>();
-        bodyRB.isKinematic = false;
+        if (bodyParts == null)
+            return;
 
-        blastDirection = new Vector3(Random.Range(-1f, 1f), Random.Range(0.2f, 1f) * upwardForce, Random.Range(-1f, 1f)).normalized;
-        bodyRB.AddForce(blastDirection * explosionForce *  Random.Range(0.5f, explosionForce * 1.5f), ForceMode.Impulse);
+        foreach (var part in bodyParts)
+            ReleaseBodyPart(part);
+    }
 
-        randomSpin = new Vector3(Random.Range(-100, 100), Random.Range(-100, 100), Random.Range(-100, 100));
-        bodyRB.AddTorque(randomSpin, ForceMode.Impulse);
-        
-        foreach (Transform part in bodyParts)
-        {
-            part.SetParent(null);
-            Collider collider = part.GetComponentInChildren<Collider>();
-            if (collider != null) collider.enabled = true;
+    private void ReleaseBodyPart(Transform part)
+    {
+        if (part == null || part.parent == null)
+            return;
 
-            Rigidbody partRB = part.GetComponent<Rigidbody>();
-            partRB.isKinematic = false;
+        part.SetParent(null);
 
-            blastDirection = new Vector3(Random.Range(-1f, 1f), Random.Range(0.2f, 1f) * upwardForce, Random.Range(-1f, 1f)).normalized;
-            partRB.AddForce(blastDirection * explosionForce *  Random.Range(0.5f, explosionForce * 1.5f), ForceMode.Impulse);
+        var collider = part.GetComponentInChildren<Collider>();
+        if (collider != null)
+            collider.enabled = true;
 
-            randomSpin = new Vector3(Random.Range(-100, 100), Random.Range(-100, 100), Random.Range(-100, 100));
-            partRB.AddTorque(randomSpin, ForceMode.Impulse);
-        }     
+        var partRigidbody = part.GetComponent<Rigidbody>();
+        if (partRigidbody == null)
+            return;
+
+        partRigidbody.isKinematic = false;
+        partRigidbody.useGravity = true;
+
+        var force = explosionForce > 0f ? explosionForce : 3.5f;
+        var lift = upwardForce > 0f ? upwardForce : 1.2f;
+        var blastDirection = new Vector3(Random.Range(-1f, 1f), Random.Range(0.2f, 1f) * lift, Random.Range(-1f, 1f)).normalized;
+        partRigidbody.AddForce(blastDirection * force * Random.Range(0.5f, 1.5f), ForceMode.Impulse);
+
+        var randomSpin = new Vector3(Random.Range(-100, 100), Random.Range(-100, 100), Random.Range(-100, 100));
+        partRigidbody.AddTorque(randomSpin, ForceMode.Impulse);
     }
 
     private IEnumerator WalkAnimation()
@@ -145,6 +159,9 @@ private void DeathAnimation()
 
     private void OnDisable()
     {
+        if (isDead)
+            return;
+
         state = State.Idle;
         animationRoutine = null;
         walkWeight = 0f;

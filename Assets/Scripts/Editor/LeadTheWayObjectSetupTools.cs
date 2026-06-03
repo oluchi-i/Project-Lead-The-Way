@@ -30,6 +30,11 @@ public static class LeadTheWayObjectSetupTools
         var playerObject = playerMover != null
             ? playerMover.GetComponent<BoardObject>()
             : FindBoardObject(boardObjects, item => item.ObjectType == BoardObjectType.Player);
+        var playerDeathAnimation = playerMover != null
+            ? playerMover.GetComponentInChildren<PlayerMovement>(true)
+            : playerObject != null
+                ? playerObject.GetComponentInChildren<PlayerMovement>(true)
+                : null;
         var startTile = IsUsableBoardObject(flowManager != null ? flowManager.StartTile : null)
             ? flowManager.StartTile
             : FindBoardObject(boardObjects, item => IsNamed(item, "start") && item.ObjectType != BoardObjectType.Door);
@@ -66,6 +71,7 @@ public static class LeadTheWayObjectSetupTools
             flowManager.Configure(boardManager, playerMover, playerObject, destinationDoor);
             flowManager.ConfigureLevelFlow(startTile, startDoor, destinationDoor);
             flowManager.ConfigureResultFlash(resultFlash);
+            flowManager.ConfigurePlayerDeathAnimation(playerDeathAnimation);
             EditorUtility.SetDirty(flowManager);
             changedCount++;
         }
