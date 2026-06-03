@@ -12,6 +12,9 @@ public class PauseMenuUI : MonoBehaviour
     [SerializeField] private Button resumeButton;
     [SerializeField] private Button restartButton;
     [SerializeField] private Button closeButton;
+    [SerializeField] private Button musicToggleButton;
+    [SerializeField] private Image musicToggleIcon;
+    [SerializeField] private GameplayMusicController musicController;
     [SerializeField] private GameObject pauseOverlay;
     [SerializeField] private CanvasGroup overlayCanvasGroup;
     [SerializeField] private float fadeDuration = 0.14f;
@@ -36,6 +39,13 @@ public class PauseMenuUI : MonoBehaviour
         if (restartButton != null)
             restartButton.onClick.AddListener(RestartLevel);
 
+        if (musicToggleButton != null)
+            musicToggleButton.onClick.AddListener(ToggleMusic);
+
+        if (musicController != null)
+            musicController.MuteStateChanged += HandleMusicMuteStateChanged;
+
+        UpdateMusicToggleVisual();
         SetOverlayVisible(false, true);
     }
 
@@ -58,6 +68,9 @@ public class PauseMenuUI : MonoBehaviour
     {
         if (isPaused)
             Time.timeScale = previousTimeScale;
+
+        if (musicController != null)
+            musicController.MuteStateChanged -= HandleMusicMuteStateChanged;
     }
 
     public void Configure(
@@ -65,6 +78,9 @@ public class PauseMenuUI : MonoBehaviour
         Button newResumeButton,
         Button newRestartButton,
         Button newCloseButton,
+        Button newMusicToggleButton,
+        Image newMusicToggleIcon,
+        GameplayMusicController newMusicController,
         GameObject newPauseOverlay,
         CanvasGroup newOverlayCanvasGroup)
     {
@@ -72,6 +88,9 @@ public class PauseMenuUI : MonoBehaviour
         resumeButton = newResumeButton;
         restartButton = newRestartButton;
         closeButton = newCloseButton;
+        musicToggleButton = newMusicToggleButton;
+        musicToggleIcon = newMusicToggleIcon;
+        musicController = newMusicController;
         pauseOverlay = newPauseOverlay;
         overlayCanvasGroup = newOverlayCanvasGroup;
     }
@@ -109,6 +128,20 @@ public class PauseMenuUI : MonoBehaviour
             SceneManager.LoadScene(activeScene.name);
     }
 
+    private void ToggleMusic()
+    {
+        if (musicController == null)
+            return;
+
+        musicController.ToggleMuted();
+        UpdateMusicToggleVisual();
+    }
+
+    private void HandleMusicMuteStateChanged(bool muted)
+    {
+        UpdateMusicToggleVisual();
+    }
+
     private void EnsureReferences()
     {
         if (pauseOverlay == null)
@@ -123,6 +156,19 @@ public class PauseMenuUI : MonoBehaviour
 
         if (overlayCanvasGroup == null && pauseOverlay != null)
             overlayCanvasGroup = pauseOverlay.AddComponent<CanvasGroup>();
+
+        if (musicController == null)
+            musicController = FindAnyObjectByType<GameplayMusicController>();
+    }
+
+    private void UpdateMusicToggleVisual()
+    {
+        if (musicToggleIcon == null || musicController == null)
+            return;
+
+        musicToggleIcon.color = musicController.IsMuted
+            ? new Color(0.13f, 0.09f, 0.04f, 0.38f)
+            : new Color(0.13f, 0.09f, 0.04f, 1f);
     }
 
     private void SetOverlayVisible(bool visible, bool immediate)

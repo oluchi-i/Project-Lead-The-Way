@@ -45,6 +45,9 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float explosionCenterHeight = 0.35f;
     [SerializeField] private float separationOffset = 0.06f;
     [SerializeField] private float torqueForce = 32f;
+    [SerializeField] private float explosionDirectionJitterDegrees = 14f;
+    [SerializeField] private float explosionForceVariance = 0.28f;
+    [SerializeField] private float upwardForceVariance = 0.3f;
     [SerializeField] private float deathVisualDuration = 0.45f;
     [SerializeField] private float deathTiltAngle = 72f;
     [SerializeField] private float deathSquash = 0.18f;
@@ -118,8 +121,10 @@ public class PlayerMovement : MonoBehaviour
         }
 
         var explosionCenter = CalculateDeathExplosionCenter();
-        foreach (var part in CollectDeathParts())
-            ReleaseBodyPart(part, explosionCenter);
+        var deathParts = CollectDeathParts();
+        var angleOffset = Random.Range(0f, 360f);
+        for (var i = 0; i < deathParts.Count; i++)
+            ReleaseBodyPart(deathParts[i], explosionCenter, i, deathParts.Count, angleOffset);
     }
 
     private List<Transform> CollectDeathParts()
@@ -127,22 +132,25 @@ public class PlayerMovement : MonoBehaviour
         var parts = new List<Transform>();
         var seen = new HashSet<Transform>();
 
-        foreach (var body in GetComponentsInChildren<Rigidbody>(true))
-        {
-            if (body == null || body.transform == transform)
-                continue;
-
-            AddDeathPart(parts, seen, body.transform);
-        }
-
         if (bodyParts != null)
         {
             foreach (var part in bodyParts)
                 AddDeathPart(parts, seen, part);
         }
 
-        if (parts.Count == 0 && transform.childCount > 0)
+        if (transform.childCount > 0)
             AddDeathPart(parts, seen, transform.GetChild(0));
+
+        if (parts.Count == 0)
+        {
+            foreach (var body in GetComponentsInChildren<Rigidbody>(true))
+            {
+                if (body == null || body.transform == transform)
+                    continue;
+
+                AddDeathPart(parts, seen, body.transform);
+            }
+        }
 
         return parts;
     }
@@ -171,20 +179,14 @@ public class PlayerMovement : MonoBehaviour
         return center;
     }
 
-    private void ReleaseBodyPart(Transform part, Vector3 explosionCenter)
+    private void ReleaseBodyPart(Transform part, Vector3 explosionCenter, int partIndex, int partCount, float angleOffset)
     {
         if (part == null || part.parent == null)
             return;
 
         part.SetParent(null);
 
-        foreach (var collider in part.GetComponentsInChildren<Collider>())
-        {
-            if (collider is MeshCollider meshCollider)
-                meshCollider.convex = true;
-
-            collider.enabled = true;
-        }
+        ConfigureDeathChunkColliders(part);
 
         var partRigidbody = part.GetComponent<Rigidbody>();
         if (partRigidbody == null)
@@ -192,34 +194,77 @@ public class PlayerMovement : MonoBehaviour
 
         partRigidbody.isKinematic = false;
         partRigidbody.useGravity = true;
+        partRigidbody.detectCollisions = true;
         partRigidbody.linearVelocity = Vector3.zero;
         partRigidbody.angularVelocity = Vector3.zero;
 
         var force = Mathf.Max(0.05f, explosionForce > 0f ? explosionForce : 1.15f);
         var lift = Mathf.Max(0f, upwardForce);
-        var radialDirection = part.position - explosionCenter;
-        radialDirection.y = 0f;
-        if (radialDirection.sqrMagnitude < 0.001f)
-            radialDirection = new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f));
-
         partRigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         partRigidbody.interpolation = RigidbodyInterpolation.Interpolate;
 
-        var randomDirection = new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f));
-        var scatter = Mathf.Max(0f, explosionScatter);
-        var blastDirection = (radialDirection.normalized + randomDirection.normalized * scatter).normalized;
-        if (blastDirection.sqrMagnitude < 0.001f)
-            blastDirection = Vector3.right;
+        var blastDirection = CalculateDistributedBlastDirection(partIndex, partCount, angleOffset, part.position, explosionCenter);
 
         part.position += blastDirection * separationOffset * Random.Range(0.65f, 1.25f);
 
-        var sidewaysImpulse = blastDirection * force * Random.Range(0.65f, 1.35f);
-        var upwardImpulse = Vector3.up * lift * Random.Range(0.55f, 1.35f);
+        var forceMultiplier = Random.Range(1f - Mathf.Clamp01(explosionForceVariance), 1f + Mathf.Clamp01(explosionForceVariance));
+        var upwardMultiplier = Random.Range(1f - Mathf.Clamp01(upwardForceVariance), 1f + Mathf.Clamp01(upwardForceVariance));
+        var sidewaysImpulse = blastDirection * force * forceMultiplier;
+        var upwardImpulse = Vector3.up * lift * upwardMultiplier;
         partRigidbody.AddForce(sidewaysImpulse + upwardImpulse, ForceMode.Impulse);
 
         var spinScale = Mathf.Max(0f, torqueForce) * Random.Range(0.7f, 1.45f);
         var randomSpin = new Vector3(Random.Range(-spinScale, spinScale), Random.Range(-spinScale, spinScale), Random.Range(-spinScale, spinScale));
         partRigidbody.AddTorque(randomSpin, ForceMode.Impulse);
+        partRigidbody.WakeUp();
+    }
+
+    private static void ConfigureDeathChunkColliders(Transform part)
+    {
+        var enabledSolidCollider = false;
+        var meshColliders = part.GetComponentsInChildren<MeshCollider>(true);
+        foreach (var meshCollider in meshColliders)
+            meshCollider.enabled = false;
+
+        foreach (var collider in part.GetComponentsInChildren<Collider>(true))
+        {
+            if (collider == null || collider is MeshCollider)
+                continue;
+
+            collider.enabled = true;
+            collider.isTrigger = false;
+            enabledSolidCollider = true;
+        }
+
+        if (enabledSolidCollider)
+            return;
+
+        foreach (var meshCollider in meshColliders)
+        {
+            if (meshCollider == null)
+                continue;
+
+            meshCollider.convex = true;
+            meshCollider.enabled = true;
+            meshCollider.isTrigger = false;
+        }
+    }
+
+    private Vector3 CalculateDistributedBlastDirection(int partIndex, int partCount, float angleOffset, Vector3 partPosition, Vector3 explosionCenter)
+    {
+        var safeCount = Mathf.Max(1, partCount);
+        var baseAngle = angleOffset + (360f / safeCount) * partIndex;
+        var jitter = Random.Range(-explosionDirectionJitterDegrees, explosionDirectionJitterDegrees);
+        var angle = (baseAngle + jitter) * Mathf.Deg2Rad;
+        var distributedDirection = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+
+        var radialDirection = partPosition - explosionCenter;
+        radialDirection.y = 0f;
+        if (radialDirection.sqrMagnitude < 0.001f)
+            return distributedDirection.normalized;
+
+        var radialWeight = Mathf.Clamp01(1f - explosionScatter);
+        return Vector3.Slerp(distributedDirection.normalized, radialDirection.normalized, radialWeight).normalized;
     }
 
     private IEnumerator BoardDeathAnimation()

@@ -26,7 +26,10 @@ public static class LeadTheWayObjectSetupTools
     private const string PlayIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/play.png";
     private const string RepeatIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/repeat.png";
     private const string CloseIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/x.png";
+    private const string SpeakerIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/speaker.png";
     private const string PoppinsBoldPath = "Assets/Art/UI/Fonts/Poppins-Bold.ttf";
+    private const string GameplayMusicPath = "Assets/Sound/gameplay_background_music.mp3";
+    private const string TeleportSoundPath = "Assets/Sound/SoundEffects/teleport_sound.mp3";
     private const string LevelSuccessSoundPath = "Assets/Sound/SoundEffects/level_success.mp3";
     private const string PlayerDeathSoundPath = "Assets/Sound/SoundEffects/death.mp3";
     private const string TeleportEffectPath = "Assets/Lana Studio/Hyper Casual FX/Prefabs/Area/Area_fire_red.prefab";
@@ -38,6 +41,8 @@ public static class LeadTheWayObjectSetupTools
         var flowManager = Object.FindAnyObjectByType<InteractionFlowManager>();
         var playerMover = Object.FindAnyObjectByType<BoardPlayerMover>();
         var resultFlash = Object.FindAnyObjectByType<LevelResultFlashUI>(FindObjectsInactive.Include);
+        var musicController = GetOrCreateGameplayMusicController();
+        var teleportAudioSource = GetOrCreateNamedAudioSource(GetOrCreateGameSystems().transform, "Teleport Audio Source", 0f);
         var boardObjects = BoardManager.FindSceneBoardObjects();
         var changedCount = 0;
 
@@ -98,6 +103,7 @@ public static class LeadTheWayObjectSetupTools
             flowManager.ConfigureIntroCameraTransition(introCameraTransition);
             flowManager.ConfigureDeathCinematicCamera(deathCinematicCamera);
             flowManager.ConfigureTeleportEffect(AssetDatabase.LoadAssetAtPath<GameObject>(TeleportEffectPath));
+            flowManager.ConfigureTeleportAudio(teleportAudioSource, AssetDatabase.LoadAssetAtPath<AudioClip>(TeleportSoundPath));
             EditorUtility.SetDirty(flowManager);
             changedCount++;
         }
@@ -115,6 +121,9 @@ public static class LeadTheWayObjectSetupTools
         changedCount += WireInteractionCounters(flowManager);
         changedCount += WireResultFlashAudio(resultFlash);
         changedCount += WireButtonPressAudioSources();
+        changedCount += WirePauseMenus(musicController);
+        if (musicController != null)
+            changedCount++;
         if (introCameraTransition != null)
             changedCount++;
         if (deathCinematicCamera != null)
@@ -254,6 +263,7 @@ public static class LeadTheWayObjectSetupTools
     {
         var canvas = EnsureGameplayCanvas();
         EnsureEventSystem();
+        var musicController = GetOrCreateGameplayMusicController();
         var pauseUI = FindOrCreateRectChild(canvas.transform, "Pause UI");
         StretchToParent(pauseUI);
 
@@ -261,6 +271,8 @@ public static class LeadTheWayObjectSetupTools
         var overlay = EnsurePauseOverlay(pauseUI);
         var panel = EnsurePausePanel(overlay);
         var closeButton = EnsurePanelIconButton(panel, "Close Button", CloseIconPath, new Vector2(-24f, -24f), TextAnchor.UpperRight);
+        var musicToggleButton = EnsurePanelIconButton(panel, "Music Toggle Button", SpeakerIconPath, new Vector2(24f, -24f), TextAnchor.UpperLeft);
+        var musicToggleIcon = FindChildComponent<Image>(musicToggleButton.transform, "Icon");
         var title = EnsureText(panel, "Title", "PAUSED", 32, new Color(1f, 0.86f, 0.28f, 1f), TextAnchor.MiddleCenter);
         ConfigureRect(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -54f), new Vector2(260f, 44f));
 
@@ -279,7 +291,7 @@ public static class LeadTheWayObjectSetupTools
             pauseMenu = Undo.AddComponent<PauseMenuUI>(pauseUI.gameObject);
 
         Undo.RecordObject(pauseMenu, "Wire Pause Menu");
-        pauseMenu.Configure(pauseButton, resumeButton, restartButton, closeButton, overlay.gameObject, canvasGroup);
+        pauseMenu.Configure(pauseButton, resumeButton, restartButton, closeButton, musicToggleButton, musicToggleIcon, musicController, overlay.gameObject, canvasGroup);
 
         overlay.gameObject.SetActive(false);
         canvasGroup.alpha = 0f;
@@ -673,6 +685,57 @@ public static class LeadTheWayObjectSetupTools
         return Undo.AddComponent<InteractionFlowManager>(GetOrCreateGameSystems());
     }
 
+    private static GameplayMusicController GetOrCreateGameplayMusicController()
+    {
+        var existing = Object.FindAnyObjectByType<GameplayMusicController>(FindObjectsInactive.Include);
+        var musicClip = AssetDatabase.LoadAssetAtPath<AudioClip>(GameplayMusicPath);
+        if (existing != null)
+        {
+            var audioSource = existing.GetComponent<AudioSource>();
+            if (audioSource == null)
+                audioSource = Undo.AddComponent<AudioSource>(existing.gameObject);
+
+            Undo.RecordObject(existing, "Wire Gameplay Music");
+            Undo.RecordObject(audioSource, "Wire Gameplay Music");
+            existing.Configure(musicClip, audioSource);
+            EditorUtility.SetDirty(existing);
+            EditorUtility.SetDirty(audioSource);
+            return existing;
+        }
+
+        var gameSystems = GetOrCreateGameSystems();
+        var musicObject = FindOrCreateChild(gameSystems.transform, "Gameplay Music");
+        var source = musicObject.GetComponent<AudioSource>();
+        if (source == null)
+            source = Undo.AddComponent<AudioSource>(musicObject.gameObject);
+
+        var controller = musicObject.GetComponent<GameplayMusicController>();
+        if (controller == null)
+            controller = Undo.AddComponent<GameplayMusicController>(musicObject.gameObject);
+
+        Undo.RecordObject(source, "Wire Gameplay Music");
+        Undo.RecordObject(controller, "Wire Gameplay Music");
+        controller.Configure(musicClip, source);
+        EditorUtility.SetDirty(source);
+        EditorUtility.SetDirty(controller);
+        return controller;
+    }
+
+    private static AudioSource GetOrCreateNamedAudioSource(Transform parent, string name, float spatialBlend)
+    {
+        var child = FindOrCreateChild(parent, name);
+        var source = child.GetComponent<AudioSource>();
+        if (source == null)
+            source = Undo.AddComponent<AudioSource>(child.gameObject);
+
+        Undo.RecordObject(source, "Wire Audio Source");
+        source.playOnAwake = false;
+        source.loop = false;
+        source.spatialBlend = Mathf.Clamp01(spatialBlend);
+        EditorUtility.SetDirty(source);
+        return source;
+    }
+
     private static DeathCinematicCamera GetOrCreateDeathCinematicCamera(BoardManager boardManager)
     {
         var existing = Object.FindAnyObjectByType<DeathCinematicCamera>(FindObjectsInactive.Include);
@@ -944,7 +1007,12 @@ public static class LeadTheWayObjectSetupTools
     private static Button EnsurePanelIconButton(RectTransform parent, string name, string iconPath, Vector2 anchoredPosition, TextAnchor anchor)
     {
         var rect = FindOrCreateRectChild(parent, name);
-        var anchorVector = anchor == TextAnchor.UpperRight ? new Vector2(1f, 1f) : new Vector2(0.5f, 0.5f);
+        var anchorVector = anchor switch
+        {
+            TextAnchor.UpperRight => new Vector2(1f, 1f),
+            TextAnchor.UpperLeft => new Vector2(0f, 1f),
+            _ => new Vector2(0.5f, 0.5f)
+        };
         ConfigureRect(rect, anchorVector, anchorVector, anchorVector, anchoredPosition, new Vector2(34f, 34f));
 
         var image = EnsureImage(rect.gameObject);
@@ -1267,6 +1335,46 @@ public static class LeadTheWayObjectSetupTools
 
             EditorUtility.SetDirty(audioSource);
             EditorUtility.SetDirty(buttonPress);
+            changedCount++;
+        }
+
+        return changedCount;
+    }
+
+    private static int WirePauseMenus(GameplayMusicController musicController)
+    {
+        var changedCount = 0;
+        foreach (var pauseMenu in Object.FindObjectsByType<PauseMenuUI>(FindObjectsInactive.Include))
+        {
+            var root = pauseMenu.transform;
+            var pauseButton = FindChildComponent<Button>(root, "Pause Button");
+            var resumeButton = FindChildComponent<Button>(root, "Resume Button");
+            var restartButton = FindChildComponent<Button>(root, "Restart Button");
+            var closeButton = FindChildComponent<Button>(root, "Close Button");
+            var musicButton = FindChildComponent<Button>(root, "Music Toggle Button");
+            var musicIcon = musicButton != null ? FindChildComponent<Image>(musicButton.transform, "Icon") : null;
+            var overlay = FindChild(root, "Pause Overlay");
+            var canvasGroup = overlay != null ? overlay.GetComponent<CanvasGroup>() : null;
+
+            if (overlay != null && canvasGroup == null)
+                canvasGroup = Undo.AddComponent<CanvasGroup>(overlay.gameObject);
+
+            Undo.RecordObject(pauseMenu, "Wire Pause Menu");
+            pauseMenu.Configure(
+                pauseButton,
+                resumeButton,
+                restartButton,
+                closeButton,
+                musicButton,
+                musicIcon,
+                musicController,
+                overlay != null ? overlay.gameObject : null,
+                canvasGroup);
+
+            EditorUtility.SetDirty(pauseMenu);
+            if (canvasGroup != null)
+                EditorUtility.SetDirty(canvasGroup);
+
             changedCount++;
         }
 

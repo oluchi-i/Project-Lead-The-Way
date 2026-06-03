@@ -32,9 +32,15 @@ public class InteractionFlowManager : MonoBehaviour
     [SerializeField] private IntroCameraTransition introCameraTransition;
     [SerializeField] private DeathCinematicCamera deathCinematicCamera;
     [SerializeField] private GameObject teleportEffectPrefab;
+    [SerializeField] private AudioSource teleportAudioSource;
+    [SerializeField] private AudioClip teleportSound;
+    [SerializeField] private float introTeleportDelayAfterDoorOpen = 0.5f;
     [SerializeField] private float teleportEffectDuration = 1f;
     [SerializeField] private float teleportAppearanceDelay = 0.22f;
     [SerializeField] private float teleportAppearanceDuration = 0.78f;
+    [SerializeField] private float teleportRiseOffset = 0.22f;
+    [SerializeField] private float teleportYawDegrees = 38f;
+    [SerializeField] private float teleportScaleOvershoot = 1.08f;
     [SerializeField] private float teleportEffectHeightOffset = 0.05f;
     [SerializeField] private float teleportEffectTileCoverage = 0.1f;
     [SerializeField] private float introSpawnYawOffsetDegrees = 180f;
@@ -53,6 +59,8 @@ public class InteractionFlowManager : MonoBehaviour
     private int activeObjectActionCount;
     private bool loggedMissingReferences;
     private Vector3 originalPlayerScale = Vector3.one;
+    private Vector3 originalPlayerLocalPosition;
+    private Quaternion originalPlayerLocalRotation = Quaternion.identity;
     private bool cachedOriginalPlayerScale;
     private Transform cachedPlayerVisualRoot;
 
@@ -133,6 +141,12 @@ public class InteractionFlowManager : MonoBehaviour
     public void ConfigureTeleportEffect(GameObject newTeleportEffectPrefab)
     {
         teleportEffectPrefab = newTeleportEffectPrefab;
+    }
+
+    public void ConfigureTeleportAudio(AudioSource newTeleportAudioSource, AudioClip newTeleportSound)
+    {
+        teleportAudioSource = newTeleportAudioSource;
+        teleportSound = newTeleportSound;
     }
 
     private void Awake()
@@ -275,6 +289,9 @@ public class InteractionFlowManager : MonoBehaviour
 
         entryDoor.Open();
         yield return WaitForDoor(entryDoor);
+
+        if (introTeleportDelayAfterDoorOpen > 0f)
+            yield return new WaitForSeconds(introTeleportDelayAfterDoorOpen);
 
         yield return PlayPlayerAppearance();
 
@@ -577,6 +594,7 @@ public class InteractionFlowManager : MonoBehaviour
     private IEnumerator PlayTeleportTransition(Vector2Int tile, bool appearing)
     {
         var effect = SpawnTeleportEffect(tile);
+        PlayTeleportSound();
         var elapsed = 0f;
         var duration = Mathf.Max(0.01f, teleportEffectDuration);
         var appearanceDelay = Mathf.Clamp(teleportAppearanceDelay, 0f, duration);
@@ -606,11 +624,11 @@ public class InteractionFlowManager : MonoBehaviour
                 if (appearing)
                 {
                     SetPlayerVisible(true);
-                    SetPlayerScale(t);
+                    SetPlayerTeleportTransition(t, true);
                 }
                 else
                 {
-                    SetPlayerScale(1f - t);
+                    SetPlayerTeleportTransition(t, false);
                 }
             }
 
@@ -618,10 +636,27 @@ public class InteractionFlowManager : MonoBehaviour
         }
 
         SetPlayerVisible(appearing);
-        SetPlayerScale(appearing ? 1f : 0f);
+        SetPlayerTeleportTransition(1f, appearing);
 
         if (effect != null)
             Destroy(effect);
+    }
+
+    private void PlayTeleportSound()
+    {
+        if (teleportSound == null)
+            return;
+
+        if (teleportAudioSource == null)
+            teleportAudioSource = GetComponent<AudioSource>();
+
+        if (teleportAudioSource == null)
+            teleportAudioSource = gameObject.AddComponent<AudioSource>();
+
+        teleportAudioSource.playOnAwake = false;
+        teleportAudioSource.loop = false;
+        teleportAudioSource.spatialBlend = 0f;
+        teleportAudioSource.PlayOneShot(teleportSound);
     }
 
     private GameObject SpawnTeleportEffect(Vector2Int tile)
@@ -659,6 +694,8 @@ public class InteractionFlowManager : MonoBehaviour
             return;
 
         originalPlayerScale = visualRoot.localScale;
+        originalPlayerLocalPosition = visualRoot.localPosition;
+        originalPlayerLocalRotation = visualRoot.localRotation;
         cachedOriginalPlayerScale = true;
     }
 
@@ -670,6 +707,43 @@ public class InteractionFlowManager : MonoBehaviour
 
         CacheOriginalPlayerScale();
         visualRoot.localScale = Vector3.Lerp(Vector3.zero, originalPlayerScale, Mathf.Clamp01(progress));
+    }
+
+    private void SetPlayerTeleportTransition(float progress, bool appearing)
+    {
+        var visualRoot = GetPlayerVisualRoot();
+        if (visualRoot == null)
+            return;
+
+        CacheOriginalPlayerScale();
+
+        var t = Mathf.Clamp01(progress);
+        var visibleProgress = appearing ? t : 1f - t;
+        var smoothVisibleProgress = Mathf.SmoothStep(0f, 1f, visibleProgress);
+        var scaleMultiplier = appearing ? CalculateTeleportAppearScale(t) : smoothVisibleProgress;
+        var offsetDirection = appearing ? 1f - t : t;
+        var yawDirection = appearing ? 1f - t : -t;
+
+        visualRoot.localScale = originalPlayerScale * scaleMultiplier;
+        visualRoot.localPosition = originalPlayerLocalPosition + Vector3.up * teleportRiseOffset * offsetDirection;
+        visualRoot.localRotation = originalPlayerLocalRotation * Quaternion.Euler(0f, teleportYawDegrees * yawDirection, 0f);
+
+        if (t >= 1f)
+        {
+            visualRoot.localPosition = originalPlayerLocalPosition;
+            visualRoot.localRotation = originalPlayerLocalRotation;
+            visualRoot.localScale = appearing ? originalPlayerScale : Vector3.zero;
+        }
+    }
+
+    private float CalculateTeleportAppearScale(float progress)
+    {
+        var t = Mathf.Clamp01(progress);
+        var overshoot = Mathf.Max(1f, teleportScaleOvershoot);
+        if (t < 0.82f)
+            return Mathf.Lerp(0f, overshoot, Mathf.SmoothStep(0f, 1f, t / 0.82f));
+
+        return Mathf.Lerp(overshoot, 1f, Mathf.SmoothStep(0f, 1f, (t - 0.82f) / 0.18f));
     }
 
     private void SetPlayerVisible(bool visible)
