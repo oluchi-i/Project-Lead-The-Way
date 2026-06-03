@@ -6,7 +6,7 @@ using UnityEngine;
 
 public static class LeadTheWayIconTools
 {
-    private const string GeneratedIconFolder = "Assets/Art/UI/ObjectIcons";
+    private const string FallbackGeneratedIconFolder = "Assets/Art/Objects/GeneratedIcons";
     private const int IconSize = 256;
 
     [MenuItem("Tools/Lead The Way/UI/Icons/Generate Icons From Selected Objects")]
@@ -19,15 +19,13 @@ public static class LeadTheWayIconTools
             return;
         }
 
-        EnsureGeneratedIconFolder();
-
         var generatedCount = 0;
         foreach (var selectedObject in selectedObjects)
         {
             if (selectedObject == null)
                 continue;
 
-            var iconPath = $"{GeneratedIconFolder}/{CreateSafeFileName(selectedObject.name)}.png";
+            var iconPath = ResolveIconPathForObject(selectedObject);
             var sprite = GenerateIconAssetForObject(selectedObject, iconPath);
             if (sprite == null)
                 continue;
@@ -42,9 +40,80 @@ public static class LeadTheWayIconTools
         EditorUtility.DisplayDialog(
             "Generate Object Icons",
             generatedCount == 1
-                ? $"Generated 1 icon in {GeneratedIconFolder}."
-                : $"Generated {generatedCount} icons in {GeneratedIconFolder}.",
+                ? "Generated 1 icon in the matching object art folder."
+                : $"Generated {generatedCount} icons in matching object art folders.",
             "OK");
+    }
+
+    private static string ResolveIconPathForObject(GameObject sourceObject)
+    {
+        var fileName = $"{CreateSafeFileName(sourceObject != null ? sourceObject.name : null)}.png";
+        var existingIconFolder = GetExistingSelectableIconFolder(sourceObject);
+        if (!string.IsNullOrWhiteSpace(existingIconFolder))
+            return $"{existingIconFolder}/{fileName}";
+
+        var inferredIconFolder = GetIconFolderFromRendererAssets(sourceObject);
+        if (!string.IsNullOrWhiteSpace(inferredIconFolder))
+            return $"{inferredIconFolder}/{fileName}";
+
+        return $"{FallbackGeneratedIconFolder}/{fileName}";
+    }
+
+    private static string GetExistingSelectableIconFolder(GameObject sourceObject)
+    {
+        var selectable = sourceObject != null
+            ? sourceObject.GetComponentInChildren<SelectableControlObject>(true)
+            : null;
+        if (selectable == null || selectable.Icon == null)
+            return null;
+
+        var iconPath = AssetDatabase.GetAssetPath(selectable.Icon);
+        if (string.IsNullOrWhiteSpace(iconPath))
+            return null;
+
+        iconPath = iconPath.Replace("\\", "/");
+        if (!iconPath.StartsWith("Assets/Art/Objects/") && !iconPath.StartsWith("Assets/Art/Board/Doors/Icons/"))
+            return null;
+
+        return Path.GetDirectoryName(iconPath)?.Replace("\\", "/");
+    }
+
+    private static string GetIconFolderFromRendererAssets(GameObject sourceObject)
+    {
+        if (sourceObject == null)
+            return null;
+
+        foreach (var meshFilter in sourceObject.GetComponentsInChildren<MeshFilter>(true))
+        {
+            var folder = GetIconFolderNearAssetPath(AssetDatabase.GetAssetPath(meshFilter.sharedMesh));
+            if (!string.IsNullOrWhiteSpace(folder))
+                return folder;
+        }
+
+        foreach (var skinnedMesh in sourceObject.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+        {
+            var folder = GetIconFolderNearAssetPath(AssetDatabase.GetAssetPath(skinnedMesh.sharedMesh));
+            if (!string.IsNullOrWhiteSpace(folder))
+                return folder;
+        }
+
+        return null;
+    }
+
+    private static string GetIconFolderNearAssetPath(string assetPath)
+    {
+        if (string.IsNullOrWhiteSpace(assetPath))
+            return null;
+
+        assetPath = assetPath.Replace("\\", "/");
+        if (!assetPath.StartsWith("Assets/Art/Objects/") && !assetPath.StartsWith("Assets/Art/Board/Doors/"))
+            return null;
+
+        var meshesIndex = assetPath.IndexOf("/Meshes/", System.StringComparison.Ordinal);
+        if (meshesIndex < 0)
+            return null;
+
+        return $"{assetPath.Substring(0, meshesIndex)}/Icons";
     }
 
     private static bool ConfigureTextureAsSprite(string texturePath)
@@ -316,12 +385,6 @@ public static class LeadTheWayIconTools
 
         if (!EditorUtility.IsPersistent(selectable))
             EditorSceneManager.MarkSceneDirty(selectable.gameObject.scene);
-    }
-
-    private static void EnsureGeneratedIconFolder()
-    {
-        EnsureFolder("Assets/Art/UI");
-        EnsureFolder(GeneratedIconFolder);
     }
 
     private static void EnsureFolder(string folderPath)

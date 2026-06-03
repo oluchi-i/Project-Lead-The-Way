@@ -8,7 +8,11 @@ using UnityEngine.UI;
 
 public static class LeadTheWayObjectSetupTools
 {
-    private const string ObjectIconFolder = "Assets/Art/UI/ObjectIcons";
+    private static readonly string[] ObjectIconSearchFolders =
+    {
+        "Assets/Art/Objects",
+        "Assets/Art/Board/Doors/Icons"
+    };
     private const string ArrowRightIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_right.png";
     private const string ArrowLeftIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_left.png";
     private const string ArrowUpIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_up.png";
@@ -225,7 +229,19 @@ public static class LeadTheWayObjectSetupTools
             safeName = safeName.Replace(invalidCharacter, '_');
 
         safeName = safeName.Replace(' ', '_');
-        return AssetDatabase.LoadAssetAtPath<Sprite>($"{ObjectIconFolder}/{safeName}.png");
+        var guids = AssetDatabase.FindAssets($"{safeName} t:Sprite", ObjectIconSearchFolders);
+        foreach (var guid in guids)
+        {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            if (System.IO.Path.GetFileNameWithoutExtension(path) != safeName)
+                continue;
+
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (sprite != null)
+                return sprite;
+        }
+
+        return null;
     }
 
     private static int EnsureUniqueBoardObjectIds(List<BoardObject> boardObjects)
