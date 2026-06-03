@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
@@ -40,6 +41,10 @@ public class PlayerMovement : MonoBehaviour
     public float upwardForce;
     public Transform[] bodyParts;
     [SerializeField] private bool usePhysicsDeath = true;
+    [SerializeField] private float explosionScatter = 0.85f;
+    [SerializeField] private float explosionCenterHeight = 0.35f;
+    [SerializeField] private float separationOffset = 0.06f;
+    [SerializeField] private float torqueForce = 32f;
     [SerializeField] private float deathVisualDuration = 0.45f;
     [SerializeField] private float deathTiltAngle = 72f;
     [SerializeField] private float deathSquash = 0.18f;
@@ -112,17 +117,61 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        if (transform.childCount > 0)
-            ReleaseBodyPart(transform.GetChild(0));
+        var explosionCenter = CalculateDeathExplosionCenter();
+        foreach (var part in CollectDeathParts())
+            ReleaseBodyPart(part, explosionCenter);
+    }
+
+    private List<Transform> CollectDeathParts()
+    {
+        var parts = new List<Transform>();
+        var seen = new HashSet<Transform>();
+
+        foreach (var body in GetComponentsInChildren<Rigidbody>(true))
+        {
+            if (body == null || body.transform == transform)
+                continue;
+
+            AddDeathPart(parts, seen, body.transform);
+        }
 
         if (bodyParts != null)
         {
             foreach (var part in bodyParts)
-                ReleaseBodyPart(part);
+                AddDeathPart(parts, seen, part);
         }
+
+        if (parts.Count == 0 && transform.childCount > 0)
+            AddDeathPart(parts, seen, transform.GetChild(0));
+
+        return parts;
     }
 
-    private void ReleaseBodyPart(Transform part)
+    private static void AddDeathPart(List<Transform> parts, HashSet<Transform> seen, Transform part)
+    {
+        if (part == null || seen.Contains(part))
+            return;
+
+        seen.Add(part);
+        parts.Add(part);
+    }
+
+    private Vector3 CalculateDeathExplosionCenter()
+    {
+        var renderers = GetComponentsInChildren<Renderer>(true);
+        if (renderers.Length == 0)
+            return transform.position + Vector3.up * explosionCenterHeight;
+
+        var bounds = renderers[0].bounds;
+        for (var i = 1; i < renderers.Length; i++)
+            bounds.Encapsulate(renderers[i].bounds);
+
+        var center = bounds.center;
+        center.y = bounds.min.y + Mathf.Max(0f, explosionCenterHeight);
+        return center;
+    }
+
+    private void ReleaseBodyPart(Transform part, Vector3 explosionCenter)
     {
         if (part == null || part.parent == null)
             return;
@@ -143,17 +192,33 @@ public class PlayerMovement : MonoBehaviour
 
         partRigidbody.isKinematic = false;
         partRigidbody.useGravity = true;
+        partRigidbody.linearVelocity = Vector3.zero;
+        partRigidbody.angularVelocity = Vector3.zero;
 
-        var force = Mathf.Clamp(explosionForce > 0f ? explosionForce : 1.15f, 0.05f, 2.2f);
-        var lift = Mathf.Clamp(upwardForce > 0f ? upwardForce : 0.08f, 0f, 0.35f);
-        var horizontalDirection = new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f));
-        if (horizontalDirection.sqrMagnitude < 0.001f)
-            horizontalDirection = Vector3.right;
+        var force = Mathf.Max(0.05f, explosionForce > 0f ? explosionForce : 1.15f);
+        var lift = Mathf.Max(0f, upwardForce);
+        var radialDirection = part.position - explosionCenter;
+        radialDirection.y = 0f;
+        if (radialDirection.sqrMagnitude < 0.001f)
+            radialDirection = new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f));
 
-        var blastDirection = (horizontalDirection.normalized + Vector3.up * lift).normalized;
-        partRigidbody.AddForce(blastDirection * force * Random.Range(0.55f, 0.85f), ForceMode.Impulse);
+        partRigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        partRigidbody.interpolation = RigidbodyInterpolation.Interpolate;
 
-        var randomSpin = new Vector3(Random.Range(-14f, 14f), Random.Range(-18f, 18f), Random.Range(-14f, 14f));
+        var randomDirection = new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f));
+        var scatter = Mathf.Max(0f, explosionScatter);
+        var blastDirection = (radialDirection.normalized + randomDirection.normalized * scatter).normalized;
+        if (blastDirection.sqrMagnitude < 0.001f)
+            blastDirection = Vector3.right;
+
+        part.position += blastDirection * separationOffset * Random.Range(0.65f, 1.25f);
+
+        var sidewaysImpulse = blastDirection * force * Random.Range(0.65f, 1.35f);
+        var upwardImpulse = Vector3.up * lift * Random.Range(0.55f, 1.35f);
+        partRigidbody.AddForce(sidewaysImpulse + upwardImpulse, ForceMode.Impulse);
+
+        var spinScale = Mathf.Max(0f, torqueForce) * Random.Range(0.7f, 1.45f);
+        var randomSpin = new Vector3(Random.Range(-spinScale, spinScale), Random.Range(-spinScale, spinScale), Random.Range(-spinScale, spinScale));
         partRigidbody.AddTorque(randomSpin, ForceMode.Impulse);
     }
 

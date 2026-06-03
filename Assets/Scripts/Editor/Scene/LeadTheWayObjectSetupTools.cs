@@ -326,6 +326,7 @@ public static class LeadTheWayObjectSetupTools
             boardObject.Configure(BoardObjectType.MovableObject, true, true, true);
             boardObject.SyncTileFromTransform(boardManager.WorldOrigin, boardManager.TileSize);
             mover.Configure(boardManager, boardObject, flowManager, true);
+            EnsureDeathCollisionSurface(target);
 
             var displayName = ObjectNames.NicifyVariableName(target.name);
             var icon = selectable.Icon != null ? selectable.Icon : LoadObjectIcon(target.name);
@@ -368,6 +369,7 @@ public static class LeadTheWayObjectSetupTools
 
             boardObject.Configure(BoardObjectType.Obstacle, true, true, false);
             boardObject.SyncTileFromTransform(boardManager.WorldOrigin, boardManager.TileSize);
+            EnsureDeathCollisionSurface(target);
 
             EditorUtility.SetDirty(boardObject);
         }
@@ -376,6 +378,87 @@ public static class LeadTheWayObjectSetupTools
         EditorUtility.SetDirty(boardManager);
         EditorSceneManager.MarkSceneDirty(targets[0].scene);
         EditorUtility.DisplayDialog("Setup Blocking Objects", $"Configured {targets.Count} blocking object(s).", "OK");
+    }
+
+    [MenuItem("Tools/Lead The Way/Scene/Setup Death Collision Surfaces")]
+    public static void SetupDeathCollisionSurfaces()
+    {
+        var boardObjects = BoardManager.FindSceneBoardObjects(true);
+        var changedCount = 0;
+
+        foreach (var boardObject in boardObjects)
+        {
+            if (boardObject == null
+                || !boardObject.BlocksMovement
+                || boardObject.ObjectType == BoardObjectType.Player
+                || boardObject.ObjectType == BoardObjectType.Goal)
+            {
+                continue;
+            }
+
+            changedCount += EnsureDeathCollisionSurface(boardObject.gameObject);
+        }
+
+        var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        if (activeScene.IsValid())
+            EditorSceneManager.MarkSceneDirty(activeScene);
+
+        EditorUtility.DisplayDialog(
+            "Setup Death Collision Surfaces",
+            $"Configured {changedCount} blocking object(s) with static collision surfaces for the player death burst.",
+            "OK");
+    }
+
+    [MenuItem("Tools/Lead The Way/Scene/Optimize Current Board Scene")]
+    public static void OptimizeCurrentBoardScene()
+    {
+        var boardObjects = BoardManager.FindSceneBoardObjects(true);
+        var changedCount = 0;
+
+        foreach (var boardObject in boardObjects)
+        {
+            if (boardObject == null || boardObject.ObjectType == BoardObjectType.Player)
+                continue;
+
+            if (boardObject.BlocksMovement)
+                changedCount += EnsureDeathCollisionSurface(boardObject.gameObject);
+
+            foreach (var body in boardObject.GetComponentsInChildren<Rigidbody>(true))
+            {
+                Undo.RecordObject(body, "Optimize Board Scene Rigidbody");
+                body.isKinematic = true;
+                body.useGravity = false;
+                EditorUtility.SetDirty(body);
+                changedCount++;
+            }
+
+            var isStaticSceneObject = !boardObject.Movable
+                && boardObject.ObjectType != BoardObjectType.Door
+                && boardObject.ObjectType != BoardObjectType.Hazard
+                && boardObject.ObjectType != BoardObjectType.Trigger;
+
+            if (!isStaticSceneObject)
+                continue;
+
+            foreach (var transform in boardObject.GetComponentsInChildren<Transform>(true))
+            {
+                Undo.RecordObject(transform.gameObject, "Optimize Board Scene Static Flags");
+                GameObjectUtility.SetStaticEditorFlags(
+                    transform.gameObject,
+                    StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccludeeStatic);
+                EditorUtility.SetDirty(transform.gameObject);
+                changedCount++;
+            }
+        }
+
+        var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        if (activeScene.IsValid())
+            EditorSceneManager.MarkSceneDirty(activeScene);
+
+        EditorUtility.DisplayDialog(
+            "Optimize Current Board Scene",
+            $"Optimized static board objects, rigidbodies, and death collision surfaces.\n\nUpdated {changedCount} object/component setting(s).",
+            "OK");
     }
 
     private static List<GameObject> GetSelectedSceneObjects()
@@ -430,12 +513,17 @@ public static class LeadTheWayObjectSetupTools
                 usePhysicsDeath.boolValue = true;
 
             var explosionForce = serializedMovement.FindProperty("explosionForce");
-            if (explosionForce != null && (explosionForce.floatValue <= 0f || explosionForce.floatValue > 2.2f))
+            if (explosionForce != null && explosionForce.floatValue <= 0f)
                 explosionForce.floatValue = 1.15f;
 
             var upwardForce = serializedMovement.FindProperty("upwardForce");
-            if (upwardForce != null && (upwardForce.floatValue < 0f || upwardForce.floatValue > 0.35f))
+            if (upwardForce != null && upwardForce.floatValue < 0f)
                 upwardForce.floatValue = 0.08f;
+
+            SetFloatIfInvalid(serializedMovement, "explosionScatter", 0.85f, 0f);
+            SetFloatIfInvalid(serializedMovement, "explosionCenterHeight", 0.35f, 0f);
+            SetFloatIfInvalid(serializedMovement, "separationOffset", 0.06f, 0f);
+            SetFloatIfInvalid(serializedMovement, "torqueForce", 32f, 0f);
 
             serializedMovement.ApplyModifiedProperties();
             EditorUtility.SetDirty(movement);
@@ -461,6 +549,111 @@ public static class LeadTheWayObjectSetupTools
         }
 
         return changedCount;
+    }
+
+    private static void SetFloatIfInvalid(SerializedObject serializedObject, string propertyName, float defaultValue, float minimumValue)
+    {
+        var property = serializedObject.FindProperty(propertyName);
+        if (property != null && property.floatValue < minimumValue)
+            property.floatValue = defaultValue;
+    }
+
+    private static int EnsureDeathCollisionSurface(GameObject target)
+    {
+        if (target == null)
+            return 0;
+
+        var changed = 0;
+        var surface = target.GetComponent<DeathCollisionSurface>();
+        if (surface == null)
+        {
+            surface = Undo.AddComponent<DeathCollisionSurface>(target);
+            changed++;
+        }
+
+        var colliders = target.GetComponentsInChildren<Collider>(true);
+        if (colliders == null || colliders.Length == 0)
+        {
+            var boxCollider = Undo.AddComponent<BoxCollider>(target);
+            ConfigureBoxColliderFromRenderers(target.transform, boxCollider);
+            colliders = new Collider[] { boxCollider };
+            changed++;
+        }
+
+        foreach (var collider in colliders)
+        {
+            if (collider == null)
+                continue;
+
+            Undo.RecordObject(collider, "Configure Death Collision Surface");
+            collider.enabled = true;
+            collider.isTrigger = false;
+            EditorUtility.SetDirty(collider);
+        }
+
+        foreach (var body in target.GetComponentsInChildren<Rigidbody>(true))
+        {
+            Undo.RecordObject(body, "Configure Death Collision Surface");
+            body.isKinematic = true;
+            body.useGravity = false;
+            EditorUtility.SetDirty(body);
+        }
+
+        Undo.RecordObject(surface, "Configure Death Collision Surface");
+        surface.Configure(colliders);
+        EditorUtility.SetDirty(surface);
+        return changed + 1;
+    }
+
+    private static void ConfigureBoxColliderFromRenderers(Transform root, BoxCollider boxCollider)
+    {
+        var renderers = root.GetComponentsInChildren<Renderer>(true);
+        if (renderers.Length == 0)
+        {
+            boxCollider.center = new Vector3(0f, 0.5f, 0f);
+            boxCollider.size = Vector3.one;
+            return;
+        }
+
+        var hasBounds = false;
+        var localBounds = new Bounds(Vector3.zero, Vector3.zero);
+        foreach (var renderer in renderers)
+        {
+            var bounds = renderer.bounds;
+            var min = bounds.min;
+            var max = bounds.max;
+            var corners = new[]
+            {
+                new Vector3(min.x, min.y, min.z),
+                new Vector3(min.x, min.y, max.z),
+                new Vector3(min.x, max.y, min.z),
+                new Vector3(min.x, max.y, max.z),
+                new Vector3(max.x, min.y, min.z),
+                new Vector3(max.x, min.y, max.z),
+                new Vector3(max.x, max.y, min.z),
+                new Vector3(max.x, max.y, max.z)
+            };
+
+            foreach (var corner in corners)
+            {
+                var localCorner = root.InverseTransformPoint(corner);
+                if (!hasBounds)
+                {
+                    localBounds = new Bounds(localCorner, Vector3.zero);
+                    hasBounds = true;
+                }
+                else
+                {
+                    localBounds.Encapsulate(localCorner);
+                }
+            }
+        }
+
+        boxCollider.center = localBounds.center;
+        boxCollider.size = new Vector3(
+            Mathf.Max(0.05f, localBounds.size.x),
+            Mathf.Max(0.05f, localBounds.size.y),
+            Mathf.Max(0.05f, localBounds.size.z));
     }
 
     private static void RemoveComponentIfPresent<T>(GameObject target, string undoName) where T : Component
