@@ -52,20 +52,27 @@ public static class LeadTheWayMapPathTools
         rect.anchorMax = new Vector2(0.5f, 0f);
         rect.pivot = new Vector2(0.5f, 0f);
         rect.anchoredPosition = new Vector2(0f, 28f);
-        rect.sizeDelta = new Vector2(430f, 76f);
+        rect.sizeDelta = new Vector2(390f, 76f);
 
         var panelImage = EnsureComponent<Image>(navigatorObject);
         panelImage.sprite = LoadSprite(PanelSoftPath);
         panelImage.type = panelImage.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
         panelImage.color = new Color(0.20f, 0.16f, 0.12f, 0.88f);
 
-        var previousButton = EnsureIconButton(navigatorObject.transform, "Previous Checkpoint", ArrowLeftIconPath, new Vector2(-164f, 0f));
-        var nextButton = EnsureIconButton(navigatorObject.transform, "Next Checkpoint", ArrowRightIconPath, new Vector2(164f, 0f));
+        var previousButton = EnsureIconButton(navigatorObject.transform, "Previous Checkpoint", ArrowLeftIconPath, new Vector2(-150f, 0f));
+        var nextButton = EnsureIconButton(navigatorObject.transform, "Next Checkpoint", ArrowRightIconPath, new Vector2(150f, 0f));
         var startButton = EnsureStartButton(navigatorObject.transform);
-        var label = EnsureLabel(navigatorObject.transform, "Checkpoint Label");
+        var playButton = EnsurePlayButton(navigatorObject.transform);
+        var titleBackground = EnsureLevelTitleBackground(canvas.transform);
+        var label = EnsureLevelTitle(titleBackground.transform);
+        var legacyLabel = navigatorObject.transform.Find("Checkpoint Label");
+        if (legacyLabel != null)
+            legacyLabel.gameObject.SetActive(false);
+
         previousButton.gameObject.SetActive(false);
         nextButton.gameObject.SetActive(false);
-        label.gameObject.SetActive(false);
+        playButton.gameObject.SetActive(false);
+        titleBackground.gameObject.SetActive(false);
         startButton.gameObject.SetActive(true);
 
         var navigator = EnsureComponent<MapCheckpointNavigatorUI>(navigatorObject);
@@ -81,8 +88,10 @@ public static class LeadTheWayMapPathTools
             previousButton,
             nextButton,
             startButton,
+            playButton,
             label,
-            panelImage);
+            panelImage,
+            titleBackground);
 
         EnsureEventSystem();
         EditorUtility.SetDirty(navigatorObject);
@@ -771,6 +780,51 @@ public static class LeadTheWayMapPathTools
         return label;
     }
 
+    private static Image EnsureLevelTitleBackground(Transform canvasTransform)
+    {
+        var backgroundObject = FindOrCreateChild(canvasTransform, "Map Level Title Background");
+        var rect = EnsureRectTransform(backgroundObject);
+        rect.anchorMin = new Vector2(0.5f, 1f);
+        rect.anchorMax = new Vector2(0.5f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.anchoredPosition = new Vector2(0f, -18f);
+        rect.sizeDelta = new Vector2(300f, 58f);
+
+        var image = EnsureComponent<Image>(backgroundObject);
+        image.sprite = LoadSprite(PanelSoftPath);
+        image.type = image.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        image.color = new Color(0.20f, 0.16f, 0.12f, 0.88f);
+        image.raycastTarget = false;
+
+        var legacyText = backgroundObject.GetComponent<Text>();
+        if (legacyText != null)
+            Undo.DestroyObjectImmediate(legacyText);
+
+        var oldTitle = canvasTransform.Find("Map Level Title");
+        if (oldTitle != null && oldTitle != backgroundObject.transform)
+            oldTitle.gameObject.SetActive(false);
+
+        return image;
+    }
+
+    private static Text EnsureLevelTitle(Transform titleBackground)
+    {
+        var label = EnsureLabel(titleBackground, "Level Text");
+        var rect = label.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.offsetMin = new Vector2(16f, 0f);
+        rect.offsetMax = new Vector2(-16f, 0f);
+
+        label.fontSize = 24;
+        label.alignment = TextAnchor.MiddleCenter;
+        label.color = new Color(1f, 0.91f, 0.58f, 1f);
+        label.raycastTarget = false;
+        return label;
+    }
+
     private static Button EnsureStartButton(Transform parent)
     {
         var buttonObject = FindOrCreateChild(parent, "Start Button");
@@ -815,6 +869,55 @@ public static class LeadTheWayMapPathTools
         text.raycastTarget = false;
 
         buttonObject.SetActive(true);
+        return button;
+    }
+
+    private static Button EnsurePlayButton(Transform parent)
+    {
+        var buttonObject = FindOrCreateChild(parent, "Play Level");
+        var rect = EnsureRectTransform(buttonObject);
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = new Vector2(180f, 52f);
+
+        var image = EnsureComponent<Image>(buttonObject);
+        image.sprite = LoadSprite(PanelSoftPath);
+        image.type = image.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        image.color = new Color(1f, 0.67f, 0.06f, 1f);
+
+        var button = EnsureComponent<Button>(buttonObject);
+        button.targetGraphic = image;
+
+        var colors = button.colors;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = new Color(1f, 0.88f, 0.34f, 1f);
+        colors.pressedColor = new Color(0.9f, 0.52f, 0.03f, 1f);
+        colors.selectedColor = colors.normalColor;
+        colors.disabledColor = new Color(0.48f, 0.42f, 0.34f, 0.55f);
+        button.colors = colors;
+
+        var iconObject = buttonObject.transform.Find("Icon");
+        if (iconObject != null)
+            iconObject.gameObject.SetActive(false);
+
+        var textObject = FindOrCreateChild(buttonObject.transform, "Text");
+        var textRect = EnsureRectTransform(textObject);
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.pivot = new Vector2(0.5f, 0.5f);
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
+
+        var text = EnsureComponent<Text>(textObject);
+        text.text = "PLAY";
+        text.font = GetDefaultFont();
+        text.fontStyle = FontStyle.Bold;
+        text.fontSize = 20;
+        text.alignment = TextAnchor.MiddleCenter;
+        text.color = new Color(0.18f, 0.12f, 0.06f, 1f);
+        text.raycastTarget = false;
         return button;
     }
 

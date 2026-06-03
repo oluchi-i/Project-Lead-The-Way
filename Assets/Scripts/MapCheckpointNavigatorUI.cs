@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 public sealed class MapCheckpointNavigatorUI : MonoBehaviour
@@ -10,14 +11,17 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
     [SerializeField] private Button previousButton;
     [SerializeField] private Button nextButton;
     [SerializeField] private Button startButton;
+    [SerializeField] private Button playButton;
     [SerializeField] private Text checkpointLabel;
     [SerializeField] private Image panelBackground;
+    [SerializeField] private Image titleBackground;
     [SerializeField] private int currentCheckpointIndex;
     [Header("Timing")]
     [Tooltip("Central duration used when the camera and player move between map checkpoints.")]
     [SerializeField, Min(0.01f)] private float transitionDuration = 1.5f;
     [SerializeField] private bool snapFollowersToCurrentCheckpointOnStart = true;
     [SerializeField] private bool enforceCameraFollowerAsMainCamera = true;
+    [SerializeField] private UnityEvent levelPlayRequested = new UnityEvent();
 
     private bool waitingForMove;
     private bool mapStarted;
@@ -31,6 +35,8 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
             nextButton.onClick.AddListener(MoveNext);
         if (startButton != null)
             startButton.onClick.AddListener(StartFirstLevel);
+        if (playButton != null)
+            playButton.onClick.AddListener(PlayCurrentLevel);
     }
 
     private void Start()
@@ -75,8 +81,10 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         Button newPreviousButton,
         Button newNextButton,
         Button newStartButton,
+        Button newPlayButton,
         Text newCheckpointLabel,
-        Image newPanelBackground)
+        Image newPanelBackground,
+        Image newTitleBackground)
     {
         cameraPath = newCameraPath;
         playerPath = newPlayerPath;
@@ -85,8 +93,10 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         previousButton = newPreviousButton;
         nextButton = newNextButton;
         startButton = newStartButton;
+        playButton = newPlayButton;
         checkpointLabel = newCheckpointLabel;
         panelBackground = newPanelBackground;
+        titleBackground = newTitleBackground;
         Refresh();
     }
 
@@ -109,6 +119,15 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
     {
         if (CanMoveTo(currentCheckpointIndex + 1))
             MoveTo(currentCheckpointIndex + 1);
+    }
+
+    public void PlayCurrentLevel()
+    {
+        if (!mapStarted || waitingForMove || IsMoving())
+            return;
+
+        levelPlayRequested?.Invoke();
+        Debug.Log("Lead The Way Map: Play requested for " + GetCheckpointText() + ".");
     }
 
     private void MoveTo(int checkpointIndex)
@@ -152,6 +171,9 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
             checkpointLabel.gameObject.SetActive(showLevelNavigation);
         }
 
+        if (titleBackground != null)
+            titleBackground.gameObject.SetActive(showLevelNavigation);
+
         if (startButton != null)
         {
             startButton.gameObject.SetActive(showIntro);
@@ -168,6 +190,12 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         {
             nextButton.gameObject.SetActive(showLevelNavigation);
             nextButton.interactable = CanMoveTo(currentCheckpointIndex + 1);
+        }
+
+        if (playButton != null)
+        {
+            playButton.gameObject.SetActive(showLevelNavigation);
+            playButton.interactable = showLevelNavigation;
         }
     }
 
