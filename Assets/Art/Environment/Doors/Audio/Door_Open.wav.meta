@@ -19,11 +19,4 @@ AudioImporter:
   3D: 1
   userData: 
   assetBundleName: 
-  assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 280509
-  packageName: Free Wood Door Pack
-  packageVersion: 1.0
-  assetPath: Assets/Free Wood Door Pack/Audio/Door_Open.wav
-  uploadId: 658197
+  assetBundleVariant:
