@@ -18,6 +18,8 @@ public static class LeadTheWayObjectSetupTools
     private const string ArrowUpIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_up.png";
     private const string ArrowDownIconPath = "Assets/Art/UI/ButtonSet/Textures/icons/128x128/arrow_down.png";
     private const string BadgeSoftPath = "Assets/Art/UI/Sprites/BadgeSoft.asset";
+    private const string LevelSuccessSoundPath = "Assets/Sound/SoundEffects/level_success.mp3";
+    private const string PlayerDeathSoundPath = "Assets/Sound/SoundEffects/death.mp3";
 
     [MenuItem("Tools/Lead The Way/Scene/Wire Current Scene References")]
     public static void WireCurrentSceneReferences()
@@ -26,7 +28,6 @@ public static class LeadTheWayObjectSetupTools
         var flowManager = Object.FindAnyObjectByType<InteractionFlowManager>();
         var playerMover = Object.FindAnyObjectByType<BoardPlayerMover>();
         var resultFlash = Object.FindAnyObjectByType<LevelResultFlashUI>(FindObjectsInactive.Include);
-        var deathCinematicCamera = GetOrCreateDeathCinematicCamera();
         var boardObjects = BoardManager.FindSceneBoardObjects();
         var changedCount = 0;
 
@@ -62,6 +63,9 @@ public static class LeadTheWayObjectSetupTools
         if (destinationDoor == null)
             destinationDoor = FindBoardObject(boardObjects, item => item.ObjectType == BoardObjectType.Door && item != startDoor);
 
+        var introCameraTransition = GetOrCreateIntroCameraTransition(boardManager, startTile, startDoor, false);
+        var deathCinematicCamera = GetOrCreateDeathCinematicCamera();
+
         if (playerMover != null)
         {
             Undo.RecordObject(playerMover, "Wire Player Mover");
@@ -77,6 +81,7 @@ public static class LeadTheWayObjectSetupTools
             flowManager.ConfigureLevelFlow(startTile, startDoor, destinationDoor);
             flowManager.ConfigureResultFlash(resultFlash);
             flowManager.ConfigurePlayerDeathAnimation(playerDeathAnimation);
+            flowManager.ConfigureIntroCameraTransition(introCameraTransition);
             flowManager.ConfigureDeathCinematicCamera(deathCinematicCamera);
             EditorUtility.SetDirty(flowManager);
             changedCount++;
@@ -93,7 +98,10 @@ public static class LeadTheWayObjectSetupTools
 
         changedCount += WireControlUIs(flowManager);
         changedCount += WireInteractionCounters(flowManager);
+        changedCount += WireResultFlashAudio(resultFlash);
         changedCount += WireButtonPressAudioSources();
+        if (introCameraTransition != null)
+            changedCount++;
         if (deathCinematicCamera != null)
             changedCount++;
 
@@ -110,6 +118,39 @@ public static class LeadTheWayObjectSetupTools
         EditorUtility.DisplayDialog(
             "Wire Current Scene References",
             $"Finished wiring scene references.\n\nUpdated {changedCount} component(s)/asset reference(s).\n\nIf Console shows missing-reference warnings after this, that object likely needs a deliberate scene/prefab setup decision.",
+            "OK");
+    }
+
+    [MenuItem("Tools/Lead The Way/Scene/Setup Intro Camera Poses")]
+    public static void SetupIntroCameraPoses()
+    {
+        var boardManager = Object.FindAnyObjectByType<BoardManager>();
+        var flowManager = Object.FindAnyObjectByType<InteractionFlowManager>();
+        var boardObjects = BoardManager.FindSceneBoardObjects(true);
+        var startTile = IsUsableBoardObject(flowManager != null ? flowManager.StartTile : null)
+            ? flowManager.StartTile
+            : FindBoardObject(boardObjects, item => IsNamed(item, "start") && item.ObjectType != BoardObjectType.Door);
+        var startDoor = IsUsableDoor(flowManager != null ? flowManager.StartDoor : null)
+            ? flowManager.StartDoor
+            : FindBoardObject(boardObjects, item => IsNamed(item, "start") && item.ObjectType == BoardObjectType.Door);
+
+        var introCameraTransition = GetOrCreateIntroCameraTransition(boardManager, startTile, startDoor, true);
+        if (flowManager != null)
+        {
+            Undo.RecordObject(flowManager, "Wire Intro Camera Transition");
+            flowManager.ConfigureIntroCameraTransition(introCameraTransition);
+            EditorUtility.SetDirty(flowManager);
+        }
+
+        var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        if (activeScene.IsValid())
+            EditorSceneManager.MarkSceneDirty(activeScene);
+
+        EditorUtility.DisplayDialog(
+            "Setup Intro Camera Poses",
+            introCameraTransition != null
+                ? "Created or updated intro camera poses.\n\nGameplay Camera Pose captured the current camera transform.\nMove Start Camera Pose in the Scene view to tune the opening shot."
+                : "Could not setup intro camera poses because the scene has no Camera.",
             "OK");
     }
 
@@ -257,6 +298,99 @@ public static class LeadTheWayObjectSetupTools
         return cinematicCamera;
     }
 
+    private static IntroCameraTransition GetOrCreateIntroCameraTransition(BoardManager boardManager, BoardObject startTile, BoardObject startDoor, bool captureGameplayPoseFromCamera)
+    {
+        var camera = Camera.main;
+        if (camera == null)
+            camera = Object.FindAnyObjectByType<Camera>(FindObjectsInactive.Include);
+
+        if (camera == null)
+            return null;
+
+        var introCameraTransition = Object.FindAnyObjectByType<IntroCameraTransition>(FindObjectsInactive.Include);
+        if (introCameraTransition == null)
+            introCameraTransition = Undo.AddComponent<IntroCameraTransition>(camera.gameObject);
+
+        var root = FindOrCreateChild(GetOrCreateGameSystems().transform, "Intro Camera Poses");
+        var startPose = FindOrCreateChild(root, "Start Camera Pose");
+        var gameplayPose = FindOrCreateChild(root, "Gameplay Camera Pose");
+
+        if (captureGameplayPoseFromCamera || IsDefaultTransform(gameplayPose))
+            CopyCameraPose(camera, gameplayPose);
+
+        if (IsDefaultTransform(startPose))
+            ConfigureStartCameraPose(camera, startPose, boardManager, startTile, startDoor);
+
+        introCameraTransition.Configure(camera, startPose, gameplayPose);
+        introCameraTransition.ConfigureFieldOfView(camera.fieldOfView, camera.fieldOfView);
+
+        EditorUtility.SetDirty(startPose);
+        EditorUtility.SetDirty(gameplayPose);
+        EditorUtility.SetDirty(introCameraTransition);
+        EditorUtility.SetDirty(camera.gameObject);
+        return introCameraTransition;
+    }
+
+    private static Transform FindOrCreateChild(Transform parent, string childName)
+    {
+        var existing = parent != null ? parent.Find(childName) : null;
+        if (existing != null)
+            return existing;
+
+        var childObject = new GameObject(childName);
+        Undo.RegisterCreatedObjectUndo(childObject, $"Create {childName}");
+        if (parent != null)
+            childObject.transform.SetParent(parent, false);
+
+        return childObject.transform;
+    }
+
+    private static void CopyCameraPose(Camera camera, Transform pose)
+    {
+        Undo.RecordObject(pose, "Capture Camera Pose");
+        pose.position = camera.transform.position;
+        pose.rotation = camera.transform.rotation;
+        pose.localScale = Vector3.one;
+    }
+
+    private static void ConfigureStartCameraPose(Camera camera, Transform pose, BoardManager boardManager, BoardObject startTile, BoardObject startDoor)
+    {
+        Undo.RecordObject(pose, "Configure Start Camera Pose");
+
+        if (boardManager == null || startDoor == null)
+        {
+            pose.position = camera.transform.position;
+            pose.rotation = camera.transform.rotation;
+            pose.localScale = Vector3.one;
+            return;
+        }
+
+        var doorTarget = startDoor.transform.position + Vector3.up * 1.2f;
+        var viewDirection = Vector3.back;
+        if (startTile != null)
+        {
+            var startTileWorld = boardManager.TileToWorld(startTile.TilePosition, startDoor.transform.position.y);
+            viewDirection = startTileWorld - startDoor.transform.position;
+            viewDirection.y = 0f;
+        }
+
+        if (viewDirection.sqrMagnitude < 0.0001f)
+            viewDirection = -startDoor.transform.forward;
+
+        viewDirection.Normalize();
+        pose.position = doorTarget + viewDirection * 4f + Vector3.up * 1.8f;
+        pose.rotation = Quaternion.LookRotation(doorTarget - pose.position, Vector3.up);
+        pose.localScale = Vector3.one;
+    }
+
+    private static bool IsDefaultTransform(Transform transform)
+    {
+        return transform != null
+            && transform.localPosition == Vector3.zero
+            && transform.localRotation == Quaternion.identity
+            && transform.localScale == Vector3.one;
+    }
+
     private static GameObject GetOrCreateGameSystems()
     {
         var systems = GameObject.Find("Game Systems");
@@ -391,6 +525,29 @@ public static class LeadTheWayObjectSetupTools
         }
 
         return changedCount;
+    }
+
+    private static int WireResultFlashAudio(LevelResultFlashUI resultFlash)
+    {
+        if (resultFlash == null)
+            return 0;
+
+        var audioSource = resultFlash.GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = Undo.AddComponent<AudioSource>(resultFlash.gameObject);
+
+        audioSource.playOnAwake = false;
+        audioSource.spatialBlend = 0f;
+
+        var serializedFlash = new SerializedObject(resultFlash);
+        SetObject(serializedFlash, "audioSource", audioSource);
+        SetObject(serializedFlash, "successSound", AssetDatabase.LoadAssetAtPath<AudioClip>(LevelSuccessSoundPath));
+        SetObject(serializedFlash, "failureSound", AssetDatabase.LoadAssetAtPath<AudioClip>(PlayerDeathSoundPath));
+        serializedFlash.ApplyModifiedProperties();
+
+        EditorUtility.SetDirty(audioSource);
+        EditorUtility.SetDirty(resultFlash);
+        return 1;
     }
 
     private static int WireButtonPressAudioSources()

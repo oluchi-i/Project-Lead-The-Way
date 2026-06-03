@@ -4107,8 +4107,8 @@ MonoBehaviour:
   failureColor: {r: 1, g: 0.08, b: 0.08, a: 0.33333334}
   flashDuration: 0.18
   audioSource: {fileID: 1288162808}
-  successSound: {fileID: 8300000, guid: 941a5be946c94de4ba13f5d4fd1e84a2, type: 3}
-  failureSound: {fileID: 8300000, guid: 0236a9d7b1d64c9f9a9fc1d637a7d1db, type: 3}
+  successSound: {fileID: 8300000, guid: dabd513a755b35f44979b0fedfd2b621, type: 3}
+  failureSound: {fileID: 8300000, guid: 1b4b7bb756e2c0f48b3929743837470b, type: 3}
   soundVolume: 0.8
 --- !u!114 &471753447
 MonoBehaviour:

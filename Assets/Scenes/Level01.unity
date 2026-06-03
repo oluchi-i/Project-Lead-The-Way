@@ -663,6 +663,37 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
+--- !u!1 &42412566
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 42412567}
+  m_Layer: 0
+  m_Name: Gameplay Camera Pose
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &42412567
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 42412566}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.9396927, z: -0.3420201, w: 0}
+  m_LocalPosition: {x: 3, y: 5, z: 8.6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 327594149}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &43439958
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3073,6 +3104,39 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+--- !u!1 &327594148
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 327594149}
+  m_Layer: 0
+  m_Name: Intro Camera Poses
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &327594149
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 327594148}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 394564941}
+  - {fileID: 42412567}
+  m_Father: {fileID: 1528410953}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &336149186
 GameObject:
   m_ObjectHideFlags: 0
@@ -3724,6 +3788,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8624914531962622098, guid: fe0630cbb2892a045aa2b71d677fdb14, type: 3}
   m_PrefabInstance: {fileID: 390759743}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &394564940
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 394564941}
+  m_Layer: 0
+  m_Name: Start Camera Pose
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &394564941
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 394564940}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.14839163, y: 0.69136095, z: -0.14839163, w: 0.69136095}
+  m_LocalPosition: {x: 1, y: 2.5, z: 1.9310302}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 327594149}
+  m_LocalEulerAnglesHint: {x: 24.228, y: 90, z: 0}
 --- !u!43 &408527482
 Mesh:
   m_ObjectHideFlags: 0
@@ -4425,12 +4520,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelResultFlashUI
   overlay: {fileID: 471753447}
-  successColor: {r: 0.15, g: 1, b: 0.28, a: 0.33333334}
-  failureColor: {r: 1, g: 0.08, b: 0.08, a: 0.33333334}
+  successColor: {r: 0.15, g: 1, b: 0.28, a: 0.39607844}
+  failureColor: {r: 1, g: 0.08, b: 0.08, a: 0.39607844}
   flashDuration: 0.18
   audioSource: {fileID: 1288162808}
-  successSound: {fileID: 8300000, guid: 941a5be946c94de4ba13f5d4fd1e84a2, type: 3}
-  failureSound: {fileID: 8300000, guid: 0236a9d7b1d64c9f9a9fc1d637a7d1db, type: 3}
+  successSound: {fileID: 8300000, guid: dabd513a755b35f44979b0fedfd2b621, type: 3}
+  failureSound: {fileID: 8300000, guid: 1b4b7bb756e2c0f48b3929743837470b, type: 3}
   soundVolume: 0.8
 --- !u!114 &471753447
 MonoBehaviour:
@@ -11952,6 +12047,7 @@ GameObject:
   - component: {fileID: 1083750168}
   - component: {fileID: 1083750167}
   - component: {fileID: 1083750171}
+  - component: {fileID: 1083750172}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -12090,8 +12186,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DeathCinematicCamera
   targetCamera: {fileID: 1083750169}
-  approachDuration: 0.42
-  holdBeforeDeathDuration: 0.4
+  approachDuration: 1.5
+  holdBeforeDeathDuration: 1
   closeShotDistance: 5.5
   closeShotHeight: 2
   sideOffset: 0.8
@@ -12105,8 +12201,50 @@ MonoBehaviour:
     - serializedVersion: 3
       time: 0
       value: 0
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
       inSlope: 0
       outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &1083750172
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1083750166}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6a5d261dc164d6b9a7f06267e1a87a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IntroCameraTransition
+  targetCamera: {fileID: 1083750169}
+  startCameraPose: {fileID: 394564941}
+  gameplayCameraPose: {fileID: 42412567}
+  startFieldOfView: 60
+  gameplayFieldOfView: 60
+  transitionDuration: 1.5
+  transitionCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 2
+      outSlope: 2
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
@@ -16058,7 +16196,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 327594149}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1528410954
@@ -16082,6 +16221,7 @@ MonoBehaviour:
   gameplayStartTile: {x: 5, y: 2}
   resultFlashUI: {fileID: 471753446}
   playerDeathAnimation: {fileID: 748089725}
+  introCameraTransition: {fileID: 1083750172}
   deathCinematicCamera: {fileID: 1083750171}
   maxInteractionCount: 6
   interactionCount: 0

@@ -29,6 +29,7 @@ public class InteractionFlowManager : MonoBehaviour
     [SerializeField] private Vector2Int gameplayStartTile;
     [SerializeField] private LevelResultFlashUI resultFlashUI;
     [SerializeField] private PlayerMovement playerDeathAnimation;
+    [SerializeField] private IntroCameraTransition introCameraTransition;
     [SerializeField] private DeathCinematicCamera deathCinematicCamera;
     [SerializeField] private int maxInteractionCount = 6;
     [SerializeField] private int interactionCount;
@@ -102,6 +103,11 @@ public class InteractionFlowManager : MonoBehaviour
     public void ConfigurePlayerDeathAnimation(PlayerMovement newPlayerDeathAnimation)
     {
         playerDeathAnimation = newPlayerDeathAnimation;
+    }
+
+    public void ConfigureIntroCameraTransition(IntroCameraTransition newIntroCameraTransition)
+    {
+        introCameraTransition = newIntroCameraTransition;
     }
 
     public void ConfigureDeathCinematicCamera(DeathCinematicCamera newDeathCinematicCamera)
@@ -227,6 +233,7 @@ public class InteractionFlowManager : MonoBehaviour
         flowState = LevelFlowState.Intro;
         boardManager.RebuildRegistry();
         playerMover.PlaceAtTile(startTile.TilePosition);
+        introCameraTransition?.PlaceAtStart();
         yield return null;
 
         var entryDoor = GetDoorScript(startDoor, ref startDoorScript);
@@ -242,8 +249,15 @@ public class InteractionFlowManager : MonoBehaviour
         yield return WaitForDoor(entryDoor);
 
         var path = CreateIntroPath(playerObject.TilePosition, gameplayStartTile);
+        var cameraTransitionRoutine = introCameraTransition != null
+            ? StartCoroutine(introCameraTransition.TransitionToGameplay())
+            : null;
+
         if (path.Count > 0)
             yield return playerMover.PlayScriptedPath(path);
+
+        if (cameraTransitionRoutine != null)
+            yield return cameraTransitionRoutine;
 
         entryDoor.Close();
         yield return WaitForDoor(entryDoor);
@@ -665,6 +679,9 @@ public class InteractionFlowManager : MonoBehaviour
 
         if (deathCinematicCamera == null)
             deathCinematicCamera = FindAnyObjectByType<DeathCinematicCamera>();
+
+        if (introCameraTransition == null)
+            introCameraTransition = FindAnyObjectByType<IntroCameraTransition>();
 
         if (loggedMissingReferences || HasRequiredGameplayReferences())
             return;
