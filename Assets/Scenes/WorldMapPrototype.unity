@@ -4997,7 +4997,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1595543725}
   m_Layer: 0
-  m_Name: Palmov All-Locations World Map Prototype
+  m_Name: All-Locations World Map Prototype
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
