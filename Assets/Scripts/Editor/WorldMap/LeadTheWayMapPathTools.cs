@@ -368,7 +368,7 @@ public static class LeadTheWayMapPathTools
             if (component == null)
             {
                 component = Undo.AddComponent<MapCheckpoint>(pointObject);
-                component.Configure(id, LabelFromCheckpointId(id));
+                component.Configure(id, LabelFromCheckpointId(id), SceneNameFromCheckpointId(id));
             }
 
             var control = pointObject.GetComponent<MapPathControlPoint>();
@@ -399,7 +399,8 @@ public static class LeadTheWayMapPathTools
         pointObject.transform.SetParent(parent);
         pointObject.transform.position = position;
         var checkpoint = Undo.AddComponent<MapCheckpoint>(pointObject);
-        checkpoint.Configure("checkpoint-" + number.ToString("00"), number == 1 ? "Start" : "Level " + (number - 1));
+        var id = "checkpoint-" + number.ToString("00");
+        checkpoint.Configure(id, number == 1 ? "Start" : "Level " + (number - 1), SceneNameFromCheckpointId(id));
         return checkpoint;
     }
 
@@ -426,7 +427,31 @@ public static class LeadTheWayMapPathTools
 
     private static string LabelFromCheckpointId(string id)
     {
-        return id == "checkpoint-01" ? "Start" : "Level 1";
+        if (!TryGetCheckpointNumber(id, out var number) || number <= 1)
+            return "Start";
+
+        return "Level " + (number - 1);
+    }
+
+    private static string SceneNameFromCheckpointId(string id)
+    {
+        if (!TryGetCheckpointNumber(id, out var number) || number <= 1)
+            return string.Empty;
+
+        return "Level" + (number - 1).ToString("00");
+    }
+
+    private static bool TryGetCheckpointNumber(string id, out int number)
+    {
+        number = 0;
+        if (string.IsNullOrWhiteSpace(id))
+            return false;
+
+        var dashIndex = id.LastIndexOf('-');
+        if (dashIndex < 0 || dashIndex >= id.Length - 1)
+            return false;
+
+        return int.TryParse(id.Substring(dashIndex + 1), out number);
     }
 
     private static Canvas EnsureWorldMapCanvas()

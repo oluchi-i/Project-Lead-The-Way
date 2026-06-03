@@ -241,6 +241,12 @@ public class InteractionFlowManager : MonoBehaviour
         lastHandledActionFrame = Time.frameCount;
         InteractionCountChanged?.Invoke(interactionCount);
 
+        if (IsPlayerOnActiveHazard())
+        {
+            BeginDeathCinematic(Vector2Int.zero);
+            return;
+        }
+
         if (TryFindNextStep(out var direction))
         {
             var nextTile = playerObject.TilePosition + direction;
@@ -264,6 +270,15 @@ public class InteractionFlowManager : MonoBehaviour
     public void MarkActionHandledWithoutInteraction()
     {
         lastHandledActionFrame = Time.frameCount;
+    }
+
+    public void ResolveCurrentPlayerHazard()
+    {
+        if (flowState != LevelFlowState.Playing)
+            return;
+
+        if (IsPlayerOnActiveHazard())
+            BeginDeathCinematic(Vector2Int.zero);
     }
 
     public void StepPlayerTowardDoor()
@@ -932,13 +947,9 @@ public class InteractionFlowManager : MonoBehaviour
             return false;
 
         boardManager.RebuildRegistry();
-        foreach (var boardObject in boardManager.GetObjectsAt(playerObject.TilePosition))
+        foreach (var occupiedTile in playerObject.GetOccupiedTiles())
         {
-            if (boardObject == null || boardObject.ObjectType != BoardObjectType.Hazard)
-                continue;
-
-            var spikeToggle = boardObject.GetComponent<SpikeToggle>();
-            if (spikeToggle != null && spikeToggle.IsRaised)
+            if (IsActiveHazardTile(occupiedTile))
                 return true;
         }
 

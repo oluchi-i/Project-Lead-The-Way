@@ -5,9 +5,11 @@ using UnityEngine;
 public class SpikeToggle : MonoBehaviour
 {
     [SerializeField] private Transform spikes;
+    [Tooltip("How far the spikes sit below their authored raised/open position when closed.")]
     [SerializeField] private float raisedOffset = 1f;
     [SerializeField] private float moveDuration = 0.2f;
     [SerializeField] private bool startRaised;
+    [SerializeField] private InteractionFlowManager interactionFlowManager;
 
     private Vector3 loweredLocalPosition;
     private Vector3 raisedLocalPosition;
@@ -61,6 +63,9 @@ public class SpikeToggle : MonoBehaviour
         moveTarget = isRaised ? raisedLocalPosition : loweredLocalPosition;
         moveElapsed = 0f;
         isMoving = true;
+
+        if (isRaised)
+            ResolvePlayerHazard();
     }
 
     public void Configure(Transform spikesTransform)
@@ -76,7 +81,16 @@ public class SpikeToggle : MonoBehaviour
     private void CachePositions()
     {
         raisedLocalPosition = spikes.localPosition;
-        loweredLocalPosition = raisedLocalPosition + Vector3.up * raisedOffset;
+        loweredLocalPosition = raisedLocalPosition + Vector3.down * Mathf.Abs(raisedOffset);
+    }
+
+    private void ResolvePlayerHazard()
+    {
+        if (interactionFlowManager == null)
+            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+
+        if (interactionFlowManager != null)
+            interactionFlowManager.ResolveCurrentPlayerHazard();
     }
 }
 

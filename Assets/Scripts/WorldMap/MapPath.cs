@@ -49,6 +49,28 @@ public sealed class MapPath : MonoBehaviour
         return false;
     }
 
+    public bool TryGetCheckpointLevelSceneName(int checkpointIndex, out string sceneName)
+    {
+        var seenCheckpoints = 0;
+        for (var i = 0; i < transform.childCount; i++)
+        {
+            var checkpoint = transform.GetChild(i).GetComponent<MapCheckpoint>();
+            if (checkpoint == null)
+                continue;
+
+            if (seenCheckpoints == checkpointIndex)
+            {
+                sceneName = checkpoint.LevelSceneName;
+                return !string.IsNullOrWhiteSpace(sceneName);
+            }
+
+            seenCheckpoints++;
+        }
+
+        sceneName = string.Empty;
+        return false;
+    }
+
     private static string GetDefaultCheckpointLabel(int checkpointIndex)
     {
         return checkpointIndex == 0 ? "Start" : "Level " + checkpointIndex;

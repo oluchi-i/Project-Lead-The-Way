@@ -14,6 +14,7 @@ public class BoardManager : MonoBehaviour
     [SerializeField] private float tileSize = 1f;
     [SerializeField] private bool showCoordinateLabels = true;
     [SerializeField] private bool registerOnAwake = true;
+    [SerializeField] private bool syncTilesFromTransformsOnAwake = true;
 
     private readonly Dictionary<string, BoardObject> objectsById = new Dictionary<string, BoardObject>();
     private readonly Dictionary<Vector2Int, List<BoardObject>> objectsByTile = new Dictionary<Vector2Int, List<BoardObject>>();
@@ -24,8 +25,23 @@ public class BoardManager : MonoBehaviour
 
     private void Awake()
     {
+        if (syncTilesFromTransformsOnAwake)
+            SyncSceneObjectTilesFromTransforms();
+
         if (registerOnAwake)
             RebuildRegistry();
+    }
+
+    private void SyncSceneObjectTilesFromTransforms()
+    {
+        var boardObjects = FindSceneBoardObjects();
+        foreach (var boardObject in boardObjects)
+        {
+            if (boardObject == null)
+                continue;
+
+            boardObject.SyncTileFromTransform(worldOrigin, TileSize);
+        }
     }
 
     public void RebuildRegistry()

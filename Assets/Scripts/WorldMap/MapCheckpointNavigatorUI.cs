@@ -184,13 +184,14 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
 
     private IEnumerator LoadCurrentLevelRoutine()
     {
-        if (string.IsNullOrWhiteSpace(levelSceneName))
+        var targetSceneName = GetCurrentLevelSceneName();
+        if (string.IsNullOrWhiteSpace(targetSceneName))
         {
             Debug.LogWarning("Lead The Way Map: No level scene name is configured on MapCheckpointNavigatorUI.", this);
             yield break;
         }
 
-        Debug.Log("Lead The Way Map: Loading " + levelSceneName + " for " + GetCheckpointText() + ".");
+        Debug.Log("Lead The Way Map: Loading " + targetSceneName + " for " + GetCheckpointText() + ".");
         loadingScene = true;
         Refresh();
 
@@ -198,7 +199,7 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
             yield return teleportEffect.PlayDisappearanceAndWait();
 
         WorldMapProgressState.SetReturnCheckpoint(currentCheckpointIndex);
-        SceneTransitionLoader.LoadScene(levelSceneName, transitionManager, sceneTransition, sceneTransitionDelay);
+        SceneTransitionLoader.LoadScene(targetSceneName, transitionManager, sceneTransition, sceneTransitionDelay);
     }
 
     private void ApplyReturnCheckpointState()
@@ -293,6 +294,20 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
             label = currentCheckpointIndex == 0 ? "Start" : "Level " + currentCheckpointIndex;
 
         return label.ToUpperInvariant();
+    }
+
+    private string GetCurrentLevelSceneName()
+    {
+        if (playerPath != null && playerPath.TryGetCheckpointLevelSceneName(currentCheckpointIndex, out var checkpointSceneName))
+            return checkpointSceneName;
+
+        if (cameraPath != null && cameraPath.TryGetCheckpointLevelSceneName(currentCheckpointIndex, out checkpointSceneName))
+            return checkpointSceneName;
+
+        if (currentCheckpointIndex > 0)
+            return "Level" + currentCheckpointIndex.ToString("00");
+
+        return levelSceneName;
     }
 
     private void EnforceCameraFollowerAsMainCamera()

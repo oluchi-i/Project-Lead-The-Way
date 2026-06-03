@@ -187,6 +187,15 @@ public class GridTileMover : MonoBehaviour
         if (boardObject == null)
             boardObject = GetComponent<BoardObject>();
 
+        if (boardManager == null)
+            boardManager = FindAnyObjectByType<BoardManager>();
+
+        if (interactionFlowManager == null)
+            interactionFlowManager = FindAnyObjectByType<InteractionFlowManager>();
+
+        if (boardManager != null)
+            tileSize = boardManager.TileSize;
+
         if (!loggedMissingReferences && useBoardManager && (boardManager == null || boardObject == null || interactionFlowManager == null))
         {
             loggedMissingReferences = true;

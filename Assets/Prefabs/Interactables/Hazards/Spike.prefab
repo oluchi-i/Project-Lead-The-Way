@@ -51,7 +51,7 @@ MonoBehaviour:
   spikes: {fileID: 4922404705949120156}
   raisedOffset: -0.5
   moveDuration: 0.2
-  startRaised: 0
+  startRaised: 1
 --- !u!114 &6311966075501617647
 MonoBehaviour:
   m_ObjectHideFlags: 0
