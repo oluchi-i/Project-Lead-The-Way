@@ -18247,6 +18247,8 @@ MonoBehaviour:
   mapSceneName: WorldMap
   returnToMapOnSuccess: 1
   returnToMapDelay: 0.45
+  restartOnFailure: 1
+  failureRestartDelay: 2
   introTeleportDelayAfterDoorOpen: 0.5
   teleportEffectDuration: 1
   teleportAppearanceDelay: 0.2

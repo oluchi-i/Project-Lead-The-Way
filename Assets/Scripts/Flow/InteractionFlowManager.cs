@@ -40,6 +40,8 @@ public class InteractionFlowManager : MonoBehaviour
     [SerializeField] private string mapSceneName = "WorldMap";
     [SerializeField] private bool returnToMapOnSuccess = true;
     [SerializeField, Min(0f)] private float returnToMapDelay = 0.45f;
+    [SerializeField] private bool restartOnFailure = true;
+    [SerializeField, Min(0f)] private float failureRestartDelay = 3f;
     [SerializeField] private float introTeleportDelayAfterDoorOpen = 0.5f;
     [SerializeField] private float teleportEffectDuration = 1f;
     [SerializeField] private float teleportAppearanceDelay = 0.22f;
@@ -62,6 +64,7 @@ public class InteractionFlowManager : MonoBehaviour
     private Coroutine interactionResolutionRoutine;
     private Coroutine deathCinematicRoutine;
     private Coroutine successRoutine;
+    private Coroutine failureRestartRoutine;
     private int activeObjectActionCount;
     private bool loggedMissingReferences;
     private Vector3 originalPlayerScale = Vector3.one;
@@ -563,7 +566,24 @@ public class InteractionFlowManager : MonoBehaviour
 
             if (resultFlashUI != null)
                 resultFlashUI.Flash(false);
+
+            if (restartOnFailure)
+            {
+                if (failureRestartRoutine != null)
+                    StopCoroutine(failureRestartRoutine);
+
+                failureRestartRoutine = StartCoroutine(RestartAfterFailure());
+            }
         }
+    }
+
+    private IEnumerator RestartAfterFailure()
+    {
+        if (failureRestartDelay > 0f)
+            yield return new WaitForSeconds(failureRestartDelay);
+
+        SceneTransitionLoader.LoadCurrentScene(transitionManager, sceneTransition);
+        failureRestartRoutine = null;
     }
 
     private IEnumerator RunSuccessSequence()

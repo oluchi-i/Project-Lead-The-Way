@@ -29,4 +29,16 @@ public static class SceneTransitionLoader
         else
             SceneManager.LoadScene(activeScene.name);
     }
+
+    public static void LoadCurrentScene(TransitionManager transitionManager, TransitionSettings transitionSettings, float startDelay = 0f)
+    {
+        var activeScene = SceneManager.GetActiveScene();
+        if (!string.IsNullOrWhiteSpace(activeScene.name))
+        {
+            LoadScene(activeScene.name, transitionManager, transitionSettings, startDelay);
+            return;
+        }
+
+        LoadCurrentScene();
+    }
 }
