@@ -5,6 +5,7 @@ using UnityEngine.Events;
 public sealed class MapPathFollower : MonoBehaviour
 {
     private const float DefaultMoveDuration = 1.5f;
+    private const float DirectionLookAhead = 0.01f;
 
     [SerializeField] private MapPath path;
     [SerializeField] private bool rotateAlongPath = true;
@@ -102,7 +103,7 @@ public sealed class MapPathFollower : MonoBehaviour
     private IEnumerator MoveRoutine(float targetProgress, float duration)
     {
         var startProgress = currentProgress;
-        var travelDirection = GetSegmentFacingDirection(startProgress, targetProgress);
+        var travelDirection = GetCurveFacingDirection(startProgress, startProgress, targetProgress, GetSegmentFacingDirection(startProgress, targetProgress));
         var elapsed = 0f;
         var movementDuration = duration;
 
@@ -120,12 +121,14 @@ public sealed class MapPathFollower : MonoBehaviour
             elapsed += Time.deltaTime;
             var t = Mathf.SmoothStep(0f, 1f, elapsed / movementDuration);
             currentProgress = Mathf.Lerp(startProgress, targetProgress, t);
-            ApplyProgress(currentProgress, false, travelDirection);
+            var curveDirection = GetCurveFacingDirection(currentProgress, startProgress, targetProgress, travelDirection);
+            ApplyProgress(currentProgress, false, curveDirection);
+            travelDirection = curveDirection;
             yield return null;
         }
 
         currentProgress = targetProgress;
-        var finalFacingDirection = GetArrivalFacingDirection(targetProgress, travelDirection);
+        var finalFacingDirection = GetArrivalFacingDirection(targetProgress, startProgress, travelDirection);
         ApplyProgress(currentProgress, false, finalFacingDirection);
         if (turnBeforeMove && lookAtTarget == null && IsStartProgress(targetProgress))
             RotateToward(finalFacingDirection, true);
@@ -213,12 +216,30 @@ public sealed class MapPathFollower : MonoBehaviour
         return direction.normalized;
     }
 
-    private Vector3 GetArrivalFacingDirection(float targetProgress, Vector3 travelDirection)
+    private Vector3 GetArrivalFacingDirection(float targetProgress, float startProgress, Vector3 travelDirection)
     {
         if (lookAtTarget == null && initialFacingDirection.sqrMagnitude > 0.0001f && IsStartProgress(targetProgress))
             return initialFacingDirection.normalized;
 
-        return travelDirection;
+        return GetCurveFacingDirection(targetProgress, startProgress, targetProgress, travelDirection);
+    }
+
+    private Vector3 GetCurveFacingDirection(float progress, float startProgress, float targetProgress, Vector3 fallbackDirection)
+    {
+        var travelSign = targetProgress >= startProgress ? 1f : -1f;
+        var sampleProgress = Mathf.Clamp01(progress + (DirectionLookAhead * travelSign));
+        var direction = path.GetPoint(sampleProgress) - path.GetPoint(progress);
+        if (direction.sqrMagnitude <= 0.0001f)
+        {
+            sampleProgress = Mathf.Clamp01(progress - (DirectionLookAhead * travelSign));
+            direction = path.GetPoint(progress) - path.GetPoint(sampleProgress);
+        }
+
+        if (direction.sqrMagnitude <= 0.0001f)
+            direction = fallbackDirection;
+
+        direction.y = 0f;
+        return direction.sqrMagnitude > 0.0001f ? direction.normalized : fallbackDirection;
     }
 
     private static bool IsStartProgress(float progress)

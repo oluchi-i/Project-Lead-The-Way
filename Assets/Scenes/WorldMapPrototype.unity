@@ -5638,7 +5638,7 @@ MonoBehaviour:
   panelBackground: {fileID: 1830321696}
   titleBackground: {fileID: 1159454774}
   currentCheckpointIndex: 0
-  transitionDuration: 3
+  transitionDuration: 4
   snapFollowersToCurrentCheckpointOnStart: 1
   enforceCameraFollowerAsMainCamera: 1
   levelPlayRequested:

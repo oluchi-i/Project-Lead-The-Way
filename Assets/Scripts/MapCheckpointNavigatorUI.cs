@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public sealed class MapCheckpointNavigatorUI : MonoBehaviour
@@ -55,6 +56,12 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
 
     private void Update()
     {
+        CompleteMoveIfReady();
+        HandleKeyboardNavigation();
+    }
+
+    private void CompleteMoveIfReady()
+    {
         if (!waitingForMove || IsMoving())
             return;
 
@@ -71,6 +78,25 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
         }
 
         Refresh();
+    }
+
+    private void HandleKeyboardNavigation()
+    {
+        var keyboard = Keyboard.current;
+        if (keyboard == null || waitingForMove || IsMoving())
+            return;
+
+        if (keyboard.rightArrowKey.wasPressedThisFrame)
+        {
+            if (!mapStarted && currentCheckpointIndex == 0)
+                StartFirstLevel();
+            else
+                MoveNext();
+        }
+        else if (keyboard.leftArrowKey.wasPressedThisFrame && mapStarted)
+        {
+            MovePrevious();
+        }
     }
 
     public void Configure(
