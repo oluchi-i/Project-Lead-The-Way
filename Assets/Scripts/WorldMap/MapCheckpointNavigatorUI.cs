@@ -191,7 +191,7 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
             yield break;
         }
 
-        Debug.Log("Lead The Way Map: Loading " + targetSceneName + " for " + GetCheckpointText() + ".");
+        Debug.Log("Lead The Way Map: Loading " + targetSceneName + " for " + GetCheckpointDebugText() + ".");
         loadingScene = true;
         Refresh();
 
@@ -294,6 +294,14 @@ public sealed class MapCheckpointNavigatorUI : MonoBehaviour
             label = currentCheckpointIndex == 0 ? "Start" : "Level " + currentCheckpointIndex;
 
         return label.ToUpperInvariant();
+    }
+
+    private string GetCheckpointDebugText()
+    {
+        if (playerPath != null && playerPath.TryGetCheckpoint(currentCheckpointIndex, out var checkpoint))
+            return $"{GetCheckpointText()} ({checkpoint.CheckpointId}, index {currentCheckpointIndex})";
+
+        return $"{GetCheckpointText()} (index {currentCheckpointIndex})";
     }
 
     private string GetCurrentLevelSceneName()

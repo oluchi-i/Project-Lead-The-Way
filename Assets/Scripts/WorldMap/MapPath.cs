@@ -27,22 +27,12 @@ public sealed class MapPath : MonoBehaviour
 
     public bool TryGetCheckpointLabel(int checkpointIndex, out string label)
     {
-        var seenCheckpoints = 0;
-        for (var i = 0; i < transform.childCount; i++)
+        if (TryGetCheckpoint(checkpointIndex, out var checkpoint))
         {
-            var checkpoint = transform.GetChild(i).GetComponent<MapCheckpoint>();
-            if (checkpoint == null)
-                continue;
-
-            if (seenCheckpoints == checkpointIndex)
-            {
-                label = string.IsNullOrWhiteSpace(checkpoint.DisplayName)
-                    ? GetDefaultCheckpointLabel(checkpointIndex)
-                    : checkpoint.DisplayName;
-                return true;
-            }
-
-            seenCheckpoints++;
+            label = string.IsNullOrWhiteSpace(checkpoint.DisplayName)
+                ? GetDefaultCheckpointLabel(checkpointIndex)
+                : checkpoint.DisplayName;
+            return true;
         }
 
         label = string.Empty;
@@ -51,23 +41,32 @@ public sealed class MapPath : MonoBehaviour
 
     public bool TryGetCheckpointLevelSceneName(int checkpointIndex, out string sceneName)
     {
+        if (TryGetCheckpoint(checkpointIndex, out var checkpoint))
+        {
+            sceneName = checkpoint.ResolvedLevelSceneName;
+            return !string.IsNullOrWhiteSpace(sceneName);
+        }
+
+        sceneName = string.Empty;
+        return false;
+    }
+
+    public bool TryGetCheckpoint(int checkpointIndex, out MapCheckpoint checkpoint)
+    {
         var seenCheckpoints = 0;
         for (var i = 0; i < transform.childCount; i++)
         {
-            var checkpoint = transform.GetChild(i).GetComponent<MapCheckpoint>();
+            checkpoint = transform.GetChild(i).GetComponent<MapCheckpoint>();
             if (checkpoint == null)
                 continue;
 
             if (seenCheckpoints == checkpointIndex)
-            {
-                sceneName = checkpoint.LevelSceneName;
-                return !string.IsNullOrWhiteSpace(sceneName);
-            }
+                return true;
 
             seenCheckpoints++;
         }
 
-        sceneName = string.Empty;
+        checkpoint = null;
         return false;
     }
 
