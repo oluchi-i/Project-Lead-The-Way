@@ -63,6 +63,8 @@ cd lead-the-way
 
 In Unity, go to **File → Build Settings**, select your target platform, add the scenes you want included, and click **Build**.
 
+![Lead the Way levels](Docs/images/levels.png)
+
 ## Project Timeline
 
 Development is iterative, prioritizing core mechanics first, then content, polish, and final presentation.
@@ -82,8 +84,6 @@ Work is split across three categories:
 1. **Core Systems**: gameplay logic, AI, interaction systems
 2. **Game Design**: level design, mechanics, pacing, balancing
 3. **UI / Art**: visual style, interface, and asset creation
-
-![Lead the Way levels](Docs/images/levels.png)
 
 ## Contributing
 
