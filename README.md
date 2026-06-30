@@ -4,6 +4,9 @@ Game Development, version control, system updates, and utilities.
 
 > *"True control comes from shaping the environment."*
 
+![Lead the Way banner](Docs/images/ltw.png)
+![Lead the Way levels](Docs/images/levels.png)
+
 A 2D isometric puzzle game built in Unity where you never directly control the hero — you control the world around them.
 
 ![Engine](https://img.shields.io/badge/engine-Unity-black?logo=unity)
