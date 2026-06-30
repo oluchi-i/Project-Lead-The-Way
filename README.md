@@ -69,18 +69,18 @@ Development is iterative, prioritizing core mechanics first, then content, polis
 | Week | Milestone |
 |---|---|
 | 5 | Finalize UI layout, define game feel, plan menus/HUD, lock direction |
-| 6 | Build core mechanics — character AI movement, object interaction & switching, basic level structure |
+| 6 | Build core mechanics - character AI movement, object interaction & switching, basic level structure |
 | 7 | Build out multiple levels, introduce new mechanics gradually, balance difficulty, playtest |
-| 8 | Final polish — visuals, animations, sound, feedback tuning, bug fixing |
-| 9 | Final group presentation — gameplay demo, recorded footage, presentation practice |
+| 8 | Final polish - visuals, animations, sound, feedback tuning, bug fixing |
+| 9 | Final group presentation - gameplay demo, recorded footage, presentation practice |
 
 ## Team / Division of Labor
 
 Work is split across three categories:
 
-1. **Core Systems** — gameplay logic, AI, interaction systems
-2. **Game Design** — level design, mechanics, pacing, balancing
-3. **UI / Art** — visual style, interface, and asset creation
+1. **Core Systems**: gameplay logic, AI, interaction systems
+2. **Game Design**: level design, mechanics, pacing, balancing
+3. **UI / Art**: visual style, interface, and asset creation
 
 ## Contributing
 
