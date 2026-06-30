@@ -20,12 +20,12 @@ This design constraint solves a specific problem in puzzle game design: it force
 
 ## Features
 
-- **Indirect control gameplay** — select and manipulate objects (boxes, switches, hazards, doors) instead of the character
-- **Autonomous character AI** — the protagonist moves and reacts to the environment on its own
-- **Isometric voxel art style** — clean, minimalist, brightly lit block-based world
-- **Object selection & switching system** — cycle between controllable environment objects mid-level
-- **Level management** — load, save, and reset levels with a move counter and win/lose conditions
-- **Audio feedback** — distinct sounds for movement, button presses, object moves, and level completion
+- **Indirect control gameplay**: select and manipulate objects (boxes, switches, hazards, doors) instead of the character
+- **Autonomous character AI**: the protagonist moves and reacts to the environment on its own
+- **Isometric voxel art style**: clean, minimalist, brightly lit block-based world
+- **Object selection & switching system**: cycle between controllable environment objects mid-level
+- **Level management**: load, save, and reset levels with a move counter and win/lose conditions
+- **Audio feedback**: distinct sounds for movement, button presses, object moves, and level completion
 
 ## Tech Stack
 
