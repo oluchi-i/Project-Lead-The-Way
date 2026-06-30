@@ -2,9 +2,9 @@
 Game Development, version control, system updates, and utilities.
 
 ![Lead the Way banner](Docs/images/ltw.png)
-![Lead the Way levels](Docs/images/levels.png)
 
 > *"True control comes from shaping the environment."*
+
 A 2D isometric puzzle game built in Unity where you never directly control the hero — you control the world around them.
 
 ![Engine](https://img.shields.io/badge/engine-Unity-black?logo=unity)
@@ -82,6 +82,8 @@ Work is split across three categories:
 1. **Core Systems**: gameplay logic, AI, interaction systems
 2. **Game Design**: level design, mechanics, pacing, balancing
 3. **UI / Art**: visual style, interface, and asset creation
+
+![Lead the Way levels](Docs/images/levels.png)
 
 ## Contributing
 
